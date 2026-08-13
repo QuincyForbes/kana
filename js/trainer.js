@@ -115,6 +115,32 @@ DATA.forEach(([deck, , rows], si) =>
 KANJI.forEach(([kanji, furi, rom, mean, where], i) =>
   CARDS.push({ id: "k" + i, deck: "Survival kanji", kanji, furi, rom, mean, where, type: "kanji" }));
 
+/* ---- personalization: the intro deck fills in YOUR details --------------
+   Custom boxes can't be romaji-checked, so those cards flip-grade only.   */
+const YOU_KEY = "kanaTrainerYou.v1";
+const YOU = store.get(YOU_KEY) || {};
+(function personalizeIntro() {
+  const fill = (id, pre, post, preR, postR, val, mean) => {
+    const c = CARDS.find((x) => x.id === id);
+    if (!c) return;
+    c.kana = [...pre, val || "○○", ...post];
+    c.rom = [...preR, "", ...postR];
+    c.mean = mean;
+    c.custom = true;
+  };
+  fill("s3r0", ["わ", "た", "し", "は"], ["で", "す"], ["wa", "ta", "shi", "*wa"], ["de", "su"],
+    YOU.name, YOU.name ? `I'm ${YOU.name}` : "I'm ___ — fill in your details in the form above");
+  fill("s3r1", [], ["か", "ら", "き", "ま", "し", "た"], [], ["ka", "ra", "ki", "ma", "shi", "ta"],
+    YOU.country, YOU.country ? `I'm from ${YOU.country}` : "I'm from ___");
+  fill("s3r2", [], ["で", "す"], [], ["de", "su"],
+    YOU.job, YOU.job ? `I'm an ${YOU.job}` : "I'm a ___ (occupation)");
+})();
+
+/* base-46 lookup for cross-links into the guide's chart detail */
+const BASE_LINK = {};
+GOJU.forEach(([, cells]) => cells.forEach((c) => { if (c) { BASE_LINK[c[0]] = c[2]; BASE_LINK[c[1]] = c[2]; } }));
+BASE_LINK["を"] = BASE_LINK["ヲ"] = "wo"; /* the guide keys the particle as wo */
+
 const DECK_ORDER = [
   "Hiragana", "Katakana", "Hiragana combos", "Katakana combos",
   ...DATA.map((d) => d[0]), "Survival kanji",
@@ -188,15 +214,22 @@ function checkTyped(input, card) {
 const StudyView = (() => {
   const modLabel = (k) => (k === "ー" ? "(long)" : "(stop)");
   const SEC_KEY = "kanaTrainerStudySec.v1";
+  const SEEN_KEY = "kanaTrainerSeenSec.v1";
   const sections = []; /* {id, label, group} in reading order */
   let sec = "all";
+  const seenSec = store.get(SEEN_KEY) || {};
 
   const phraseRow = (c) => {
     const cells = c.kana.map((k, i) => {
       let r = c.rom[i] || "", cls = "";
       if (r.startsWith("*")) { cls = " p"; r = r.slice(1); }
       else if (r === "~") { cls = " m"; r = modLabel(k); }
-      return `<div class="c${cls}"><div class="k">${esc(k)}</div><div class="r">${esc(r)}</div></div>`;
+      if (k.length > 1) cls += " wide"; /* personalized fill-in boxes */
+      const inner = `<div class="k">${esc(k)}</div><div class="r">${esc(r)}</div>`;
+      /* base-46 boxes link to that character's guide entry */
+      return BASE_LINK[k]
+        ? `<a class="c${cls}" href="guide.html#c=${BASE_LINK[k]}" title="${esc(k)} in the guide">${inner}</a>`
+        : `<div class="c${cls}">${inner}</div>`;
     }).join("");
     const key = `${c.kana.join("")} ${spokenRom(c)} ${c.mean}`.toLowerCase();
     return `<div class="row" data-k="${esc(key)}">
@@ -227,10 +260,13 @@ const StudyView = (() => {
     return `<div class="chartwrap"><table class="chart${script === "both" ? "" : " solo"}"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   };
 
-  const section = (id, n, jp, en, body, filterable = false) =>
-    `<section id="${id}"${filterable ? " data-filterable" : ""}>
-      <div class="shead"><span class="n">${n}</span><h2>${jp}</h2><span class="en">${en}</span></div>${body}
+  const section = (id, n, jp, en, body, filterable = false) => {
+    const playall = filterable && id !== "kanji"
+      ? `<button class="playall" data-playall="${id}" title="Play the whole section" aria-label="Play section">▶</button>` : "";
+    return `<section id="${id}"${filterable ? " data-filterable" : ""}>
+      <div class="shead"><span class="n">${n}</span><h2>${jp}</h2>${playall}<span class="en">${en}</span></div>${body}
     </section>`;
+  };
 
   function render() {
     let out = "", charts = "", nav = "", n = 0;
@@ -241,7 +277,15 @@ const StudyView = (() => {
       const nn = num(), id = "s" + n;
       sections.push({ id, label: title, group: "Phrases" });
       nav += `<a href="#${id}">${nn} ${esc(title)}</a>`;
-      out += section(id, nn, jp, `${esc(title)} · ${rows.length}`, rows.map(phraseRow).join(""), true);
+      const youForm = title === "Introducing yourself" ? `
+        <div class="youform">
+          <p>Make these phrases yours — the ○○ boxes fill in with your details:</p>
+          <label>name (katakana) <input id="you-name" value="${esc(YOU.name || "")}" placeholder="サム"></label>
+          <label>country <input id="you-country" value="${esc(YOU.country || "")}" placeholder="カナダ"></label>
+          <label>occupation <input id="you-job" value="${esc(YOU.job || "")}" placeholder="エンジニア"></label>
+          <button id="you-save">Save</button>
+        </div>` : "";
+      out += section(id, nn, jp, `${esc(title)} · ${rows.length}`, youForm + rows.map(phraseRow).join(""), true);
     });
 
     {
@@ -351,13 +395,26 @@ const StudyView = (() => {
       }
     }
 
+    function tickLabels() {
+      [...$("qsec").options].forEach((o) => {
+        if (o.value !== "all") {
+          const s = sections.find((x) => x.id === o.value);
+          if (s) o.textContent = (seenSec[o.value] ? "✓ " : "") + s.label;
+        }
+      });
+    }
+
     function setSec(id) {
       sec = sections.some((s) => s.id === id) ? id : "all";
       store.set(SEC_KEY, sec);
+      if (sec !== "all" && !seenSec[sec]) { seenSec[sec] = 1; store.set(SEEN_KEY, seenSec); }
+      tickLabels();
       $("qsec").value = sec;
       apply();
       window.scrollTo({ top: 0 });
+      syncHash(); /* hoisted from the tabs section */
     }
+    api.go = setSec;
 
     /* build the dropdown: All, then optgroups in reading order */
     const groups = [...new Set(sections.map((s) => s.group))];
@@ -385,11 +442,75 @@ const StudyView = (() => {
 
     on("q", "input", apply);
 
+    /* personalization form */
+    const save = $("you-save");
+    if (save) save.onclick = () => {
+      store.set(YOU_KEY, {
+        name: $("you-name").value.trim(),
+        country: $("you-country").value.trim(),
+        job: $("you-job").value.trim(),
+      });
+      location.reload(); /* cards and rows rebuild from the new values */
+    };
+
+    /* play a whole section in sequence */
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-playall]");
+      if (!b) return;
+      const texts = [...document.querySelectorAll(`#${b.dataset.playall} .row:not([hidden]) .spk`)]
+        .map((s) => s.dataset.say);
+      Player.toggle(texts, b);
+    });
+
     setSec(store.get(SEC_KEY) || "all"); /* returning users land where they left off */
   }
 
-  return { render, wire };
+  const api = { render, wire, current: () => sec };
+  return api;
 })();
+
+/* ------------------------- sequential player ----------------------------- */
+const Player = {
+  btn: null, cur: null, abort: false,
+  stop() {
+    this.abort = true;
+    try { this.cur?.pause(); } catch {}
+    try { speechSynthesis.cancel(); } catch {}
+    this.btn?.classList.remove("on");
+    this.btn = null;
+  },
+  one(t) {
+    return new Promise((res) => {
+      const a = new Audio("audio/ja/" + encodeURIComponent(t) + ".mp3");
+      this.cur = a;
+      a.onended = res;
+      const fallback = () => {
+        if (!("speechSynthesis" in window)) return res();
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = "ja-JP"; u.rate = 0.85; u.onend = res; u.onerror = res;
+        speechSynthesis.speak(u);
+      };
+      a.onerror = fallback;
+      a.play().catch(fallback);
+    });
+  },
+  async toggle(texts, btn) {
+    if (this.btn === btn) return this.stop();
+    this.stop();
+    this.abort = false;
+    this.btn = btn;
+    btn.classList.add("on");
+    btn.textContent = "■";
+    for (const t of texts) {
+      if (this.abort) break;
+      await this.one(t);
+      if (!this.abort) await new Promise((r) => setTimeout(r, 500));
+    }
+    btn.classList.remove("on");
+    btn.textContent = "▶";
+    if (this.btn === btn) this.btn = null;
+  },
+};
 
 /* --------------------------- SRS scheduler ------------------------------- */
 const Srs = (() => {
@@ -564,7 +685,8 @@ const Quiz = (() => {
     if (!session.revealed) {
       const replay = listening()
         ? `<div class="qbtns"><button class="qb ghost" id="bReplay">🔊 play again</button></div>` : "";
-      return typedApplies()
+      /* personalized cards have no fixed romaji — flip-grade them */
+      return typedApplies() && !session.current.custom
         ? `${replay}<div class="qbtns"><input id="qtype" autocomplete="off" autocapitalize="off" spellcheck="false"
              placeholder="${listening() ? "type what you hear" : "type the romaji, enter to check"}"></div>
            <div class="qbtns"><button class="qb ghost" id="bShow">Give up — show it</button></div>`
@@ -813,21 +935,47 @@ const Progress = (() => {
 })();
 
 /* ------------------------------- Tabs ------------------------------------ */
+let currentMode = "study";
+function syncHash() {
+  const sec = StudyView.current();
+  const h = currentMode === "study" ? "study" + (sec !== "all" ? "/" + sec : "") : currentMode;
+  history.replaceState(null, "", "#" + h);
+}
 function setMode(mode) {
+  currentMode = mode;
   document.body.className = document.body.className.replace(/mode-\w+/g, "").trim();
   document.body.classList.add("mode-" + mode);
   document.querySelectorAll(".tab").forEach((t) =>
     t.setAttribute("aria-selected", String(t.dataset.mode === mode)));
   if (mode === "quiz") Quiz.start();
   if (mode === "progress") Progress.render();
+  Player.stop();
+  syncHash();
 }
 
 /* ------------------------------- Init ------------------------------------ */
+/* #quiz, #progress, #study/s5 — read before wiring, which rewrites the hash */
+const [hashMode, hashSec] = location.hash.slice(1).split("/");
 StudyView.render();
 StudyView.wire();
 Quiz.wire();
 document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setMode(t.dataset.mode)));
-setMode("study");
+if (hashSec) StudyView.go(hashSec);
+setMode(["study", "quiz", "progress"].includes(hashMode) ? hashMode : "study");
+window.addEventListener("hashchange", () => {
+  const [m, s] = location.hash.slice(1).split("/");
+  if (["study", "quiz", "progress"].includes(m) && m !== currentMode) setMode(m);
+  if (m === "study" && s && s !== StudyView.current()) StudyView.go(s);
+});
+
+/* first-visit pointer */
+if (!store.get("kanaTrainerHello.v1") && !Object.keys(Srs.all()).length) {
+  const hello = $("hello");
+  if (hello) {
+    hello.hidden = false;
+    $("hello-x").onclick = () => { store.set("kanaTrainerHello.v1", 1); hello.hidden = true; };
+  }
+}
 
 if (!store.ok) {
   const warn = document.createElement("p");

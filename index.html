@@ -40,6 +40,14 @@ a.card.g .kana{color:var(--hira)}
 a.card.t .kana{color:var(--kata)}
 .foot{font-size:13px;color:var(--ink-soft);margin:18px 2px 0}
 .foot a{color:var(--hira)}
+.mystats{margin:14px 2px 0;padding:12px 16px;border:1px solid var(--rule);background:var(--cell);
+  font-size:14px;color:var(--ink-soft)}
+.mystats b{color:var(--ink);font-weight:600}
+.mystats a{color:var(--shu);text-decoration:none;font-weight:500}
+@media (prefers-color-scheme: dark){
+  :root{--paper:#141814;--cell:#1C221D;--rule:#3C4A40;--rule-faint:#222922;
+    --ink:#E7ECE7;--ink-soft:#98A59B;--hira:#82C4A0;--kata:#93B4E4;--shu:#E37A62}
+}
 </style>
 </head>
 <body>
@@ -57,6 +65,28 @@ a.card.t .kana{color:var(--kata)}
     <p>Real phrases split one kana per box, survival kanji, and a spaced-repetition quiz that tracks every character separately. Progress saves in the browser.</p>
   </a>
   <p class="foot"><a href="mnemonics.html">Printable mnemonic sheet</a> — all 92 characters with their memory hooks, formatted for paper.</p>
+  <div class="mystats" id="mystats" hidden></div>
 </div>
+<script>
+/* your progress at a glance (same-browser localStorage as the trainer) */
+try {
+  const prog = JSON.parse(localStorage.getItem("kanaTrainerProgress.v1") || "{}");
+  const days = JSON.parse(localStorage.getItem("kanaTrainerDays.v1") || "{}");
+  const recs = Object.values(prog);
+  if (recs.length) {
+    const now = Date.now();
+    const known = recs.filter(p => p.b >= 4).length;
+    const due = recs.filter(p => p.d <= now).length;
+    const ymd = (back) => { const d = new Date(); d.setDate(d.getDate() - back);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    let streak = 0, i = days[ymd(0)] ? 0 : 1;
+    while (days[ymd(i)]) { streak++; i++; }
+    const el = document.getElementById("mystats");
+    el.innerHTML = `<b>${known}</b> known · <b>${due}</b> due now · <b>${streak}</b>-day streak — ` +
+      (due ? `<a href="trainer.html#quiz">review now →</a>` : `<a href="trainer.html#quiz">keep going →</a>`);
+    el.hidden = false;
+  }
+} catch {}
+</script>
 </body>
 </html>

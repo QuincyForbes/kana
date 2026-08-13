@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=3">
+<link rel="stylesheet" href="css/trainer.css?v=4">
 </head>
 <body>
 <div class="wrap">
@@ -36,6 +36,11 @@
       <p>Every phrase split into single kana so you can see which character makes which sound. Study here, then flip to Quiz — it tracks every character, phrase and kanji separately and brings back what you miss.</p>
       <nav class="idx" id="idx"></nav>
     </header>
+
+    <div class="hello" id="hello" hidden>
+      <b>New here?</b> ① Pick a section in the dropdown and study it out loud → ② flip to <b>Quiz</b> — it schedules reviews and brings back what you miss → ③ <b>Progress</b> shows what stuck. Tap any 🔊 for audio.
+      <button id="hello-x">got it</button>
+    </div>
 
     <div class="rules">
       <h2>Seven times the chart lies to you</h2>
@@ -105,7 +110,7 @@
     <div class="plegend">
       <span><i style="background:var(--rule)"></i>known — survived the 21-day gap</span>
       <span><i style="background:#D9A441"></i>learning</span>
-      <span><i style="background:#EDEAE0"></i>not seen yet</span>
+      <span><i style="background:var(--unseen)"></i>not seen yet</span>
     </div>
     <div id="pbars"></div>
     <div class="plists">
@@ -115,7 +120,7 @@
   </div>
 </div>
 
-<script src="js/trainer-data.js?v=3"></script>
-<script src="js/trainer.js?v=3"></script>
+<script src="js/trainer-data.js?v=4"></script>
+<script src="js/trainer.js?v=4"></script>
 </body>
 </html>

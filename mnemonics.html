@@ -39,6 +39,14 @@ td.m{font-size:13px;width:38%}
 td.m strong{font-weight:500;box-shadow:inset 0 -6px 0 rgba(191,214,196,.55)}
 tr{break-inside:avoid}
 
+@media (prefers-color-scheme: dark){
+  :root{--paper:#141814;--rule:#3C4A40;--ink:#E7ECE7;--ink-soft:#98A59B;
+    --hira:#82C4A0;--kata:#93B4E4;--shu:#E37A62}
+  td{border-bottom-color:#2A332C}
+  .printbtn{background:#1C221D;color:var(--ink);border-color:var(--rule)}
+  td.m strong{box-shadow:inset 0 -6px 0 rgba(63,107,84,.55)}
+}
+
 @media print{
   body{background:#fff;font-size:12px}
   .wrap{max-width:none;padding:0}
@@ -67,7 +75,7 @@ tr{break-inside:avoid}
   <tbody></tbody>
 </table>
 </div>
-<script src="js/guide-data.js?v=3"></script>
+<script src="js/guide-data.js?v=4"></script>
 <script>
 const NAMES = {'—':'Vowels','K':'K row','S':'S row','T':'T row','N':'N row','H':'H row',
                'M':'M row','Y':'Y row','R':'R row','W':'W row'};

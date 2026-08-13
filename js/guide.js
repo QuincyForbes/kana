@@ -283,4 +283,16 @@ document.querySelectorAll('[data-scope]').forEach(b=>b.setAttribute('aria-presse
 document.querySelectorAll('[data-dir]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dir===dir)));
 updateScore();
 
-buildGrid(); renderDetail(); nextQ(false);
+/* deep link from the trainer: guide.html#c=<romaji> opens that character */
+function applyCharHash(){
+  const m = location.hash.match(/^#c=([a-z]+)/);
+  if(!m) return;
+  const f = flat.find(x => x.r === m[1]);
+  if(!f) return;
+  current = f;
+  buildGrid(); renderDetail();
+  document.getElementById('chart').scrollIntoView();
+}
+window.addEventListener('hashchange', applyCharHash);
+
+buildGrid(); renderDetail(); nextQ(false); applyCharHash();
