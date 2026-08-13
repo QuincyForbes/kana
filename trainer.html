@@ -1,12 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kana Trainer</title>
+<meta name="description" content="Kana trainer: survival phrases split one kana per box, survival kanji, and a spaced-repetition quiz with audio. Progress saves in your browser.">
+<meta property="og:title" content="Kana Trainer">
+<meta property="og:description" content="Phrases one kana per box, survival kanji, and a spaced-repetition quiz with neural-TTS audio.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="css/trainer.css">
-
+<link rel="stylesheet" href="css/trainer.css?v=3">
+</head>
+<body>
 <div class="wrap">
 
   <div class="bar" id="bar">
@@ -79,7 +86,7 @@
       <label><input type="checkbox" id="qspeak" checked> speak on reveal</label>
     </div>
 
-    <div id="qarea"></div>
+    <div id="qarea" aria-live="polite"></div>
     <p class="kbd"><kbd>space</kbd>/<kbd>enter</kbd> reveal · check &nbsp; <kbd>1</kbd> again &nbsp; <kbd>2</kbd> got it &nbsp; <kbd>s</kbd> speak</p>
 
     <div class="qman">
@@ -105,5 +112,7 @@
   </div>
 </div>
 
-<script src="js/trainer-data.js"></script>
-<script src="js/trainer.js"></script>
+<script src="js/trainer-data.js?v=3"></script>
+<script src="js/trainer.js?v=3"></script>
+</body>
+</html>

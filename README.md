@@ -29,6 +29,17 @@ No build step — plain files, edit and reload.
 
 To regenerate or add clips: put the texts in a JSON array and run `edge-tts --voice ja-JP-NanamiNeural --rate=-10% --text <text> --write-media audio/ja/<text>.mp3` per entry.
 
+## localStorage keys
+
+| Key | Holds |
+|---|---|
+| `kanaTrainerProgress.v1` | SRS record per card id: `{b: box, d: due-ms, s: seen, l: lapses}` |
+| `kanaTrainerSettings.v1` | quiz settings (deck, direction, mode, new/session, speak) |
+| `kanaTrainerStudySec.v1` | last selected study section |
+| `kanaGuideDrill.v1` | guide drill score + scope/direction |
+
+Bump the `.v1` suffix and migrate in code if a schema ever changes shape. Asset URLs carry a `?v=N` query — bump it in the HTML files when shipping breaking JS/CSS changes so cached pages don't mix versions.
+
 ## Notes
 
 - Web fonts load from Google Fonts when online; both pages fall back to system Japanese fonts offline.

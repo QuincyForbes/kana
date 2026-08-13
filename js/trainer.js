@@ -209,7 +209,7 @@ const StudyView = (() => {
       }).join("");
       return `<tr><th>${label}</th>${tds}</tr>`;
     }).join("");
-    return `<table class="chart${script === "both" ? "" : " solo"}"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<div class="chartwrap"><table class="chart${script === "both" ? "" : " solo"}"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   };
 
   const section = (id, n, jp, en, body, filterable = false) =>
@@ -245,9 +245,9 @@ const StudyView = (() => {
     const V = ["a", "i", "u", "e", "o"], Y = ["ya", "yu", "yo"];
     const sub = (t) => `<h3 class="subhead">${t}</h3>`;
     const extraTable =
-      `<table class="chart solo"><tbody><tr>${EXTRA.map(([k, r], i) =>
+      `<div class="chartwrap"><table class="chart solo"><tbody><tr>${EXTRA.map(([k, r], i) =>
         `<td><div class="pair">${k}</div><div class="rom">${r}</div></td>` + ((i + 1) % 8 === 0 ? "</tr><tr>" : "")
-      ).join("")}</tr></tbody></table>`;
+      ).join("")}</tr></tbody></table></div>`;
     [
       ["hira", "Kana", "ひらがな", "Hiragana — the full syllabary",
         sub("Base — 46 characters") + chartTable(GOJU, V, "h")

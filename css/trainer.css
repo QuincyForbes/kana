@@ -93,7 +93,8 @@
   body.no-m .kjcard .en{visibility:hidden}
   .kjcard .whr{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 
-  .chart{border-collapse:collapse;width:100%;margin-top:4px;break-inside:avoid}
+  .chartwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart{border-collapse:collapse;width:100%;min-width:420px;margin-top:4px;break-inside:avoid}
   .chart td,.chart th{border:1px solid var(--grid);padding:0;text-align:center}
   .chart th{font:500 11px/1 var(--mono);color:var(--rule);background:#EEF2ED;width:34px}
   .chart thead th{padding:7px 0}
