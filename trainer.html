@@ -110,6 +110,10 @@
   .chart .rom{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
   .chart td.odd .rom{color:var(--shu);font-weight:500}
   .chart td.nil{background:#F1F0EA}
+  .chart.solo .pair{font-size:25px}
+  .chart.solo td{padding:9px 2px}
+  .subhead{font-family:var(--mincho);font-size:14px;font-weight:700;color:var(--rule);margin:20px 0 6px}
+  .subhead:first-child{margin-top:0}
   .legend{font-size:12.5px;color:var(--muted);margin:10px 0 0}
   .legend b{color:var(--shu);font-weight:500}
   .dim{opacity:.35}
@@ -757,15 +761,18 @@ const StudyView = (() => {
     </div></div>`;
   };
 
-  const chartTable = (rows, heads) => {
+  /* script: "both" = hiragana·katakana pairs, "h"/"k" = one script, larger glyphs */
+  const chartTable = (rows, heads, script = "both") => {
     const head = heads.map((h) => `<th>${h}</th>`).join("");
     const body = rows.map(([label, cells]) => {
-      const tds = cells.map((c) => c
-        ? `<td class="${c[3] ? "odd" : ""}"><div class="pair">${c[0]} ${c[1]}</div><div class="rom">${c[2]}</div></td>`
-        : `<td class="nil"></td>`).join("");
+      const tds = cells.map((c) => {
+        if (!c) return `<td class="nil"></td>`;
+        const glyphs = script === "both" ? `${c[0]} ${c[1]}` : script === "h" ? c[0] : c[1];
+        return `<td class="${c[3] ? "odd" : ""}"><div class="pair">${glyphs}</div><div class="rom">${c[2]}</div></td>`;
+      }).join("");
       return `<tr><th>${label}</th>${tds}</tr>`;
     }).join("");
-    return `<table class="chart"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<table class="chart${script === "both" ? "" : " solo"}"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
   const section = (id, n, jp, en, body, filterable = false) =>
@@ -798,21 +805,35 @@ const StudyView = (() => {
          on purpose.</p>`, true);
     }
 
+    const V = ["a", "i", "u", "e", "o"], Y = ["ya", "yu", "yo"];
+    const sub = (t) => `<h3 class="subhead">${t}</h3>`;
+    const extraTable =
+      `<table class="chart solo"><tbody><tr>${EXTRA.map(([k, r], i) =>
+        `<td><div class="pair">${k}</div><div class="rom">${r}</div></td>` + ((i + 1) % 8 === 0 ? "</tr><tr>" : "")
+      ).join("")}</tr></tbody></table>`;
     [
-      ["ごじゅうおん", "Base chart — hiragana / katakana", chartTable(GOJU, ["a", "i", "u", "e", "o"]),
+      ["hira", "Kana", "ひらがな", "Hiragana — the full syllabary",
+        sub("Base — 46 characters") + chartTable(GOJU, V, "h")
+        + sub("Voiced — add ゛or ゜") + chartTable(DAKU, V, "h")
+        + sub("Combos — kana + small ゃゅょ") + chartTable(YOON, Y, "h"),
+        "Hiragana only — native words and all the grammar. Red romaji breaks the row pattern — say it as written."],
+      ["kata", "Kana", "カタカナ", "Katakana — the full syllabary",
+        sub("Base — 46 characters") + chartTable(GOJU, V, "k")
+        + sub("Voiced — add ゛or ゜") + chartTable(DAKU, V, "k")
+        + sub("Combos — kana + small ャュョ") + chartTable(YOON, Y, "k")
+        + sub("Foreign sounds — katakana only") + extraTable,
+        "Katakana only — loanwords, menus, brand names. The foreign-sound rows exist only in this script."],
+      ["c1", "Kana charts — both scripts", "ごじゅうおん", "Base chart — hiragana / katakana", chartTable(GOJU, V),
         "Each cell reads <b>hiragana · katakana · romaji</b>. Red values break the row pattern — say them as written."],
-      ["だくおん", "Voiced — add ゛or ゜", chartTable(DAKU, ["a", "i", "u", "e", "o"]),
+      ["c2", "Kana charts — both scripts", "だくおん", "Voiced — add ゛or ゜", chartTable(DAKU, V),
         "Two ticks turn か into が. A small circle turns は into ぱ. Same shape, new sound."],
-      ["ようおん", "Combos — kana + small ゃゅょ", chartTable(YOON, ["ya", "yu", "yo"]),
+      ["c3", "Kana charts — both scripts", "ようおん", "Combos — kana + small ゃゅょ", chartTable(YOON, Y),
         "The small kana rides on the <b>i</b>-row character before it. き + ゃ is one beat, not two."],
-      ["がいらいおん", "Katakana-only — foreign sounds",
-        `<table class="chart"><tbody><tr>${EXTRA.map(([k, r], i) =>
-          `<td><div class="pair">${k}</div><div class="rom">${r}</div></td>` + ((i + 1) % 8 === 0 ? "</tr><tr>" : "")
-        ).join("")}</tr></tbody></table>`,
+      ["c4", "Kana charts — both scripts", "がいらいおん", "Katakana-only — foreign sounds", extraTable,
         "Built for sounds Japanese didn't originally have. Constant in menus, brand names and tech."],
-    ].forEach(([jp, en, table, legend], i) => {
-      const nn = num(), id = "c" + (i + 1);
-      sections.push({ id, label: en.split(" — ")[0], group: "Kana charts" });
+    ].forEach(([id, group, jp, en, table, legend]) => {
+      const nn = num();
+      sections.push({ id, label: en.split(" — ")[0], group });
       nav += `<a href="#${id}">${nn} ${en.split(" — ")[0]}</a>`;
       charts += section(id, nn, jp, en, `${table}<p class="legend">${legend}</p>`);
     });
