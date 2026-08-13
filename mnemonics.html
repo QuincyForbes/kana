@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>かな mnemonic sheet — printable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F3EE; --rule:#AFC0B2; --ink:#1B221E; --ink-soft:#67716B;
+  --hira:#3F6B54; --kata:#2C4770; --shu:#BE3A22;
+  --display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:8px}
+h1{font-family:var(--display);font-weight:900;font-size:26px;margin:0}
+header .sub{color:var(--ink-soft);font-size:13px}
+header a{margin-left:auto;color:var(--hira);font-size:13px}
+.printbtn{border:1px solid var(--ink);background:#fff;font-family:var(--body);font-size:13px;padding:7px 14px;cursor:pointer}
+.legend{font-size:12.5px;color:var(--ink-soft);margin:10px 0 18px}
+.legend b.h{color:var(--hira)} .legend b.k{color:var(--kata)}
+
+table{border-collapse:collapse;width:100%}
+thead th{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
+  text-align:left;padding:6px 8px;border-bottom:1px solid var(--ink)}
+tbody th.rowgroup{font-family:var(--display);font-size:13px;color:var(--shu);text-align:left;
+  padding:14px 8px 4px;border-bottom:1px solid var(--rule);letter-spacing:.08em}
+td{padding:7px 8px;border-bottom:1px solid #DDE4DD;vertical-align:middle}
+td.g{font-family:var(--body);font-size:26px;line-height:1;white-space:nowrap;width:1%}
+td.g .h{color:var(--hira)} td.g .k{color:var(--kata);margin-left:10px}
+td.r{font-family:var(--display);font-weight:600;font-size:16px;width:1%;padding-right:14px}
+td.r small{display:block;font-family:var(--body);font-weight:400;font-size:10.5px;color:var(--ink-soft);max-width:20ch}
+td.m{font-size:13px;width:38%}
+td.m strong{font-weight:500;box-shadow:inset 0 -6px 0 rgba(191,214,196,.55)}
+tr{break-inside:avoid}
+
+@media print{
+  body{background:#fff;font-size:12px}
+  .wrap{max-width:none;padding:0}
+  .printbtn,header a{display:none}
+  h1{font-size:20px}
+  td.g{font-size:21px}
+  td.m{font-size:11px}
+  td{padding:5px 6px}
+  td.m strong{box-shadow:none;text-decoration:underline}
+  thead{display:table-header-group}
+  @page{margin:12mm}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Kana mnemonic sheet</h1>
+  <span class="sub">46 sounds · both scripts · one picture each</span>
+  <a href="guide.html">← back to the guide</a>
+  <button class="printbtn" onclick="window.print()">Print</button>
+</header>
+<p class="legend"><b class="h">Green</b> is hiragana, <b class="k">blue</b> is katakana. The highlighted word is the picture to hang the shape on — read the row, close your eyes, redraw the shape from the picture.</p>
+<table id="sheet">
+  <thead><tr><th>Kana</th><th>Romaji</th><th>Hiragana mnemonic</th><th>Katakana mnemonic</th></tr></thead>
+  <tbody></tbody>
+</table>
+</div>
+<script src="js/guide-data.js"></script>
+<script>
+const NAMES = {'—':'Vowels','K':'K row','S':'S row','T':'T row','N':'N row','H':'H row',
+               'M':'M row','Y':'Y row','R':'R row','W':'W row'};
+let html = '', lastLabel = '';
+K.forEach((row, ri) => {
+  /* the final ん row shares the letter N with the na-row — label it distinctly */
+  const label = ri === K.length - 1 ? 'ん — the lone consonant' : (NAMES[row.r] || row.r);
+  if (label !== lastLabel) {
+    html += `<tr><th class="rowgroup" colspan="4">${label}</th></tr>`;
+    lastLabel = label;
+  }
+  row.c.forEach(c => {
+    if (!c) return;
+    html += `<tr>
+      <td class="g"><span class="h">${c.h}</span><span class="k">${c.k}</span></td>
+      <td class="r">${c.r}${c.s ? `<small>${c.s}</small>` : ''}</td>
+      <td class="m">${c.mh}</td>
+      <td class="m">${c.mk}</td>
+    </tr>`;
+  });
+});
+document.querySelector('#sheet tbody').innerHTML = html;
+</script>
+</body>
+</html>
