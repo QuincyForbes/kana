@@ -8,15 +8,18 @@
 
 /* ------------------------------ Config ---------------------------------- */
 const CONFIG = {
-  /* Leitner boxes 0–4. A hit promotes one box; a miss resets to box 0.     */
-  intervals: [10 * 60e3, 864e5, 3 * 864e5, 7 * 864e5, 21 * 864e5],
+  /* Leitner boxes 0–5. A hit promotes one box; a miss resets to box 0.     */
+  intervals: [10 * 60e3, 864e5, 3 * 864e5, 7 * 864e5, 21 * 864e5, 45 * 864e5],
   againDelay: 2 * 60e3,     /* a missed card is due again in 2 minutes      */
   requeueGap: 3,            /* …and resurfaces this many cards later        */
-  knownBox: 4,              /* box that counts as "learned" (survived 7 d)  */
+  knownBox: 4,              /* box that counts as "learned" (survived 21 d) */
   interleaveEvery: 3,       /* new cards are spliced in every N due cards   */
   progressKey: "kanaTrainerProgress.v1",
   settingsKey: "kanaTrainerSettings.v1",
+  daysKey: "kanaTrainerDays.v1",
 };
+const ymd = (d = new Date()) =>
+  d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 
 /* ------------------------------ Utils ----------------------------------- */
 const $ = (id) => document.getElementById(id);
@@ -162,8 +165,20 @@ const pre = (s) => String(s).toLowerCase()
 const collapse = (s) => s.replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
 const aliasize = (s) => s.replace(ALIAS_RX, (m) => ALIAS_MAP[m]);
 
+/* Kana input (IME) is also accepted: katakana folds to hiragana on both
+   sides, so typing こんにちは or コンニチハ both match. Kanji cards accept
+   the kanji itself or its furigana. */
+const kataToHira = (s) => s.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+const kanaNorm = (s) => kataToHira(String(s).replace(/[\s・、。・]/g, ""));
+const expectedKana = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.char);
+
 function checkTyped(input, card) {
-  const inP = pre(input);
+  const raw = String(input).trim();
+  if (/[぀-ヿ一-鿿]/.test(raw)) {
+    if (card.type === "kanji" && raw.replace(/\s/g, "") === card.kanji) return true;
+    return kanaNorm(raw) === kanaNorm(expectedKana(card));
+  }
+  const inP = pre(raw);
   if (!inP) return false;
   const ans = collapse(pre(answerRom(card)));
   return collapse(inP) === ans || collapse(aliasize(inP)) === ans;
@@ -389,7 +404,7 @@ const Srs = (() => {
     const p = prog[card.id] || { b: 0, d: 0, s: 0, l: 0 };
     p.s++;
     if (good) {
-      p.b = Math.min(p.b + 1, CONFIG.knownBox);
+      p.b = Math.min(p.b + 1, CONFIG.intervals.length - 1);
       p.d = now + CONFIG.intervals[p.b];
     } else {
       p.l++;
@@ -398,11 +413,21 @@ const Srs = (() => {
     }
     prog[card.id] = p;
     save();
+    const days = store.get(CONFIG.daysKey) || {};
+    days[ymd()] = (days[ymd()] || 0) + 1;
+    store.set(CONFIG.daysKey, days);
     return !good;
   }
 
+  /* undo support: put a card's record back exactly as it was (null = unseen) */
+  function restore(id, rec) {
+    if (rec) prog[id] = rec; else delete prog[id];
+    save();
+  }
+
   return {
-    record, isKnown, grade,
+    record, isKnown, grade, restore,
+    days: () => store.get(CONFIG.daysKey) || {},
     all: () => prog,
     replace(next) { prog = next || {}; save(); },
     reset() { prog = {}; save(); },
@@ -413,13 +438,17 @@ const Srs = (() => {
 const Quiz = (() => {
   const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true };
   const settings = Object.assign({}, DEFAULTS, store.get(CONFIG.settingsKey) || {});
-  const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null, reviewed: 0, newIntroduced: 0 };
+  const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null,
+                    reviewed: 0, newIntroduced: 0, missed: [], customPending: false };
+  let undoState = null;
 
   const deckCards = () =>
     settings.deck === "All decks" ? CARDS : CARDS.filter((c) => c.deck === settings.deck);
   const pickFace = () =>
-    settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
-  const typedApplies = () => settings.mode === "type" && session.face === "jp";
+    settings.mode === "listen" ? "jp"
+    : settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
+  const listening = () => settings.mode === "listen" && session.face === "jp";
+  const typedApplies = () => (settings.mode === "type" || settings.mode === "listen") && session.face === "jp";
 
   function saveSettings() {
     settings.deck = $("qdeck").value;
@@ -434,7 +463,8 @@ const Quiz = (() => {
     const now = Date.now(), cards = deckCards();
     const due = shuffle(cards.filter((c) => Srs.record(c.id)?.d <= now));
     const budget = Math.max(0, settings.newn - session.newIntroduced);
-    const fresh = shuffle(cards.filter((c) => !Srs.record(c.id))).slice(0, budget);
+    /* new cards arrive in pedagogical order (chart/deck order), not shuffled */
+    const fresh = cards.filter((c) => !Srs.record(c.id)).slice(0, budget);
     session.queue = [...due];
     fresh.forEach((c, i) =>
       session.queue.splice(Math.min(session.queue.length, (i + 1) * CONFIG.interleaveEvery), 0, c));
@@ -457,10 +487,33 @@ const Quiz = (() => {
 
   function grade(good) {
     const c = session.current;
+    undoState = {
+      card: c,
+      prevProg: Srs.record(c.id) ? JSON.parse(JSON.stringify(Srs.record(c.id))) : null,
+      queue: [...session.queue],
+      reviewed: session.reviewed,
+      newIntroduced: session.newIntroduced,
+    };
+    if (!good) session.missed.push(c);
     if (Srs.grade(c, good))
       session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
     session.reviewed++;
     next();
+  }
+
+  function undo() {
+    if (!undoState) return;
+    Srs.restore(undoState.card.id, undoState.prevProg);
+    session.queue = undoState.queue;
+    session.current = undoState.card;
+    session.face = pickFace();
+    session.revealed = false;
+    session.verdict = null;
+    session.reviewed = undoState.reviewed;
+    session.newIntroduced = undoState.newIntroduced;
+    if (session.missed[session.missed.length - 1]?.id === undoState.card.id) session.missed.pop();
+    undoState = null;
+    render();
   }
 
   /* ---- rendering ---- */
@@ -488,28 +541,34 @@ const Quiz = (() => {
   const romBlock = (t, hide) => `<p class="qrom${hide ? " qhide" : ""}">${t}</p>`;
 
   function faceHTML(c, face) {
-    const jpFirst = face === "jp";
+    /* hideQ hides the Japanese side, hideA the answer side. In listen mode
+       everything is hidden until reveal — the audio IS the prompt. */
+    const listen = listening();
+    const hideQ = listen || face !== "jp";
+    const hideA = listen || face === "jp";
     if (c.type === "char")
-      return kanaBlock(esc(c.char), true, !jpFirst) + romBlock(esc(c.rom), jpFirst);
+      return kanaBlock(esc(c.char), true, hideQ) + romBlock(esc(c.rom), hideA);
     if (c.type === "kanji") {
       const ruby = (hideRt) =>
         `<ruby>${esc(c.kanji)}<rt${hideRt ? ' class="qhide"' : ""}>${esc(c.furi)}</rt></ruby>`;
-      return kanaBlock(ruby(jpFirst), false, !jpFirst)
-        + meanBlock(`${esc(c.mean)} <span style="color:var(--muted);font-size:13px">· ${esc(c.where)}</span>`, jpFirst)
+      return kanaBlock(ruby(hideA), false, hideQ)
+        + meanBlock(`${esc(c.mean)} <span style="color:var(--muted);font-size:13px">· ${esc(c.where)}</span>`, hideA)
         + romBlock(esc(c.rom), true);
     }
-    return kanaBlock(esc(c.kana.join("")), false, !jpFirst)
-      + meanBlock(esc(c.mean), jpFirst)
+    return kanaBlock(esc(c.kana.join("")), false, hideQ)
+      + meanBlock(esc(c.mean), hideA)
       + romBlock(esc(spokenRom(c)), true);
   }
 
   function controlsHTML() {
     if (!session.revealed) {
+      const replay = listening()
+        ? `<div class="qbtns"><button class="qb ghost" id="bReplay">🔊 play again</button></div>` : "";
       return typedApplies()
-        ? `<div class="qbtns"><input id="qtype" autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="type the romaji, enter to check"></div>
+        ? `${replay}<div class="qbtns"><input id="qtype" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="${listening() ? "type what you hear" : "type the romaji, enter to check"}"></div>
            <div class="qbtns"><button class="qb ghost" id="bShow">Give up — show it</button></div>`
-        : `<div class="qbtns"><button class="qb" id="bShow">Show answer</button></div>`;
+        : `${replay}<div class="qbtns"><button class="qb" id="bShow">Show answer</button></div>`;
     }
     const v = session.verdict;
     const verdict = v
@@ -531,7 +590,7 @@ const Quiz = (() => {
     const p = Srs.record(c.id);
     $("qarea").innerHTML = `<div class="qcard">
       <span class="tag">${esc(c.deck)}${p ? "" : " · new"}</span>
-      <span class="box">box ${(p ? p.b : 0) + 1}/5</span>
+      <span class="box">box ${(p ? p.b : 0) + 1}/${CONFIG.intervals.length}</span>
       ${faceHTML(c, session.face)}${controlsHTML()}
     </div>`;
     session.revealed ? wireRevealed(c) : wirePrompt(c);
@@ -539,8 +598,18 @@ const Quiz = (() => {
 
   function renderDone() {
     const r = session.reviewed;
+    /* session summary: what was missed, with the memory hook re-shown */
+    const missed = [...new Map(session.missed.map((c) => [c.id, c])).values()].slice(0, 15);
+    const summary = missed.length
+      ? `<div class="qsummary"><h3>Missed this session</h3><ul>${missed.map((c) => {
+          const jp = c.type === "char" ? c.char : c.type === "kanji" ? c.kanji : c.kana.join("");
+          const m = c.type === "char" && MNEM[c.rom] ? ` — ${c.deck.startsWith("Kata") ? MNEM[c.rom][1] : MNEM[c.rom][0]}` : "";
+          return `<li><b>${esc(jp)}</b> ${esc(answerRom(c))}${m}</li>`;
+        }).join("")}</ul></div>`
+      : "";
     $("qarea").innerHTML = `<div class="qcard"><div class="qdone">
       <p><b>Nothing due.</b> ${r ? `You reviewed ${r} card${r > 1 ? "s" : ""} — nice.` : ""}</p>
+      ${summary}
       <p>Come back later, pick another deck, or raise <i>new/session</i> to keep going.</p>
       <div class="qbtns"><button class="qb ghost" id="qrefill">Check again</button></div>
     </div></div>`;
@@ -560,6 +629,9 @@ const Quiz = (() => {
   function wirePrompt(c) {
     const show = $("bShow");
     if (show) show.onclick = () => reveal(null);
+    const rep = $("bReplay");
+    if (rep) rep.onclick = () => Speech.say(speechText(c));
+    if (listening()) Speech.say(speechText(c));
     const input = $("qtype");
     if (input) {
       input.focus();
@@ -600,7 +672,10 @@ const Quiz = (() => {
       } else if (e.key === "1" && session.revealed) grade(false);
       else if (e.key === "2" && session.revealed) grade(true);
       else if (e.key === "s" && session.current) Speech.say(speechText(session.current));
+      else if (e.key === "u") undo();
     });
+
+    on("qundo", "click", undo);
 
     on("qexport", "click", () => {
       const payload = { v: 1, when: new Date().toISOString(), prog: Srs.all() };
@@ -634,7 +709,19 @@ const Quiz = (() => {
     });
   }
 
-  return { wire, start() { buildQueue(); next(); } };
+  /* focused drill on an explicit card list (e.g. the lapse list) */
+  function drillCards(cards) {
+    session.queue = [...cards];
+    session.customPending = true;
+  }
+
+  return {
+    wire, drillCards,
+    start() {
+      if (session.customPending) { session.customPending = false; next(); }
+      else { buildQueue(); next(); }
+    },
+  };
 })();
 
 /* --------------------------- Progress view ------------------------------- */
@@ -649,7 +736,48 @@ const Progress = (() => {
     return `<li><span class="jp2">${esc(L.jp)}</span><span class="mn">${esc(L.mn)}${extra}</span></li>`;
   };
 
+  function stats() {
+    const days = Srs.days();
+    const dayKey = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return ymd(d); };
+    /* streak: consecutive review days ending today (or yesterday, so an
+       unfinished today doesn't read as zero) */
+    let streak = 0, i = days[dayKey(0)] ? 0 : 1;
+    while (days[dayKey(i)]) { streak++; i++; }
+    /* due forecast */
+    const now = Date.now(), eod = new Date(); eod.setHours(23, 59, 59, 999);
+    let dueNow = 0, dueTom = 0, dueWeek = 0;
+    CARDS.forEach((c) => {
+      const p = Srs.record(c.id);
+      if (!p) return;
+      if (p.d <= now) dueNow++;
+      else if (p.d <= eod.getTime() + 864e5) dueTom++;
+      else if (p.d <= eod.getTime() + 7 * 864e5) dueWeek++;
+    });
+    /* heatmap: last 12 weeks, one column per week */
+    const start = new Date(); start.setDate(start.getDate() - 83);
+    let heat = "";
+    for (let w = 0; w < 12; w++) {
+      heat += '<div class="hw">';
+      for (let d = 0; d < 7; d++) {
+        const dt = new Date(start); dt.setDate(start.getDate() + w * 7 + d);
+        if (dt > new Date()) { heat += "<i></i>"; continue; }
+        const n = days[ymd(dt)] || 0;
+        heat += `<i class="l${n ? Math.min(4, Math.ceil(n / 10)) : 0}" title="${ymd(dt)}: ${n} reviews"></i>`;
+      }
+      heat += "</div>";
+    }
+    $("pstats").innerHTML = `
+      <div class="pnums">
+        <span><b>${streak}</b>day streak</span>
+        <span><b>${dueNow}</b>due now</span>
+        <span><b>${dueTom}</b>due by tomorrow</span>
+        <span><b>${dueWeek}</b>rest of the week</span>
+      </div>
+      <div class="heat">${heat}</div>`;
+  }
+
   function render() {
+    stats();
     $("pbars").innerHTML = DECK_ORDER.map((deck) => {
       const cards = CARDS.filter((c) => c.deck === deck);
       let known = 0, learning = 0, unseen = 0;
@@ -675,6 +803,10 @@ const Progress = (() => {
     $("plapse").innerHTML = lapsed.length
       ? lapsed.map((c) => li(c, ` · missed ×${Srs.record(c.id).l}`)).join("")
       : `<li class="pempty">No repeat offenders. Cards land here after three misses.</li>`;
+
+    const btn = $("plapseDrill");
+    btn.hidden = !lapsed.length;
+    btn.onclick = () => { Quiz.drillCards(lapsed); setMode("quiz"); };
   }
 
   return { render };

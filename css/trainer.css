@@ -207,3 +207,23 @@
     @page{margin:13mm}
   }
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+
+  /* ---------- progress stats: streak, forecast, heatmap ---------- */
+  .pnums{display:flex;flex-wrap:wrap;gap:22px;font-size:13px;color:var(--muted);margin:0 0 14px;align-items:baseline}
+  .pnums b{font-family:var(--mono);font-size:17px;color:var(--ink);display:block}
+  .heat{display:flex;gap:3px;margin:0 0 26px}
+  .heat .hw{display:flex;flex-direction:column;gap:3px}
+  .heat i{width:11px;height:11px;background:#EDEAE0;border:1px solid var(--grid)}
+  .heat i.l1{background:#CCDCD3}
+  .heat i.l2{background:#9FBFAF}
+  .heat i.l3{background:#5E9179}
+  .heat i.l4{background:var(--rule)}
+  .minibtn{font:500 11px var(--gothic);letter-spacing:.05em;padding:5px 10px;border:1px solid var(--shu);
+    border-radius:2px;background:transparent;color:var(--shu);cursor:pointer;vertical-align:2px;margin-left:8px}
+  .minibtn:hover{background:var(--shu);color:var(--paper)}
+  .qsummary{text-align:left;max-width:420px;margin:18px auto;border:1px solid var(--grid);background:#FBFAF4;padding:14px 18px}
+  .qsummary h3{font-family:var(--mincho);font-size:15px;margin:0 0 8px}
+  .qsummary ul{list-style:none;margin:0;padding:0;font-size:13px;color:var(--ink)}
+  .qsummary li{padding:4px 0;border-bottom:1px dashed var(--grid)}
+  .qsummary li:last-child{border-bottom:0}
+  .qsummary b{font-family:var(--mincho);font-size:16px;margin-right:4px}

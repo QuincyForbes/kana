@@ -81,16 +81,18 @@
       <select id="qmode">
         <option value="flip">Flip &amp; self-grade</option>
         <option value="type">Type the romaji</option>
+        <option value="listen">Listen &amp; type</option>
       </select>
       <label>new/session <input type="number" id="qnewn" min="0" max="50" value="10"></label>
       <label><input type="checkbox" id="qspeak" checked> speak on reveal</label>
     </div>
 
     <div id="qarea" aria-live="polite"></div>
-    <p class="kbd"><kbd>space</kbd>/<kbd>enter</kbd> reveal · check &nbsp; <kbd>1</kbd> again &nbsp; <kbd>2</kbd> got it &nbsp; <kbd>s</kbd> speak</p>
+    <p class="kbd"><kbd>space</kbd>/<kbd>enter</kbd> reveal · check &nbsp; <kbd>1</kbd> again &nbsp; <kbd>2</kbd> got it &nbsp; <kbd>s</kbd> speak &nbsp; <kbd>u</kbd> undo</p>
 
     <div class="qman">
       Progress is saved in this browser.
+      <button id="qundo">Undo last grade</button>
       <button id="qexport">Export progress</button>
       <button id="qimport">Import</button>
       <button id="qreset">Reset all</button>
@@ -99,15 +101,16 @@
   </div>
 
   <div id="progress">
+    <div id="pstats"></div>
     <div class="plegend">
-      <span><i style="background:var(--rule)"></i>known — box 5, or box 4 in long intervals</span>
+      <span><i style="background:var(--rule)"></i>known — survived the 21-day gap</span>
       <span><i style="background:#D9A441"></i>learning</span>
       <span><i style="background:#EDEAE0"></i>not seen yet</span>
     </div>
     <div id="pbars"></div>
     <div class="plists">
       <div><h3>Learned</h3><ul id="pknown"></ul></div>
-      <div><h3>Keeps tripping you</h3><ul id="plapse"></ul></div>
+      <div><h3>Keeps tripping you <button id="plapseDrill" class="minibtn" hidden>drill these now</button></h3><ul id="plapse"></ul></div>
     </div>
   </div>
 </div>
