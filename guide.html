@@ -42,6 +42,7 @@
       <button data-mode="hira" aria-pressed="false">ひらがな</button>
       <button data-mode="kata" aria-pressed="false">カタカナ</button>
     </div>
+    <button class="slowbtn" id="slow-audio" type="button" aria-pressed="false" title="Play all audio slower">slow audio</button>
   </div>
 
   <p class="warn" id="audio-warn" hidden>Audio couldn't play here. Open the hosted page (or serve the project folder) so the clips in <code>audio/ja/</code> can load.</p>
@@ -196,26 +197,32 @@
           <button data-scope="both" aria-pressed="true">Both</button>
           <button data-scope="hira" aria-pressed="false">ひらがな</button>
           <button data-scope="kata" aria-pressed="false">カタカナ</button>
+          <button data-scope="tricky" aria-pressed="false">Look-alikes</button>
         </div>
         <div class="toggle" role="group" aria-label="Drill direction">
           <button data-dir="read" aria-pressed="true">See it</button>
           <button data-dir="listen" aria-pressed="false">Hear it</button>
+          <button data-dir="match" aria-pressed="false">Match</button>
         </div>
+        <button class="sprintbtn" id="sprint-btn" type="button">60s sprint</button>
       </div>
     </div>
     <div class="drill-cell">
       <div class="sq bigcell"><span id="drill-glyph">あ</span></div>
       <button class="speak replay" type="button" id="drill-replay" aria-label="Play the sound again"></button>
     </div>
-    <div class="answer">
+    <div class="answer" id="drill-answer">
       <input id="drill-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type the romaji" aria-label="Type the romaji reading">
       <button id="drill-check">Check</button>
     </div>
-    <p class="verdict" id="verdict"></p>
+    <div class="choices" id="drill-choices" hidden></div>
+    <p class="verdict" id="verdict" aria-live="polite"></p>
     <div class="score">
       <div>Streak<b id="s-streak">0</b></div>
       <div>Correct<b id="s-right">0</b></div>
       <div>Seen<b id="s-seen">0</b></div>
+      <div id="sprint-box" hidden>Sprint<b id="s-sprint">60</b></div>
+      <div>Sprint best<b id="s-best">—</b></div>
     </div>
   </div>
 </section>
@@ -243,6 +250,7 @@
 </div>
 
 <script src="js/guide-data.js?v=3"></script>
+<script src="js/guide-words.js?v=3"></script>
 <script src="js/guide.js?v=3"></script>
 </body>
 </html>

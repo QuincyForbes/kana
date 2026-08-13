@@ -201,3 +201,28 @@ table.mini tr:hover td.play{color:var(--shu)}
 .jumpnav .home{margin-left:auto;color:var(--hira)}
 html{scroll-behavior:smooth;scroll-padding-top:48px}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* ---------- slow audio toggle ---------- */
+.slowbtn{border:1px solid var(--rule);background:var(--cell);color:var(--ink-soft);font-family:var(--body);
+  font-size:12px;letter-spacing:.06em;padding:8px 12px;cursor:pointer}
+.slowbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* ---------- example words ---------- */
+.words{border-left:3px solid var(--rule);padding-left:14px;margin-bottom:16px}
+.words dt{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.words .word{display:inline-flex;align-items:baseline;gap:7px;border:1px solid var(--rule);background:var(--cell);
+  font-family:var(--body);font-size:13.5px;padding:6px 11px;margin:0 8px 8px 0;cursor:pointer;color:var(--ink)}
+.words .word b{font-family:var(--kana);font-size:17px;font-weight:400;color:var(--hira)}
+.words .word em{font-style:normal;color:var(--ink-soft);font-size:12px}
+.words .word:hover,.words .word.on{border-color:var(--ink)}
+
+/* ---------- drill: match choices + sprint ---------- */
+.choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:340px;margin:18px auto 0}
+.choices button{font-family:var(--kana);font-size:30px;padding:12px 0;background:#252d28;border:1px solid #4c574f;
+  color:var(--paper);cursor:pointer}
+.choices button:hover{border-color:var(--paper)}
+.sprintbtn{border:1px solid #4c574f;background:#252d28;color:#9aa79f;font-family:var(--body);
+  font-size:12px;letter-spacing:.08em;padding:8px 14px;cursor:pointer}
+.sprintbtn:hover{color:var(--paper);border-color:var(--paper)}
+#sprint-box b{color:#F0866F}
+@media (max-width:620px){.choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
