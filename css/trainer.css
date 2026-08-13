@@ -261,3 +261,6 @@
   }
   .c.wide{width:auto;min-width:var(--cell)}
   .c.wide .k{padding:0 10px;font-size:22px;letter-spacing:.04em}
+  .numdrill .numq{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--ink);min-width:90px}
+  .numdrill input{width:100%}
+  #num-verdict b{font-family:var(--gothic);font-size:13px}

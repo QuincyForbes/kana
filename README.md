@@ -18,16 +18,18 @@ js/guide-data.js    kana table (K), look-alikes (TRICKY), ROM2KANA audio map
 js/guide.js         guide logic (chart, detail, drill, audio)
 js/trainer-data.js  DATA (phrases), KANJI, GOJU/DAKU/YOON/EXTRA charts, MNEM
 js/trainer.js       trainer engine (study, SRS, quiz, progress)
-audio/ja/           293 neural-TTS mp3 clips, filename = spoken text
+audio/ja/           467 Nanami (female) clips, filename = spoken text
+audio/ja-m/         380 Keita (male) clips — toggle in either app
+tools/              audio generation (gen_texts.js, gen_audio.py) + tests
 ```
 
 No build step — plain files, edit and reload.
 
 ## Audio
 
-`audio/ja/` holds 293 mp3 clips — every kana syllable (base, dakuten, yōon, katakana-only combos), every phrase, and every kanji reading — generated with Microsoft's neural voice **ja-JP-NanamiNeural** (via `edge-tts`, rate −10%). Both apps play these files first and fall back automatically: the guide to its embedded Kokoro-82M clips then browser TTS, the trainer to browser TTS. Clip filenames are the spoken Japanese text itself (e.g. `こんにちは.mp3`).
+`audio/ja/` (Nanami, female) and `audio/ja-m/` (Keita, male) hold a clip for every kana syllable, phrase, kanji reading, and example word, generated with Microsoft neural voices via `edge-tts` at rate −10%. Both apps try the preferred voice, then the other, then browser TTS. A slow-audio toggle (0.75×) lives in the guide.
 
-To regenerate or add clips: put the texts in a JSON array and run `edge-tts --voice ja-JP-NanamiNeural --rate=-10% --text <text> --write-media audio/ja/<text>.mp3` per entry.
+To regenerate: `node tools/gen_texts.js` then `python tools/gen_audio.py` (add `--voice ja-JP-KeitaNeural --out audio/ja-m` for the male set). Tests: `node tools/test-romaji.mjs`.
 
 ## localStorage keys
 

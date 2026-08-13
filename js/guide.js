@@ -4,16 +4,27 @@
 const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
 let audioWarned = false;
 
-/* global slow-audio toggle (0.75× files, slower TTS) */
-const AUDIO_KEY = 'kanaGuideAudio.v1';
+/* global audio prefs: slow (0.75× files, slower TTS) and voice (f = Nanami,
+   m = Keita). The voice key is shared with the trainer. */
+const AUDIO_KEY = 'kanaGuideAudio.v1', VOICE_KEY = 'kanaVoice.v1';
 let slowAudio = false;
 try{ slowAudio = !!(JSON.parse(localStorage.getItem(AUDIO_KEY)) || {}).slow; }catch{}
+const voicePref = () => { try{ return localStorage.getItem(VOICE_KEY) === 'm' ? 'm' : 'f'; }catch{ return 'f'; } };
+const voiceDirs = () => voicePref() === 'm' ? ['audio/ja-m/', 'audio/ja/'] : ['audio/ja/', 'audio/ja-m/'];
+
 const slowBtn = document.getElementById('slow-audio');
 slowBtn.setAttribute('aria-pressed', String(slowAudio));
 slowBtn.addEventListener('click', ()=>{
   slowAudio = !slowAudio;
   slowBtn.setAttribute('aria-pressed', String(slowAudio));
   try{ localStorage.setItem(AUDIO_KEY, JSON.stringify({slow: slowAudio})); }catch{}
+});
+const voiceBtn = document.getElementById('voice-audio');
+voiceBtn.setAttribute('aria-pressed', String(voicePref() === 'm'));
+voiceBtn.addEventListener('click', ()=>{
+  const m = voicePref() !== 'm';
+  try{ localStorage.setItem(VOICE_KEY, m ? 'm' : 'f'); }catch{}
+  voiceBtn.setAttribute('aria-pressed', String(m));
 });
 
 function flash(btn, ms){
@@ -45,13 +56,18 @@ function playFile(url, btn){
     a.play().then(()=>{ flash(btn, 600); res(true); }).catch(()=>res(false));
   });
 }
+async function playDirs(text, btn){
+  for(const dir of voiceDirs())
+    if(await playFile(dir + encodeURIComponent(text) + '.mp3', btn)) return true;
+  return false;
+}
 async function play(key, btn){
   const kana = ROM2KANA[key];
-  if(kana && await playFile('audio/ja/' + encodeURIComponent(kana) + '.mp3', btn)) return;
+  if(kana && await playDirs(kana, btn)) return;
   if(!speakFallback(key, btn)) warnAudio();
 }
 async function playWord(text, btn){
-  if(await playFile('audio/ja/' + encodeURIComponent(text) + '.mp3', btn)) return;
+  if(await playDirs(text, btn)) return;
   if(!speakText(text, btn)) warnAudio();
 }
 
@@ -59,9 +75,49 @@ document.addEventListener('click', e=>{
   const el = e.target;
   const w = el && el.closest ? el.closest('[data-play-word]') : null;
   if(w){ playWord(w.dataset.playWord, w); return; }
+  const r = el && el.closest ? el.closest('[data-rec]') : null;
+  if(r){ Rec.toggle(r); return; }
+  const rp = el && el.closest ? el.closest('[data-rec-play]') : null;
+  if(rp){ Rec.compare(rp.dataset.recPlay, rp); return; }
   const t = el && el.closest ? el.closest('[data-play]') : null;
   if(t) play(t.dataset.play, t.classList.contains('speak') ? t : null);
 });
+
+/* ---- record & compare: your voice, then the native clip ---- */
+const Rec = {
+  mr: null, url: null,
+  async toggle(btn){
+    if(this.mr && this.mr.state === 'recording'){ this.mr.stop(); return; }
+    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){
+      btn.disabled = true; btn.title = 'Recording is not supported in this browser'; return;
+    }
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      const chunks = [];
+      this.mr = new MediaRecorder(stream);
+      this.mr.ondataavailable = e => chunks.push(e.data);
+      this.mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        if(this.url) URL.revokeObjectURL(this.url);
+        this.url = URL.createObjectURL(new Blob(chunks, {type: this.mr.mimeType || 'audio/webm'}));
+        btn.classList.remove('rec');
+        const p = document.querySelector('[data-rec-play]');
+        if(p) p.hidden = false;
+      };
+      this.mr.start();
+      btn.classList.add('rec');
+    }catch{
+      btn.disabled = true; btn.title = 'Microphone permission was denied';
+    }
+  },
+  compare(key, btn){
+    if(!this.url) return;
+    const mine = new Audio(this.url);
+    mine.onended = () => play(key, btn);
+    mine.play().catch(()=>{});
+    flash(btn, 400);
+  },
+};
 
 const flat = [];
 K.forEach(row => row.c.forEach(c => { if (c) flat.push(c); }));
@@ -107,6 +163,8 @@ function renderDetail(){
       <div class="romaji-row">
         <p class="romaji-big">${c.r}</p>
         <button class="speak" type="button" data-play="${c.r}" aria-label="Play ${c.r}">${SPK}</button>
+        <button class="speak mic" type="button" data-rec="${c.r}" title="Record yourself, then compare" aria-label="Record yourself">●</button>
+        <button class="speak" type="button" data-rec-play="${c.r}" title="Your take, then the native clip" aria-label="Play your recording then the native clip" hidden>you→native</button>
         <a class="human" href="https://forvo.com/word/${encodeURIComponent(c.h)}/#ja" target="_blank" rel="noopener noreferrer">native speakers ↗</a>
       </div>
       <p class="sound">${c.s || 'regular — consonant + vowel, one even beat'}</p>

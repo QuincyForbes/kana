@@ -54,9 +54,15 @@ const store = (() => {
 })();
 
 /* ------------------------------ Speech ---------------------------------- */
-/* Local neural-TTS clips first (audio/ja/<text>.mp3, ja-JP-NanamiNeural,
-   generated for every card) — falls back to the browser's Japanese voice
-   for anything without a file.                                             */
+/* Local neural-TTS clips first — audio/ja/ is Nanami (female), audio/ja-m/
+   is Keita (male); the preferred dir is tried first, then the other, then
+   the browser's own Japanese voice. Voice pref is shared with the guide.  */
+const VOICE_KEY = "kanaVoice.v1";
+const voiceDirs = () => {
+  let m = false;
+  try { m = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
+  return m ? ["audio/ja-m/", "audio/ja/"] : ["audio/ja/", "audio/ja-m/"];
+};
 const Speech = (() => {
   const supported = "speechSynthesis" in window;
   let voice = null;
@@ -81,9 +87,14 @@ const Speech = (() => {
     say(text) {
       if (!text) return;
       try { playing?.pause(); } catch {}
-      const a = new Audio("audio/ja/" + encodeURIComponent(text) + ".mp3");
+      const [pref, alt] = voiceDirs();
+      const a = new Audio(pref + encodeURIComponent(text) + ".mp3");
       playing = a;
-      a.play().catch(() => tts(text));
+      a.play().catch(() => {
+        const b = new Audio(alt + encodeURIComponent(text) + ".mp3");
+        playing = b;
+        b.play().catch(() => tts(text));
+      });
     },
   };
 })();
@@ -285,7 +296,15 @@ const StudyView = (() => {
           <label>occupation <input id="you-job" value="${esc(YOU.job || "")}" placeholder="エンジニア"></label>
           <button id="you-save">Save</button>
         </div>` : "";
-      out += section(id, nn, jp, `${esc(title)} · ${rows.length}`, youForm + rows.map(phraseRow).join(""), true);
+      const numDrill = title === "Numbers and time" ? `
+        <div class="youform numdrill">
+          <p>Random number practice — type the reading in romaji (use yon / nana / kyuu):</p>
+          <span class="numq" id="num-q">247</span>
+          <label style="flex:1;min-width:150px"><input id="num-in" autocomplete="off" spellcheck="false" placeholder="nihyaku yonjuu nana"></label>
+          <button id="num-check">Check</button>
+          <span id="num-verdict"></span>
+        </div>` : "";
+      out += section(id, nn, jp, `${esc(title)} · ${rows.length}`, youForm + rows.map(phraseRow).join("") + numDrill, true);
     });
 
     {
@@ -442,6 +461,51 @@ const StudyView = (() => {
 
     on("q", "input", apply);
 
+    /* number sprint: random number → typed reading */
+    const numDigits = ["", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
+    function numToRomaji(n) {
+      let s = "";
+      const man = Math.floor(n / 10000);
+      if (man) s += numDigits[man] + "man";
+      n %= 10000;
+      const sen = Math.floor(n / 1000);
+      if (sen) s += sen === 1 ? "sen" : sen === 3 ? "sanzen" : sen === 8 ? "hassen" : numDigits[sen] + "sen";
+      n %= 1000;
+      const hyaku = Math.floor(n / 100);
+      if (hyaku) s += hyaku === 1 ? "hyaku" : hyaku === 3 ? "sanbyaku" : hyaku === 6 ? "roppyaku" : hyaku === 8 ? "happyaku" : numDigits[hyaku] + "hyaku";
+      n %= 100;
+      const juu = Math.floor(n / 10);
+      if (juu) s += (juu === 1 ? "" : numDigits[juu]) + "juu";
+      if (n % 10) s += numDigits[n % 10];
+      return s;
+    }
+    const numNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "").replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
+    let numCur = 247;
+    function numNext() {
+      /* weighted small: plenty of 2-3 digit numbers, occasional big ones */
+      const r = Math.random();
+      numCur = r < 0.4 ? 1 + Math.floor(Math.random() * 99)
+        : r < 0.75 ? 100 + Math.floor(Math.random() * 900)
+        : r < 0.92 ? 1000 + Math.floor(Math.random() * 9000)
+        : 10000 + Math.floor(Math.random() * 89999);
+      $("num-q").textContent = numCur.toLocaleString();
+      $("num-in").value = "";
+    }
+    if ($("num-check")) {
+      const check = () => {
+        const want = numToRomaji(numCur);
+        const ok = numNorm($("num-in").value) === numNorm(want);
+        $("num-verdict").innerHTML = ok
+          ? `<b style="color:var(--rule)">正解</b>`
+          : `<b style="color:var(--shu)">${esc(want)}</b>`;
+        Speech.say(null); /* no clip for arbitrary numbers; stay quiet */
+        setTimeout(numNext, ok ? 600 : 2400);
+      };
+      on("num-check", "click", check);
+      on("num-in", "keydown", (e) => { if (e.key === "Enter") check(); });
+      numNext();
+    }
+
     /* personalization form */
     const save = $("you-save");
     if (save) save.onclick = () => {
@@ -481,17 +545,22 @@ const Player = {
   },
   one(t) {
     return new Promise((res) => {
-      const a = new Audio("audio/ja/" + encodeURIComponent(t) + ".mp3");
-      this.cur = a;
-      a.onended = res;
-      const fallback = () => {
+      const [pref, alt] = voiceDirs();
+      const tts = () => {
         if (!("speechSynthesis" in window)) return res();
         const u = new SpeechSynthesisUtterance(t);
         u.lang = "ja-JP"; u.rate = 0.85; u.onend = res; u.onerror = res;
         speechSynthesis.speak(u);
       };
-      a.onerror = fallback;
-      a.play().catch(fallback);
+      const a = new Audio(pref + encodeURIComponent(t) + ".mp3");
+      this.cur = a;
+      a.onended = res;
+      a.play().catch(() => {
+        const b = new Audio(alt + encodeURIComponent(t) + ".mp3");
+        this.cur = b;
+        b.onended = res;
+        b.play().catch(tts);
+      });
     });
   },
   async toggle(texts, btn) {
@@ -798,6 +867,12 @@ const Quiz = (() => {
     });
 
     on("qundo", "click", undo);
+
+    /* voice pref is global (shared with the guide), not part of quiz settings */
+    try { $("qvoice").checked = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
+    on("qvoice", "change", () => {
+      try { localStorage.setItem(VOICE_KEY, $("qvoice").checked ? "m" : "f"); } catch {}
+    });
 
     on("qexport", "click", () => {
       const payload = { v: 1, when: new Date().toISOString(), prog: Srs.all() };
