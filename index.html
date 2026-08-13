@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>かな — Japanese kana</title>
+<style>
+:root{
+  --paper:#F2F3EE; --cell:#FCFCF9; --rule:#AFC0B2; --rule-faint:#D6DFD7;
+  --ink:#1B221E; --ink-soft:#67716B; --hira:#3F6B54; --kata:#2C4770; --shu:#BE3A22;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Hiragino Sans','Yu Gothic',system-ui,sans-serif;line-height:1.55;
+  background-image:linear-gradient(var(--rule-faint) 1px,transparent 1px),linear-gradient(90deg,var(--rule-faint) 1px,transparent 1px);
+  background-size:28px 28px;background-position:-1px -1px;
+  min-height:100vh;display:grid;place-items:center;padding:24px;
+}
+.wrap{max-width:640px;width:100%}
+h1{font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-weight:900;font-size:clamp(34px,7vw,54px);line-height:1;margin:0 0 6px}
+h1 span{display:block;font-size:.5em;letter-spacing:.34em;color:var(--hira);font-weight:600;margin-top:8px}
+.lede{color:var(--ink-soft);margin:0 0 34px;font-size:15px}
+a.card{
+  display:block;background:var(--cell);border:1px solid var(--rule);
+  padding:22px 24px;margin-bottom:14px;text-decoration:none;color:var(--ink);
+  transition:border-color .12s ease;
+}
+a.card:hover{border-color:var(--ink)}
+a.card h2{font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:21px;margin:0 0 4px;font-weight:600}
+a.card.g h2{color:var(--hira)}
+a.card.t h2{color:var(--kata)}
+a.card p{margin:0;font-size:14px;color:var(--ink-soft)}
+a.card .kana{float:right;font-size:34px;line-height:1;margin-left:16px}
+a.card.g .kana{color:var(--hira)}
+a.card.t .kana{color:var(--kata)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Every sound in Japanese<span>ひらがな・カタカナ</span></h1>
+  <p class="lede">Learn the shapes in the guide, then make them automatic in the trainer.</p>
+  <a class="card g" href="guide.html">
+    <span class="kana">あ</span>
+    <h2>The Guide</h2>
+    <p>Interactive gojūon chart with mnemonics, look-alike pairs, the four modifier rules, pronunciation — what actually makes you sound wrong — and a romaji drill.</p>
+  </a>
+  <a class="card t" href="trainer.html">
+    <span class="kana">ア</span>
+    <h2>The Trainer</h2>
+    <p>Real phrases split one kana per box, survival kanji, and a spaced-repetition quiz that tracks every character separately. Progress saves in the browser.</p>
+  </a>
+</div>
+</body>
+</html>
