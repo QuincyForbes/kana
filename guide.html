@@ -411,7 +411,7 @@ table.mini tr:hover td.play{color:var(--shu)}
 
 <footer>
   <p>One note on fonts: printed shapes differ slightly from handwritten ones — さ き ふ り are the usual culprits. What you see here is the gothic style used on Japanese signage, which is the version you'll be reading in the wild.</p>
-  <p>Audio: 102 syllables synthesised with <b>Kokoro-82M</b> (Apache 2.0), voice jf_tebukuro. Embedded in this file, so it works offline. <b>Use it to attach a sound to a shape while you're learning to read — not as a pronunciation model.</b> It's synthetic: the vowel and consonant targets are broadly right, but the timing and pitch are not, and those are the two things that matter most. For pronunciation, use the human sources listed above.</p>
+  <p>Audio: served from local files in <code>audio/ja/</code>, generated with Microsoft's neural voice <b>ja-JP-NanamiNeural</b> — natural timing and pitch. If a file is missing (or you open this page standalone), it falls back to 102 syllables synthesised with <b>Kokoro-82M</b> (Apache 2.0, voice jf_tebukuro) embedded in this file, and then to the browser's own Japanese voice. Neural TTS is close to native for isolated syllables, but for connected speech and pitch-accent listening practice, still use the human sources listed above.</p>
 </footer>
 
 </div>
@@ -530,10 +530,21 @@ function warnAudio(){
   if(n) n.hidden = false;
 }
 
-/* Web Audio first: decoding raw bytes avoids the data: URI restrictions that
-   sandboxed viewers put on <audio>. Falls back to an element, then to the
+/* Local neural-TTS files first (audio/ja/<kana>.mp3, ja-JP-NanamiNeural) —
+   much better timing and pitch than the embedded clips. Then Web Audio on
+   the embedded base64 (decoding raw bytes avoids the data: URI restrictions
+   that sandboxed viewers put on <audio>), then an element, then the
    browser's own Japanese voice. */
+function playFile(url, btn){
+  return new Promise(res=>{
+    const a = new Audio(url);
+    a.play().then(()=>{ flash(btn, 600); res(true); }).catch(()=>res(false));
+  });
+}
 async function play(key, btn){
+  const local = flat.find(x => x.r === key);
+  if(local && await playFile('audio/ja/' + encodeURIComponent(local.h) + '.mp3', btn)) return;
+
   const b64 = AUD[key];
   if(!b64){ if(!speakFallback(key, btn)) warnAudio(); return; }
 

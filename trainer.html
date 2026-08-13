@@ -593,26 +593,36 @@ const store = (() => {
 })();
 
 /* ------------------------------ Speech ---------------------------------- */
+/* Local neural-TTS clips first (audio/ja/<text>.mp3, ja-JP-NanamiNeural,
+   generated for every card) — falls back to the browser's Japanese voice
+   for anything without a file.                                             */
 const Speech = (() => {
   const supported = "speechSynthesis" in window;
-  if (!supported) document.body.classList.add("no-tts");
   let voice = null;
   const pick = () => {
     const ja = speechSynthesis.getVoices().filter((v) => v.lang?.startsWith("ja"));
-    voice = ja.find((v) => /Kyoko|Google 日本語|Otoya/i.test(v.name)) || ja[0] || null;
+    voice = ja.find((v) => /Nanami|Kyoko|Google 日本語|Otoya/i.test(v.name)) || ja[0] || null;
   };
   if (supported) { pick(); speechSynthesis.onvoiceschanged = pick; }
+  let playing = null;
+  const tts = (text) => {
+    if (!supported) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      if (voice) u.voice = voice;
+      u.rate = 0.85;
+      speechSynthesis.speak(u);
+    } catch {}
+  };
   return {
     say(text) {
-      if (!supported || !text) return;
-      try {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "ja-JP";
-        if (voice) u.voice = voice;
-        u.rate = 0.85;
-        speechSynthesis.speak(u);
-      } catch {}
+      if (!text) return;
+      try { playing?.pause(); } catch {}
+      const a = new Audio("audio/ja/" + encodeURIComponent(text) + ".mp3");
+      playing = a;
+      a.play().catch(() => tts(text));
     },
   };
 })();
