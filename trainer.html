@@ -34,7 +34,6 @@
     border:1px solid var(--rule);border-radius:2px;background:transparent;color:var(--rule);cursor:pointer;
   }
   .tog[aria-pressed="true"]{background:var(--rule);color:var(--paper)}
-  .tog.q{border-color:var(--muted);color:var(--muted)}
   #q{flex:1;min-width:130px;font:400 13px var(--gothic);color:var(--ink);padding:8px 10px;border:1px solid var(--grid);border-radius:2px;background:#fff}
   #count{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
   .studyonly{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap}
@@ -225,7 +224,6 @@
       <button class="tog" id="tM" aria-pressed="true">Meaning</button>
       <input id="q" type="search" placeholder="Filter — try &ldquo;please&rdquo;, &ldquo;train&rdquo;, or ku">
       <span id="count"></span>
-      <button class="tog q" id="tP">Print</button>
     </span>
   </div>
 
@@ -840,7 +838,6 @@ const StudyView = (() => {
     });
     toggle("tR", "no-r");
     toggle("tM", "no-m");
-    on("tP", "click", () => window.print());
 
     /* ---- section picker ----
        One section at a time with prev/next, "all" restores the full scroll.
