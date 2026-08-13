@@ -196,10 +196,35 @@ table.mini tr:hover td.play{color:var(--shu)}
   .gr{font-size:9px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- sticky jump nav ---------- */
+.jumpnav{
+  position:sticky;top:0;z-index:30;background:var(--paper);
+  border-bottom:1px solid var(--rule);margin:0 -20px;padding:0 20px;
+  display:flex;gap:2px 18px;flex-wrap:wrap;align-items:center;
+}
+.jumpnav a{
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+  color:var(--ink-soft);padding:10px 0;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.jumpnav a:hover,.jumpnav a:focus-visible{color:var(--ink);border-bottom-color:var(--shu)}
+.jumpnav .home{margin-left:auto;color:var(--hira)}
+html{scroll-behavior:smooth;scroll-padding-top:48px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <div class="wrap">
+
+<nav class="jumpnav" aria-label="Sections">
+  <a href="#chart">Chart</a>
+  <a href="#tricky">Look-alikes</a>
+  <a href="#rules">Modifiers</a>
+  <a href="#pron">Pronunciation</a>
+  <a href="#drill-sec">Drill</a>
+  <a href="#plan">Plan</a>
+  <a class="home" href="index.html">← Trainer &amp; home</a>
+</nav>
 
 <header>
   <p class="eyebrow">Kana — 46 + 46 characters</p>
