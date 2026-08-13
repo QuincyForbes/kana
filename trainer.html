@@ -120,6 +120,18 @@
   .howto p{margin:0 0 10px;color:#28352F}
   .empty{color:var(--muted);font-size:14px;padding:30px 0}
 
+  /* ---------- study section picker ---------- */
+  #qsec{font:500 12px var(--gothic);letter-spacing:.03em;padding:8px 9px;border:1px solid var(--rule);
+    border-radius:2px;background:#fff;color:var(--rule);max-width:220px;cursor:pointer}
+  #qsec:disabled{opacity:.45;cursor:default}
+  .secnav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:28px 0 0;
+    padding-top:16px;border-top:1px solid var(--grid)}
+  .secnav .sn{font:500 12.5px var(--gothic);padding:10px 14px;border:1px solid var(--rule);border-radius:2px;
+    background:transparent;color:var(--rule);cursor:pointer;max-width:44%;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .secnav .sn:hover{background:var(--rule);color:var(--paper)}
+  .secnav .sni{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
+
   /* ---------- panels ---------- */
   #study,#quiz,#progress{display:none;padding-top:0}
   body.mode-study #study{display:block}
@@ -208,6 +220,7 @@
     <button class="tab" data-mode="quiz" aria-selected="false">Quiz</button>
     <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
     <span class="studyonly">
+      <select id="qsec" aria-label="Study section"></select>
       <button class="tog" id="tR" aria-pressed="true">Romaji</button>
       <button class="tog" id="tM" aria-pressed="true">Meaning</button>
       <input id="q" type="search" placeholder="Filter — try &ldquo;please&rdquo;, &ldquo;train&rdquo;, or ku">
@@ -240,6 +253,7 @@
     <div id="out"></div>
     <p class="empty" id="empty" hidden>No phrases match — the kana charts below stay put for reference.</p>
     <div id="charts"></div>
+    <nav id="secnav" class="secnav" hidden aria-label="Section navigation"></nav>
 
     <div class="howto">
       <h2>Using this</h2>
@@ -719,6 +733,9 @@ function checkTyped(input, card) {
 /* ---------------------------- Study view --------------------------------- */
 const StudyView = (() => {
   const modLabel = (k) => (k === "ー" ? "(long)" : "(stop)");
+  const SEC_KEY = "kanaTrainerStudySec.v1";
+  const sections = []; /* {id, label, group} in reading order */
+  let sec = "all";
 
   const phraseRow = (c) => {
     const cells = c.kana.map((k, i) => {
@@ -765,12 +782,14 @@ const StudyView = (() => {
     DATA.forEach(([title, jp]) => {
       const rows = CARDS.filter((c) => c.deck === title);
       const nn = num(), id = "s" + n;
+      sections.push({ id, label: title, group: "Phrases" });
       nav += `<a href="#${id}">${nn} ${esc(title)}</a>`;
       out += section(id, nn, jp, `${esc(title)} · ${rows.length}`, rows.map(phraseRow).join(""), true);
     });
 
     {
       const nn = num();
+      sections.push({ id: "kanji", label: "Survival kanji", group: "Kanji" });
       nav += `<a href="#kanji">${nn} Survival kanji</a>`;
       const cards = CARDS.filter((c) => c.type === "kanji");
       out += section("kanji", nn, "漢字",
@@ -795,6 +814,7 @@ const StudyView = (() => {
         "Built for sounds Japanese didn't originally have. Constant in menus, brand names and tech."],
     ].forEach(([jp, en, table, legend], i) => {
       const nn = num(), id = "c" + (i + 1);
+      sections.push({ id, label: en.split(" — ")[0], group: "Kana charts" });
       nav += `<a href="#${id}">${nn} ${en.split(" — ")[0]}</a>`;
       charts += section(id, nn, jp, en, `${table}<p class="legend">${legend}</p>`);
     });
@@ -822,23 +842,80 @@ const StudyView = (() => {
     toggle("tM", "no-m");
     on("tP", "click", () => window.print());
 
-    on("q", "input", () => {
+    /* ---- section picker ----
+       One section at a time with prev/next, "all" restores the full scroll.
+       A non-empty search always searches everything — a filter that silently
+       ignored other sections would read as "no results". */
+    function apply() {
       const t = $("q").value.trim().toLowerCase();
+      const focus = !t && sec !== "all";
+      document.querySelectorAll(".mast, .rules, .howto").forEach((el) => (el.hidden = focus));
       let shown = 0;
-      document.querySelectorAll("section[data-filterable]").forEach((sec) => {
+      document.querySelectorAll("section[data-filterable]").forEach((s) => {
         let any = 0;
-        sec.querySelectorAll(".row").forEach((r) => {
+        s.querySelectorAll(".row").forEach((r) => {
           const hit = !t || r.dataset.k.includes(t);
           r.hidden = !hit;
           if (hit) any++;
         });
-        sec.hidden = !any;
-        shown += any;
+        s.hidden = t ? !any : (focus && s.id !== sec);
+        if (!s.hidden) shown += any;
       });
-      document.querySelectorAll("#charts section").forEach((s) => s.classList.toggle("dim", !!t));
-      $("count").textContent = t ? `${shown} of ${total}` : `${total} items`;
-      $("empty").hidden = shown > 0;
+      document.querySelectorAll("#charts section").forEach((s) => {
+        s.classList.toggle("dim", !!t);
+        s.hidden = focus && s.id !== sec;
+      });
+      const cur = sections.find((x) => x.id === sec);
+      $("count").textContent = t ? `${shown} of ${total}` : focus ? cur.label : `${total} items`;
+      $("empty").hidden = !t || shown > 0;
+      $("qsec").disabled = !!t;
+
+      const nav = $("secnav");
+      nav.hidden = !focus;
+      if (focus) {
+        const i = sections.indexOf(cur), prev = sections[i - 1], next = sections[i + 1];
+        nav.innerHTML =
+          (prev ? `<button class="sn" data-sec="${prev.id}">← ${esc(prev.label)}</button>` : "<span></span>") +
+          `<span class="sni">${i + 1} / ${sections.length}</span>` +
+          (next ? `<button class="sn" data-sec="${next.id}">${esc(next.label)} →</button>` : "<span></span>");
+      }
+    }
+
+    function setSec(id) {
+      sec = sections.some((s) => s.id === id) ? id : "all";
+      store.set(SEC_KEY, sec);
+      $("qsec").value = sec;
+      apply();
+      window.scrollTo({ top: 0 });
+    }
+
+    /* build the dropdown: All, then optgroups in reading order */
+    const groups = [...new Set(sections.map((s) => s.group))];
+    $("qsec").innerHTML =
+      `<option value="all">All sections</option>` +
+      groups.map((g) =>
+        `<optgroup label="${g}">` +
+        sections.filter((s) => s.group === g)
+          .map((s) => `<option value="${s.id}">${esc(s.label)}</option>`).join("") +
+        `</optgroup>`).join("");
+    on("qsec", "change", () => setSec($("qsec").value));
+
+    /* header index links focus a section instead of anchor-scrolling */
+    on("idx", "click", (e) => {
+      const a = e.target.closest("a");
+      if (!a) return;
+      e.preventDefault();
+      setSec(a.getAttribute("href").slice(1));
     });
+
+    on("secnav", "click", (e) => {
+      const b = e.target.closest(".sn");
+      if (b) setSec(b.dataset.sec);
+    });
+
+    on("q", "input", apply);
+
+    setSec(store.get(SEC_KEY) || "all"); /* returning users land where they left off */
   }
 
   return { render, wire };
