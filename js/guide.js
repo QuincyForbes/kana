@@ -141,8 +141,8 @@ function buildGrid(){
       b.setAttribute('aria-current', c===current ? 'true':'false');
       b.setAttribute('aria-label', c.r);
       let inner='';
-      if(mode==='both'||mode==='hira') inner+=`<span class="gh">${c.h}</span>`;
-      if(mode==='both'||mode==='kata') inner+=`<span class="gk">${c.k}</span>`;
+      if(mode==='both'||mode==='hira') inner+=`<span class="gh" lang="ja">${c.h}</span>`;
+      if(mode==='both'||mode==='kata') inner+=`<span class="gk" lang="ja">${c.k}</span>`;
       inner+=`<span class="gr">${c.r}</span>`;
       b.innerHTML=inner;
       b.addEventListener('click',()=>{current=c;buildGrid();renderDetail();play(c.r);});
@@ -171,7 +171,7 @@ function renderDetail(){
   const glyph = showH ? c.h : c.k;
   const col = showH ? 'var(--hira)' : 'var(--kata)';
   detail.innerHTML = `
-    <div class="sq bigcell"><span style="color:${col}">${glyph}</span></div>
+    <div class="sq bigcell"><span lang="ja" style="color:${col}">${glyph}</span></div>
     <div>
       <div class="romaji-row">
         <p class="romaji-big">${c.r}</p>
@@ -182,13 +182,13 @@ function renderDetail(){
       </div>
       <p class="sound">${c.s || 'regular — consonant + vowel, one even beat'}</p>
       <div class="pair">
-        <span class="chip h"><em>hiragana</em><b>${c.h}</b></span>
-        <span class="chip k"><em>katakana</em><b>${c.k}</b></span>
+        <span class="chip h"><em>hiragana</em><b lang="ja">${c.h}</b></span>
+        <span class="chip k"><em>katakana</em><b lang="ja">${c.k}</b></span>
       </div>
       ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><div class="mnemrow">${shapeSVG(c,'h')}<p>${c.mh}</p></div></div>`:''}
       ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><div class="mnemrow">${shapeSVG(c,'k')}<p>${c.mk}</p></div></div>`:''}
       ${(WORDS[c.r]||[]).length?`<div class="words"><dt>In the wild</dt>${WORDS[c.r].map(w=>
-        `<button type="button" class="word" data-play-word="${w[0]}"><b>${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('')}</div>`:''}
+        `<button type="button" class="word" data-play-word="${w[0]}"><b lang="ja">${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('')}</div>`:''}
     </div>`;
 }
 
@@ -203,7 +203,7 @@ document.querySelectorAll('[data-mode]').forEach(btn=>{
 /* ---- tricky ---- */
 document.getElementById('tricky').innerHTML = TRICKY.map(t=>`
   <div class="tcard">
-    <div class="glyphs">${t.g.map((g,i)=>`<span>${g}<i> ${t.l[i]}</i></span>`).join('')}</div>
+    <div class="glyphs">${t.g.map((g,i)=>`<span lang="ja">${g}<i lang="en"> ${t.l[i]}</i></span>`).join('')}</div>
     <p>${t.p}</p>
   </div>`).join('');
 
@@ -214,8 +214,9 @@ let saved = {};
 try{ saved = JSON.parse(localStorage.getItem(DRILL_KEY)) || {}; }catch{}
 let scope=saved.scope||'both', dir=saved.dir||'read', q=null,
     seen=saved.seen||0, right=saved.right||0, streak=saved.streak||0, best=saved.best||0;
+const misses = saved.misses || {}; /* per-romaji miss counts drive the look-alike drill */
 function saveDrill(){
-  try{ localStorage.setItem(DRILL_KEY, JSON.stringify({scope, dir, seen, right, streak, best})); }catch{}
+  try{ localStorage.setItem(DRILL_KEY, JSON.stringify({scope, dir, seen, right, streak, best, misses})); }catch{}
 }
 const gl=document.getElementById('drill-glyph'), inp=document.getElementById('drill-input'),
       verdict=document.getElementById('verdict'), replay=document.getElementById('drill-replay'),
@@ -233,7 +234,13 @@ TRICKY.forEach(t => t.g.forEach((g, i) => {
 
 function nextQ(auto){
   if(scope==='tricky'){
-    const p = TRICKY_POOL[Math.floor(Math.random()*TRICKY_POOL.length)];
+    /* weighted pick: characters you have missed come up more often */
+    const weighted = [];
+    TRICKY_POOL.forEach(p => {
+      const w = 1 + Math.min(4, (misses[p.c.r] || 0) * 2);
+      for(let i = 0; i < w; i++) weighted.push(p);
+    });
+    const p = weighted[Math.floor(Math.random()*weighted.length)];
     q = {c: p.c, script: p.script, glyph: p.glyph};
   }else{
     const c = flat[Math.floor(Math.random()*flat.length)];
@@ -267,7 +274,7 @@ function buildChoices(){
     const f = flat[Math.floor(Math.random()*flat.length)];
     if(f!==q.c && !opts.includes(f[other])) opts.push(f[other]);
   }
-  choicesEl.innerHTML = shuffleArr(opts).map(g=>`<button type="button" data-choice="${g}">${g}</button>`).join('');
+  choicesEl.innerHTML = shuffleArr(opts).map(g=>`<button type="button" lang="ja" data-choice="${g}">${g}</button>`).join('');
 }
 choicesEl.addEventListener('click', e=>{
   const b = e.target.closest('[data-choice]');
@@ -285,6 +292,8 @@ function updateScore(){
 
 function finish(ok, given){
   seen++; if(ok){right++;streak++; if(sprint) sprint.count++;} else streak=0;
+  if(!ok) misses[q.c.r] = (misses[q.c.r] || 0) + 1;
+  else if(misses[q.c.r]) misses[q.c.r] = Math.max(0, misses[q.c.r] - 0.5);
   saveDrill();
   gl.classList.remove('hidden-glyph');
   if(dir!=='listen') play(q.c.r, replay);
@@ -354,6 +363,54 @@ document.querySelectorAll('[data-scope]').forEach(b=>b.setAttribute('aria-presse
 document.querySelectorAll('[data-dir]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dir===dir)));
 updateScore();
 
+/* ---- minimal-pair listening drill: length is the only difference ---- */
+const PAIRS = [
+  [['きて','kite','come'],['きって','kitte','stamp']],
+  [['おばさん','obasan','aunt'],['おばあさん','obaasan','grandmother']],
+  [['おじさん','ojisan','uncle'],['おじいさん','ojiisan','grandfather']],
+  [['ここ','koko','here'],['こうこう','koukou','high school']],
+  [['さか','saka','slope'],['さっか','sakka','writer']],
+  [['かた','kata','shoulder'],['かった','katta','bought']],
+  [['くろ','kuro','black'],['くろう','kurou','hardship']],
+  [['とる','toru','to take'],['とおる','tooru','to pass through']],
+];
+const Pairs = {
+  pair: null, answer: null, right: 0, seen: 0,
+  els: { choices: document.getElementById('pair-choices'),
+         verdict: document.getElementById('pair-verdict'),
+         play: document.getElementById('pair-play'),
+         score: document.getElementById('pair-score') },
+  next(){
+    this.pair = PAIRS[Math.floor(Math.random()*PAIRS.length)];
+    this.answer = this.pair[Math.floor(Math.random()*2)];
+    this.els.choices.innerHTML = this.pair.map((w,i) =>
+      `<button type="button" data-pair="${i}"><b lang="ja">${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('');
+    this.els.verdict.textContent = '';
+    playWord(this.answer[0], this.els.play);
+  },
+  guess(i){
+    if(!this.pair) return;
+    const ok = this.pair[i] === this.answer;
+    this.seen++; if(ok) this.right++;
+    this.els.verdict.innerHTML = ok
+      ? `<span class="ok">正解 — it was <b lang="ja">${this.answer[0]}</b> (${this.answer[1]})</span>`
+      : `<span class="no">It was <b lang="ja">${this.answer[0]}</b> (${this.answer[1]}) — listen for the extra beat</span>`;
+    this.els.score.textContent = `${this.right} / ${this.seen}`;
+    const p = this.pair; this.pair = null;
+    setTimeout(()=>this.next(), ok ? 1100 : 2400);
+  },
+};
+if(Pairs.els.play){
+  Pairs.els.play.addEventListener('click', ()=>{
+    if(Pairs.pair) playWord(Pairs.answer[0], Pairs.els.play);
+    else Pairs.next();
+  });
+  Pairs.els.choices.addEventListener('click', e=>{
+    const b = e.target.closest('[data-pair]');
+    if(b) Pairs.guess(+b.dataset.pair);
+  });
+}
+
 /* deep link from the trainer: guide.html#c=<romaji> opens that character */
 function applyCharHash(){
   const m = location.hash.match(/^#c=([a-z]+)/);
@@ -365,5 +422,7 @@ function applyCharHash(){
   document.getElementById('chart').scrollIntoView();
 }
 window.addEventListener('hashchange', applyCharHash);
+
+document.querySelectorAll('.jp,.ex,.beat,.mini td:first-child,h1 .jp,#drill-glyph').forEach(e=>e.setAttribute('lang','ja'));
 
 buildGrid(); renderDetail(); nextQ(false); applyCharHash();

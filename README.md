@@ -42,6 +42,10 @@ To regenerate: `node tools/gen_texts.js` then `python tools/gen_audio.py` (add `
 
 Bump the `.v1` suffix and migrate in code if a schema ever changes shape. Asset URLs carry a `?v=N` query — bump it in the HTML files when shipping breaking JS/CSS changes so cached pages don't mix versions.
 
+## License
+
+Code is MIT; written content (mnemonics, decks, notes) is CC BY 4.0; audio was synthesised with Microsoft Edge neural voices via edge-tts. See [LICENSE](LICENSE).
+
 ## Notes
 
 - Web fonts load from Google Fonts when online; both pages fall back to system Japanese fonts offline.

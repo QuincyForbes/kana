@@ -1,0 +1,28 @@
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Romaji checker tests
+        run: node tools/test-romaji.mjs
+      - name: Number converter + SRS tests
+        run: node tools/test-trainer.mjs
+      - name: Cache-bust versions consistent across pages
+        run: |
+          v=$(grep -o '?v=[0-9]*' guide.html | sort -u)
+          for f in trainer.html mnemonics.html; do
+            fv=$(grep -o '?v=[0-9]*' "$f" | sort -u)
+            if [ "$v" != "$fv" ]; then
+              echo "version mismatch: guide.html has $v but $f has $fv"; exit 1
+            fi
+          done
+          echo "all pages at $v"

@@ -1,6 +1,6 @@
 :root{
     --paper:#F6F4EC; --ink:#17211E; --grid:#BACCC1; --rule:#2A6A55;
-    --shu:#BE3B2A; --muted:#6C7D75; --cell:60px;
+    --shu:#BE3B2A; --muted:#5E6F67; --cell:60px;
     --gothic:'Zen Kaku Gothic New','Hiragino Sans','Yu Gothic',Meiryo,sans-serif;
     --mincho:'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -251,7 +251,7 @@
   /* ---------- dark mode ---------- */
   @media (prefers-color-scheme: dark){
     :root{
-      --paper:#151917; --ink:#E4EAE5; --grid:#39463E; --rule:#7CBA9C; --shu:#E37A62; --muted:#8FA096;
+      --paper:#151917; --ink:#E4EAE5; --grid:#39463E; --rule:#7CBA9C; --shu:#E37A62; --muted:#9DAEA4;
       --card:#1D2420; --panel:#1A211D; --th:#222B25; --nil:#191E1A; --unseen:#252C27; --prose:#C7D2CA;
     }
     .heat i.l1{background:#2E4A3B}
@@ -301,3 +301,5 @@
   }
   /* keyboard hints are noise on touch screens */
   @media (hover:none){.kbd{display:none}}
+  .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:10px 16px;z-index:100}
+  .skip:focus{left:8px;top:8px}

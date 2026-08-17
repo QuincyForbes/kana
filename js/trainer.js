@@ -57,7 +57,8 @@ const store = (() => {
 /* Local neural-TTS clips first — audio/ja/ is Nanami (female), audio/ja-m/
    is Keita (male); the preferred dir is tried first, then the other, then
    the browser's own Japanese voice. Voice pref is shared with the guide.  */
-const VOICE_KEY = "kanaVoice.v1";
+const VOICE_KEY = "kanaVoice.v1", AUDIO_PREF_KEY = "kanaGuideAudio.v1";
+const slowPref = () => { try { return !!(JSON.parse(localStorage.getItem(AUDIO_PREF_KEY)) || {}).slow; } catch { return false; } };
 const voiceDirs = () => {
   let m = false;
   try { m = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
@@ -79,7 +80,7 @@ const Speech = (() => {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "ja-JP";
       if (voice) u.voice = voice;
-      u.rate = 0.85;
+      u.rate = slowPref() ? 0.6 : 0.85;
       speechSynthesis.speak(u);
     } catch {}
   };
@@ -89,9 +90,11 @@ const Speech = (() => {
       try { playing?.pause(); } catch {}
       const [pref, alt] = voiceDirs();
       const a = new Audio(pref + encodeURIComponent(text) + ".mp3");
+      a.playbackRate = slowPref() ? 0.75 : 1;
       playing = a;
       a.play().catch(() => {
         const b = new Audio(alt + encodeURIComponent(text) + ".mp3");
+        b.playbackRate = slowPref() ? 0.75 : 1;
         playing = b;
         b.play().catch(() => tts(text));
       });
@@ -221,6 +224,43 @@ function checkTyped(input, card) {
   return collapse(inP) === ans || collapse(aliasize(inP)) === ans;
 }
 
+/* ------------------------- Numbers & scheduling --------------------------- */
+/* Pure helpers, kept at module level so tools/test-trainer.mjs can slice
+   and exercise them without a DOM.                                          */
+const numDigits = ["", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
+function numToRomaji(n) {
+  let s = "";
+  const man = Math.floor(n / 10000);
+  if (man) s += numDigits[man] + "man";
+  n %= 10000;
+  const sen = Math.floor(n / 1000);
+  if (sen) s += sen === 1 ? "sen" : sen === 3 ? "sanzen" : sen === 8 ? "hassen" : numDigits[sen] + "sen";
+  n %= 1000;
+  const hyaku = Math.floor(n / 100);
+  if (hyaku) s += hyaku === 1 ? "hyaku" : hyaku === 3 ? "sanbyaku" : hyaku === 6 ? "roppyaku" : hyaku === 8 ? "happyaku" : numDigits[hyaku] + "hyaku";
+  n %= 100;
+  const juu = Math.floor(n / 10);
+  if (juu) s += (juu === 1 ? "" : numDigits[juu]) + "juu";
+  if (n % 10) s += numDigits[n % 10];
+  return s;
+}
+const numNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "").replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
+
+/* one SRS grade step: returns the card's next record without touching storage */
+function nextRecord(p, good, now) {
+  const n = { ...(p || { b: 0, d: 0, s: 0, l: 0 }) };
+  n.s++;
+  if (good) {
+    n.b = Math.min(n.b + 1, CONFIG.intervals.length - 1);
+    n.d = now + CONFIG.intervals[n.b];
+  } else {
+    n.l++;
+    n.b = 0;
+    n.d = now + CONFIG.againDelay;
+  }
+  return n;
+}
+
 /* ---------------------------- Study view --------------------------------- */
 const StudyView = (() => {
   const modLabel = (k) => (k === "ー" ? "(long)" : "(stop)");
@@ -236,7 +276,7 @@ const StudyView = (() => {
       if (r.startsWith("*")) { cls = " p"; r = r.slice(1); }
       else if (r === "~") { cls = " m"; r = modLabel(k); }
       if (k.length > 1) cls += " wide"; /* personalized fill-in boxes */
-      const inner = `<div class="k">${esc(k)}</div><div class="r">${esc(r)}</div>`;
+      const inner = `<div class="k" lang="ja">${esc(k)}</div><div class="r">${esc(r)}</div>`;
       /* base-46 boxes link to that character's guide entry */
       return BASE_LINK[k]
         ? `<a class="c${cls}" href="guide.html#c=${BASE_LINK[k]}" title="${esc(k)} in the guide">${inner}</a>`
@@ -252,7 +292,7 @@ const StudyView = (() => {
   const kanjiCard = (c) => {
     const key = `${c.kanji} ${c.furi} ${c.rom} ${c.mean}`.toLowerCase();
     return `<div class="row" data-k="${esc(key)}" style="display:block"><div class="kjcard">
-      <ruby>${esc(c.kanji)}<rt>${esc(c.furi)}</rt></ruby>
+      <ruby lang="ja">${esc(c.kanji)}<rt>${esc(c.furi)}</rt></ruby>
       <span class="en">${esc(c.mean)}</span><span class="whr">${esc(c.where)}</span>
     </div></div>`;
   };
@@ -264,7 +304,7 @@ const StudyView = (() => {
       const tds = cells.map((c) => {
         if (!c) return `<td class="nil"></td>`;
         const glyphs = script === "both" ? `${c[0]} ${c[1]}` : script === "h" ? c[0] : c[1];
-        return `<td class="${c[3] ? "odd" : ""}"><div class="pair">${glyphs}</div><div class="rom">${c[2]}</div></td>`;
+        return `<td class="${c[3] ? "odd" : ""}"><div class="pair" lang="ja">${glyphs}</div><div class="rom">${c[2]}</div></td>`;
       }).join("");
       return `<tr><th>${label}</th>${tds}</tr>`;
     }).join("");
@@ -275,7 +315,7 @@ const StudyView = (() => {
     const playall = filterable && id !== "kanji"
       ? `<button class="playall" data-playall="${id}" title="Play the whole section" aria-label="Play section">▶</button>` : "";
     return `<section id="${id}"${filterable ? " data-filterable" : ""}>
-      <div class="shead"><span class="n">${n}</span><h2>${jp}</h2>${playall}<span class="en">${en}</span></div>${body}
+      <div class="shead"><span class="n">${n}</span><h2 lang="ja">${jp}</h2>${playall}<span class="en">${en}</span></div>${body}
     </section>`;
   };
 
@@ -462,24 +502,6 @@ const StudyView = (() => {
     on("q", "input", apply);
 
     /* number sprint: random number → typed reading */
-    const numDigits = ["", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
-    function numToRomaji(n) {
-      let s = "";
-      const man = Math.floor(n / 10000);
-      if (man) s += numDigits[man] + "man";
-      n %= 10000;
-      const sen = Math.floor(n / 1000);
-      if (sen) s += sen === 1 ? "sen" : sen === 3 ? "sanzen" : sen === 8 ? "hassen" : numDigits[sen] + "sen";
-      n %= 1000;
-      const hyaku = Math.floor(n / 100);
-      if (hyaku) s += hyaku === 1 ? "hyaku" : hyaku === 3 ? "sanbyaku" : hyaku === 6 ? "roppyaku" : hyaku === 8 ? "happyaku" : numDigits[hyaku] + "hyaku";
-      n %= 100;
-      const juu = Math.floor(n / 10);
-      if (juu) s += (juu === 1 ? "" : numDigits[juu]) + "juu";
-      if (n % 10) s += numDigits[n % 10];
-      return s;
-    }
-    const numNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "").replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
     let numCur = 247;
     function numNext() {
       /* weighted small: plenty of 2-3 digit numbers, occasional big ones */
@@ -591,17 +613,7 @@ const Srs = (() => {
 
   /* @returns true if the card should resurface this session */
   function grade(card, good, now = Date.now()) {
-    const p = prog[card.id] || { b: 0, d: 0, s: 0, l: 0 };
-    p.s++;
-    if (good) {
-      p.b = Math.min(p.b + 1, CONFIG.intervals.length - 1);
-      p.d = now + CONFIG.intervals[p.b];
-    } else {
-      p.l++;
-      p.b = 0;
-      p.d = now + CONFIG.againDelay;
-    }
-    prog[card.id] = p;
+    prog[card.id] = nextRecord(prog[card.id], good, now);
     save();
     const days = store.get(CONFIG.daysKey) || {};
     days[ymd()] = (days[ymd()] || 0) + 1;
@@ -630,10 +642,13 @@ const Quiz = (() => {
   const settings = Object.assign({}, DEFAULTS, store.get(CONFIG.settingsKey) || {});
   const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null,
                     reviewed: 0, newIntroduced: 0, missed: [], customPending: false };
-  let undoState = null;
+  const undoStack = []; /* up to 20 grades deep */
 
   const deckCards = () =>
-    settings.deck === "All decks" ? CARDS : CARDS.filter((c) => c.deck === settings.deck);
+    settings.deck === "All decks" ? CARDS
+    : settings.deck === "All characters" ? CARDS.filter((c) => c.type === "char")
+    : settings.deck === "All phrases" ? CARDS.filter((c) => c.type === "phrase")
+    : CARDS.filter((c) => c.deck === settings.deck);
   const pickFace = () =>
     settings.mode === "listen" ? "jp"
     : settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
@@ -666,6 +681,11 @@ const Quiz = (() => {
     session.revealed = false;
     session.verdict = null;
     if (session.current && !Srs.record(session.current.id)) session.newIntroduced++;
+    if (session.queue[0]) {
+      const pre = new Audio();
+      pre.preload = "auto";
+      pre.src = voiceDirs()[0] + encodeURIComponent(speechText(session.queue[0])) + ".mp3";
+    }
     render();
   }
 
@@ -677,13 +697,14 @@ const Quiz = (() => {
 
   function grade(good) {
     const c = session.current;
-    undoState = {
+    undoStack.push({
       card: c,
       prevProg: Srs.record(c.id) ? JSON.parse(JSON.stringify(Srs.record(c.id))) : null,
       queue: [...session.queue],
       reviewed: session.reviewed,
       newIntroduced: session.newIntroduced,
-    };
+    });
+    if (undoStack.length > 20) undoStack.shift();
     if (!good) session.missed.push(c);
     if (Srs.grade(c, good))
       session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
@@ -692,17 +713,17 @@ const Quiz = (() => {
   }
 
   function undo() {
-    if (!undoState) return;
-    Srs.restore(undoState.card.id, undoState.prevProg);
-    session.queue = undoState.queue;
-    session.current = undoState.card;
+    const u = undoStack.pop();
+    if (!u) return;
+    Srs.restore(u.card.id, u.prevProg);
+    session.queue = u.queue;
+    session.current = u.card;
     session.face = pickFace();
     session.revealed = false;
     session.verdict = null;
-    session.reviewed = undoState.reviewed;
-    session.newIntroduced = undoState.newIntroduced;
-    if (session.missed[session.missed.length - 1]?.id === undoState.card.id) session.missed.pop();
-    undoState = null;
+    session.reviewed = u.reviewed;
+    session.newIntroduced = u.newIntroduced;
+    if (session.missed[session.missed.length - 1]?.id === u.card.id) session.missed.pop();
     render();
   }
 
@@ -726,7 +747,7 @@ const Quiz = (() => {
   /* One face descriptor per card type: prompt shown up front, answer parts
      revealed together. Keeps all six type×face combinations in one shape.  */
   const kanaBlock = (t, big, hide) =>
-    `<div class="qkana${big ? " big" : ""}${hide ? " qhide" : ""}">${t}</div>`;
+    `<div class="qkana${big ? " big" : ""}${hide ? " qhide" : ""}" lang="ja">${t}</div>`;
   const meanBlock = (t, hide) => `<p class="qmean${hide ? " qhide" : ""}">${t}</p>`;
   const romBlock = (t, hide) => `<p class="qrom${hide ? " qhide" : ""}">${t}</p>`;
 
@@ -837,7 +858,7 @@ const Quiz = (() => {
   /* ---- wiring ---- */
   function wire() {
     const deckSel = $("qdeck");
-    ["All decks", ...DECK_ORDER].forEach((d) => deckSel.append(new Option(d)));
+    ["All decks", "All characters", "All phrases", ...DECK_ORDER].forEach((d) => deckSel.append(new Option(d)));
     deckSel.value = settings.deck;
     $("qdir").value = settings.dir;
     $("qmode").value = settings.mode;
@@ -868,10 +889,14 @@ const Quiz = (() => {
 
     on("qundo", "click", undo);
 
-    /* voice pref is global (shared with the guide), not part of quiz settings */
+    /* voice + speed prefs are global (shared with the guide), not quiz settings */
     try { $("qvoice").checked = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
     on("qvoice", "change", () => {
       try { localStorage.setItem(VOICE_KEY, $("qvoice").checked ? "m" : "f"); } catch {}
+    });
+    $("qslow").checked = slowPref();
+    on("qslow", "change", () => {
+      try { localStorage.setItem(AUDIO_PREF_KEY, JSON.stringify({ slow: $("qslow").checked })); } catch {}
     });
 
     on("qexport", "click", () => {
@@ -930,7 +955,7 @@ const Progress = (() => {
 
   const li = (c, extra = "") => {
     const L = label(c);
-    return `<li><span class="jp2">${esc(L.jp)}</span><span class="mn">${esc(L.mn)}${extra}</span></li>`;
+    return `<li><span class="jp2" lang="ja">${esc(L.jp)}</span><span class="mn">${esc(L.mn)}${extra}</span></li>`;
   };
 
   function stats() {
@@ -1016,6 +1041,7 @@ function syncHash() {
   const h = currentMode === "study" ? "study" + (sec !== "all" ? "/" + sec : "") : currentMode;
   history.replaceState(null, "", "#" + h);
 }
+let modeInitialized = false;
 function setMode(mode) {
   currentMode = mode;
   document.body.className = document.body.className.replace(/mode-\w+/g, "").trim();
@@ -1026,6 +1052,13 @@ function setMode(mode) {
   if (mode === "progress") Progress.render();
   Player.stop();
   syncHash();
+  /* move keyboard/screen-reader focus into the newly shown panel */
+  if (modeInitialized) {
+    const panel = $(mode);
+    panel.tabIndex = -1;
+    panel.focus({ preventScroll: true });
+  }
+  modeInitialized = true;
 }
 
 /* ------------------------------- Init ------------------------------------ */

@@ -165,6 +165,14 @@ const DATA = [
  [["メ","ー","ル"],["me","~","ru"],"email"],
  [["エ","ン","ジ","ニ","ア"],["e","n","ji","ni","a"],"engineer"],
  [["カ","ナ","ダ","じ","ん"],["ka","na","da","ji","n"],"Canadian — kanji-era word plus katakana country"]
+]],
+["Reading practice","よみもの",[
+ [["コ","ー","ヒ","ー","を","く","だ","さ","い"],["ko","~","hi","~","*o","ku","da","sa","i"],"Coffee, please — katakana and a particle in one breath"],
+ [["え","き","は","ち","か","い","で","す","か"],["e","ki","*wa","chi","ka","i","de","su","ka"],"Is the station close?"],
+ [["こ","れ","は","い","く","ら","で","す","か"],["ko","re","*wa","i","ku","ra","de","su","ka"],"How much is this?"],
+ [["ト","イ","レ","は","ど","こ","に","あ","り","ま","す","か"],["to","i","re","*wa","do","ko","ni","a","ri","ma","su","ka"],"Where is the toilet? — the ありますか pattern"],
+ [["に","ほ","ん","ご","は","た","の","し","い","で","す"],["ni","ho","n","go","*wa","ta","no","shi","i","de","su"],"Japanese is fun"],
+ [["あ","し","た","も","き","ま","す","ね"],["a","shi","ta","mo","ki","ma","su","ne"],"I'll come again tomorrow, okay?"]
 ]]
 ];
 

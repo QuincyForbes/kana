@@ -7,11 +7,13 @@
 <meta name="description" content="Learn hiragana and katakana: an interactive guide with mnemonics and audio, plus a spaced-repetition trainer with survival phrases and kanji.">
 <meta property="og:title" content="かな — learn Japanese kana">
 <meta property="og:description" content="Interactive guide + spaced-repetition trainer, with neural-TTS audio for every character and phrase.">
+<meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eか%3C/text%3E%3C/svg%3E">
 <style>
 :root{
   --paper:#F2F3EE; --cell:#FCFCF9; --rule:#AFC0B2; --rule-faint:#D6DFD7;
-  --ink:#1B221E; --ink-soft:#67716B; --hira:#3F6B54; --kata:#2C4770; --shu:#BE3A22;
+  --ink:#1B221E; --ink-soft:#5D675F; --hira:#3F6B54; --kata:#2C4770; --shu:#BE3A22;
 }
 *{box-sizing:border-box}
 body{
@@ -46,7 +48,7 @@ a.card.t .kana{color:var(--kata)}
 .mystats a{color:var(--shu);text-decoration:none;font-weight:500}
 @media (prefers-color-scheme: dark){
   :root{--paper:#141814;--cell:#1C221D;--rule:#3C4A40;--rule-faint:#222922;
-    --ink:#E7ECE7;--ink-soft:#98A59B;--hira:#82C4A0;--kata:#93B4E4;--shu:#E37A62}
+    --ink:#E7ECE7;--ink-soft:#A4B1A6;--hira:#82C4A0;--kata:#93B4E4;--shu:#E37A62}
 }
 </style>
 </head>
@@ -66,6 +68,7 @@ a.card.t .kana{color:var(--kata)}
   </a>
   <p class="foot"><a href="mnemonics.html">Printable mnemonic sheet</a> — all 92 characters with their memory hooks, formatted for paper.</p>
   <div class="mystats" id="mystats" hidden></div>
+  <p class="foot">Open source — <a href="https://github.com/QuincyForbes/kana">code &amp; issues on GitHub</a>.</p>
 </div>
 <script>
 /* your progress at a glance (same-browser localStorage as the trainer) */

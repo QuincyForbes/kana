@@ -7,13 +7,16 @@
 <meta name="description" content="Kana trainer: survival phrases split one kana per box, survival kanji, and a spaced-repetition quiz with audio. Progress saves in your browser.">
 <meta property="og:title" content="Kana Trainer">
 <meta property="og:description" content="Phrases one kana per box, survival kanji, and a spaced-repetition quiz with neural-TTS audio.">
+<meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=8">
+<link rel="stylesheet" href="css/trainer.css?v=9">
 </head>
 <body>
+<a class="skip" href="#study">Skip to content</a>
 <div class="wrap">
 
   <div class="bar" id="bar">
@@ -64,6 +67,7 @@
       <h2>Using this</h2>
       <p>Read a phrase box by box out loud before reading it as a word. Tap 🔊 to hear it. Then live in the <b>Quiz</b> tab: single characters, phrases and kanji are all separate decks, or take everything at once. Type-the-romaji mode checks your answer and accepts both Hepburn and Kunrei spelling (shi/si, tsu/tu). Misses come back within minutes; hits come back in days. Ten minutes a day beats an hour on Sunday.</p>
       <p>Suggested order: <b>Hiragana</b> and <b>Katakana</b> character decks in typed mode until they're automatic, katakana loanwords next, then phrases, kanji throughout. <b>Progress</b> shows exactly where you stand per deck.</p>
+      <p>Found a mistake? <a href="https://github.com/QuincyForbes/kana/issues" rel="noopener">Open an issue on GitHub</a>.</p>
     </div>
   </div>
 
@@ -91,6 +95,7 @@
       <label>new/session <input type="number" id="qnewn" min="0" max="50" value="10"></label>
       <label><input type="checkbox" id="qspeak" checked> speak on reveal</label>
       <label><input type="checkbox" id="qvoice"> male voice</label>
+      <label><input type="checkbox" id="qslow"> slow audio</label>
     </div>
 
     <div id="qarea" aria-live="polite"></div>
@@ -127,7 +132,7 @@
   <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
 </nav>
 
-<script src="js/trainer-data.js?v=8"></script>
-<script src="js/trainer.js?v=8"></script>
+<script src="js/trainer-data.js?v=9"></script>
+<script src="js/trainer.js?v=9"></script>
 </body>
 </html>

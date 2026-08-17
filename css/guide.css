@@ -4,7 +4,7 @@
   --rule:#AFC0B2;
   --rule-faint:#D6DFD7;
   --ink:#1B221E;
-  --ink-soft:#67716B;
+  --ink-soft:#5D675F;
   --hira:#3F6B54;
   --kata:#2C4770;
   --shu:#BE3A22;
@@ -232,7 +232,7 @@ html{scroll-behavior:smooth;scroll-padding-top:48px}
 @media (prefers-color-scheme: dark){
   :root{
     --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#222922;
-    --ink:#E7ECE7; --ink-soft:#98A59B; --hira:#82C4A0; --kata:#93B4E4; --shu:#E37A62;
+    --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#82C4A0; --kata:#93B4E4; --shu:#E37A62;
     --hl:rgba(63,107,84,.55);
   }
 }
@@ -268,3 +268,32 @@ button[data-rec-play]{width:auto;padding:0 12px;font-size:11.5px;letter-spacing:
 @media (max-width:620px){.mnem .shape{width:80px;height:80px}}
 
 [hidden]{display:none!important}
+
+/* ---------- a11y: skip link, chart note ---------- */
+.skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:10px 16px;z-index:100}
+.skip:focus{left:8px;top:8px}
+.gridnote{font-size:12px;color:var(--ink-soft);margin:8px 0 0}
+.gridnote .gh{color:var(--hira)} .gridnote .gk{color:var(--kata)}
+
+/* ---------- print: the reference sections, not the drill ---------- */
+@media print{
+  body{background:#fff}
+  .jumpnav,#drill-sec,.slowbtn,.speak,.warn,#audio-warn{display:none!important}
+  section{padding-top:24px}
+}
+
+/* ---------- minimal-pair drill ---------- */
+.pairbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
+.pairbtns button{border:1px solid var(--rule);background:var(--cell);font-family:var(--body);
+  font-size:13.5px;padding:12px 10px;cursor:pointer;color:var(--ink);text-align:center}
+.pairbtns button b{display:block;font-family:var(--kana);font-size:21px;font-weight:400;margin-bottom:2px}
+.pairbtns button em{display:block;font-style:normal;color:var(--ink-soft);font-size:11.5px}
+.pairbtns button:hover{border-color:var(--ink)}
+.pairverdict{min-height:22px;font-size:13.5px;margin:10px 0 0}
+.pairverdict .ok{color:var(--hira)} .pairverdict .no{color:var(--shu)}
+.pairrow{display:flex;align-items:center;gap:14px;margin-top:4px}
+.pairplay{border:1px solid var(--ink);background:var(--cell);font-family:var(--body);
+  font-size:13px;padding:9px 16px;cursor:pointer;color:var(--ink)}
+.pairplay:hover{background:var(--ink);color:var(--paper)}
+.pairscore{font-size:12px;letter-spacing:.1em;color:var(--ink-soft)}
+@media (max-width:620px){.pairbtns{grid-template-columns:1fr}}
