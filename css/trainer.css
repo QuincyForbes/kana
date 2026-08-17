@@ -303,3 +303,29 @@
   @media (hover:none){.kbd{display:none}}
   .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:10px 16px;z-index:100}
   .skip:focus{left:8px;top:8px}
+
+  /* ==================== design polish ==================== */
+  /* grouped quiz options with captions */
+  .qopts{align-items:flex-end}
+  .qopts .opt{display:flex;flex-direction:column;gap:4px;border:0;padding:0;background:none;cursor:default}
+  .qopts .opt>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .qopts .opt select,.qopts .opt input{font:400 13px var(--gothic);border:1px solid var(--grid);
+    background:var(--card);color:var(--ink);padding:8px 9px;border-radius:2px}
+  .optchecks{display:flex;gap:8px;flex-wrap:wrap}
+  .optchecks label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;
+    border:1px solid var(--grid);padding:8px 10px;border-radius:2px;background:var(--card);cursor:pointer}
+
+  /* the quiz card is the hero of its screen */
+  .qcard{max-width:600px;margin:0 auto;border-radius:3px;
+    box-shadow:0 1px 2px rgba(20,30,24,.05),0 10px 30px rgba(20,30,24,.06);
+    animation:cardIn .16s ease}
+  @keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.qcard{animation:none}}
+  .qstats{max-width:600px;margin-left:auto;margin-right:auto}
+  .kbd,.qman{max-width:600px;margin-left:auto;margin-right:auto}
+
+  /* interactive surfaces respond */
+  button{transition:background .12s ease,color .12s ease,border-color .12s ease,transform .08s ease}
+  button:active{transform:scale(.97)}
+  .kjcard,.pdeck{transition:border-color .15s ease}
+  .kjcard:hover{border-color:var(--muted)}

@@ -310,7 +310,7 @@ document.querySelectorAll('[data-mode]').forEach(btn=>{
 });
 
 /* ---- tricky ---- */
-document.getElementById('tricky').innerHTML = TRICKY.map(t=>`
+document.getElementById('tricky-cards').innerHTML = TRICKY.map(t=>`
   <div class="tcard">
     <div class="glyphs">${t.g.map((g,i)=>`<span lang="ja">${g}<i lang="en"> ${t.l[i]}</i></span>`).join('')}</div>
     <p>${t.p}</p>
@@ -534,6 +534,7 @@ function setPanel(id, updateHash = true){
   panel = id;
   try{ localStorage.setItem(PANEL_KEY, id); }catch{}
   PANELS.forEach(p => { document.getElementById(p).hidden = p !== id; });
+  document.body.dataset.panel = id;
   document.querySelectorAll('.jumpnav a[href^="#"]').forEach(a => {
     const t = a.getAttribute('href').slice(1);
     if(PANELS.includes(t)) a.setAttribute('aria-current', String(t === id));

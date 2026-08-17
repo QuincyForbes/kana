@@ -323,3 +323,28 @@ section[hidden]{display:none}
 @media print{
   section[hidden]{display:block!important}
 }
+
+/* ==================== design polish ==================== */
+/* nav reads as tabs, matching the trainer's language */
+.jumpnav{gap:6px;padding:8px 20px;align-items:center}
+.jumpnav a{padding:8px 13px;border:1px solid transparent;border-radius:2px;
+  transition:color .12s ease,border-color .12s ease,background .12s ease}
+.jumpnav a:hover,.jumpnav a:focus{border-color:var(--rule);color:var(--ink);border-bottom-color:var(--rule)}
+.jumpnav a[aria-current="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.jumpnav .home:hover{border-color:transparent}
+
+/* the hero belongs to the Chart panel; other panels start at their own bar */
+body:not([data-panel="chart"]) header{display:none}
+body:not([data-panel="chart"]) section{padding-top:34px}
+
+/* gentle entrance for panel content */
+section:not([hidden]){animation:panelIn .16s ease}
+@keyframes panelIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){section:not([hidden]){animation:none}}
+
+/* interactive surfaces respond */
+button{transition:background .12s ease,color .12s ease,border-color .12s ease,transform .08s ease}
+button:active{transform:scale(.97)}
+.tcard,.rule,.pcard{transition:border-color .15s ease}
+.tcard:hover,.rule:hover,.pcard:hover{border-color:var(--ink-soft)}
+.words .word,.chip{border-radius:2px}
