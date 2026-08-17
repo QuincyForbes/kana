@@ -370,3 +370,21 @@ button:active{transform:scale(.97)}
   .detail-modal[open]{animation:modalIn .16s ease}
   @keyframes modalIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
+
+/* ---------- quick wins: chart knowledge heat, modal nav, after-kana ---------- */
+.k-cell.st-learn{background:rgba(217,164,65,.14)}
+.k-cell.st-known{background:rgba(46,125,79,.15)}
+.gridnote .sw{display:inline-block;width:10px;height:10px;border:1px solid var(--rule);vertical-align:-1px}
+.gridnote .sw.learn{background:rgba(217,164,65,.4)}
+.gridnote .sw.known{background:rgba(46,125,79,.4)}
+.modal-bar{position:sticky;top:-14px;z-index:3;display:flex;gap:8px;align-items:center;
+  margin:-8px -8px 8px;padding:4px 0;background:var(--paper)}
+.modal-spacer{flex:1}
+.modal-nav{width:34px;height:34px;border:1px solid var(--rule);border-radius:50%;
+  background:var(--cell);color:var(--ink-soft);font-size:19px;line-height:1;cursor:pointer}
+.modal-nav:hover{border-color:var(--ink);color:var(--ink)}
+.modal-x{position:static;float:none;margin:0}
+.afterkana{margin-top:38px;border-top:1px solid var(--rule);padding-top:20px;max-width:64ch}
+.afterkana h3{font-family:var(--display);font-size:19px;font-weight:600;margin:0 0 10px}
+.afterkana p{font-size:14.5px;margin:0 0 10px}
+.afterkana a{color:var(--hira)}

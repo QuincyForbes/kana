@@ -339,3 +339,13 @@
   #q-clear:hover{color:var(--ink);background:var(--unseen)}
   body.searching #qsec,body.searching #tR,body.searching #tM{display:none}
   body.searching .search{flex:1 1 100%}
+
+  /* ---------- quick wins: due badge, section quiz button ---------- */
+  .tab{position:relative}
+  .tab .badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;
+    border-radius:9px;background:var(--shu);color:#fff;font:700 10.5px/18px var(--gothic);
+    font-style:normal;text-align:center}
+  .bottomnav .tab .badge{top:5px;right:calc(50% - 30px)}
+  .snmid{display:flex;flex-direction:column;gap:7px;align-items:center}
+  .sn.quizsec{border-color:var(--shu);color:var(--shu);max-width:none}
+  .sn.quizsec:hover{background:var(--shu);color:var(--paper)}

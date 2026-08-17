@@ -127,6 +127,15 @@ let mode = 'both', current = flat[0];
 /* ---- chart ---- */
 const grid = document.getElementById('grid');
 function buildGrid(){
+  let prog = {};
+  try{ prog = JSON.parse(localStorage.getItem(CONFIG.progressKey)) || {}; }catch{}
+  const known = r => r && r.b >= CONFIG.knownBox;
+  const stateOf = c => {
+    const h = prog['hg-'+c.h], k = prog['kt-'+c.k];
+    if(known(h) && known(k)) return ' st-known';
+    if(h || k) return ' st-learn';
+    return '';
+  };
   grid.innerHTML = '';
   grid.appendChild(Object.assign(document.createElement('div'),{className:'colhead'}));
   ['a','i','u','e','o'].forEach(v=>{
@@ -137,7 +146,7 @@ function buildGrid(){
     row.c.forEach(c=>{
       if(!c){ grid.appendChild(Object.assign(document.createElement('div'),{className:'empty'})); return; }
       const b=document.createElement('button');
-      b.className='sq k-cell'; b.type='button';
+      b.className='sq k-cell' + stateOf(c); b.type='button';
       b.setAttribute('aria-current', c===current ? 'true':'false');
       b.setAttribute('aria-label', c.r);
       let inner='';
@@ -158,8 +167,20 @@ const detailModal = document.getElementById('detail-modal');
 function openDetail(){
   if(detailModal && !detailModal.open) detailModal.showModal();
 }
+function navDetail(d){
+  const i = flat.indexOf(current);
+  current = flat[(i + d + flat.length) % flat.length];
+  buildGrid(); renderDetail(); play(current.r);
+}
 if(detailModal){
   document.getElementById('detail-close').addEventListener('click', ()=>detailModal.close());
+  document.getElementById('detail-prev').addEventListener('click', ()=>navDetail(-1));
+  document.getElementById('detail-next').addEventListener('click', ()=>navDetail(1));
+  document.addEventListener('keydown', e=>{
+    if(!detailModal.open) return;
+    if(e.key==='ArrowLeft'){ e.preventDefault(); navDetail(-1); }
+    if(e.key==='ArrowRight'){ e.preventDefault(); navDetail(1); }
+  });
   detailModal.addEventListener('click', e=>{
     if(e.target === detailModal) detailModal.close(); /* backdrop click */
   });
@@ -420,8 +441,10 @@ function finish(ok, given){
   else if(misses[q.c.r]) misses[q.c.r] = Math.max(0, misses[q.c.r] - 0.5);
   saveDrill();
   /* feed the shared SRS record — drilling here counts in the trainer too */
-  if(typeof SrsBridge !== 'undefined')
+  if(typeof SrsBridge !== 'undefined'){
     SrsBridge.grade(q.script === 'hiragana' ? 'hg-' + q.c.h : 'kt-' + q.c.k, ok);
+    buildGrid();
+  }
   gl.classList.remove('hidden-glyph');
   if(dir!=='listen') play(q.c.r, replay);
   const answer = dir==='match' ? (q.script==='hiragana'?q.c.k:q.c.h) : q.c.r;

@@ -423,9 +423,11 @@ const StudyView = (() => {
       nav.hidden = !focus;
       if (focus) {
         const i = sections.indexOf(cur), prev = sections[i - 1], next = sections[i + 1];
+        const deckBtn = DECK_ORDER.includes(cur.label)
+          ? `<button class="sn quizsec" data-quizdeck="${esc(cur.label)}">Quiz this section →</button>` : "";
         nav.innerHTML =
           (prev ? `<button class="sn" data-sec="${prev.id}">← ${esc(prev.label)}</button>` : "<span></span>") +
-          `<span class="sni">${i + 1} / ${sections.length}</span>` +
+          `<span class="snmid"><span class="sni">${i + 1} / ${sections.length}</span>${deckBtn}</span>` +
           (next ? `<button class="sn" data-sec="${next.id}">${esc(next.label)} →</button>` : "<span></span>");
       }
     }
@@ -471,7 +473,9 @@ const StudyView = (() => {
     });
 
     on("secnav", "click", (e) => {
-      const b = e.target.closest(".sn");
+      const qd = e.target.closest("[data-quizdeck]");
+      if (qd) { Quiz.setDeck(qd.dataset.quizdeck); setMode("quiz"); return; }
+      const b = e.target.closest("[data-sec]");
       if (b) setSec(b.dataset.sec);
     });
 
@@ -629,7 +633,7 @@ const Quiz = (() => {
   const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true };
   const settings = Object.assign({}, DEFAULTS, store.get(CONFIG.settingsKey) || {});
   const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null,
-                    reviewed: 0, newIntroduced: 0, missed: [], customPending: false };
+                    reviewed: 0, correct: 0, newIntroduced: 0, missed: [], customPending: false };
   const undoStack = []; /* up to 20 grades deep */
 
   const deckCards = () =>
@@ -690,14 +694,17 @@ const Quiz = (() => {
       prevProg: Srs.record(c.id) ? JSON.parse(JSON.stringify(Srs.record(c.id))) : null,
       queue: [...session.queue],
       reviewed: session.reviewed,
+      correct: session.correct,
       newIntroduced: session.newIntroduced,
     });
     if (undoStack.length > 20) undoStack.shift();
     if (!good) session.missed.push(c);
+    if (good) session.correct++;
     if (Srs.grade(c, good))
       session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
     session.reviewed++;
     next();
+    updateDueBadge();
   }
 
   function undo() {
@@ -710,6 +717,7 @@ const Quiz = (() => {
     session.revealed = false;
     session.verdict = null;
     session.reviewed = u.reviewed;
+    session.correct = u.correct;
     session.newIntroduced = u.newIntroduced;
     if (session.missed[session.missed.length - 1]?.id === u.card.id) session.missed.pop();
     render();
@@ -729,7 +737,7 @@ const Quiz = (() => {
     $("stLearn").textContent = learn;
     $("stKnown").textContent = known;
     $("stDue").textContent = due;
-    $("stToday").textContent = session.reviewed;
+    $("stToday").textContent = session.reviewed ? session.reviewed + " · " + Math.round(100 * session.correct / session.reviewed) + "%" : 0;
   }
 
   /* One face descriptor per card type: prompt shown up front, answer parts
@@ -925,8 +933,14 @@ const Quiz = (() => {
     session.customPending = true;
   }
 
+  function setDeck(name) {
+    settings.deck = name;
+    store.set(CONFIG.settingsKey, settings);
+    $("qdeck").value = name;
+  }
+
   return {
-    wire, drillCards,
+    wire, drillCards, setDeck,
     start() {
       if (session.customPending) { session.customPending = false; next(); }
       else { buildQueue(); next(); }
@@ -1029,6 +1043,18 @@ function syncHash() {
   const h = currentMode === "study" ? "study" + (sec !== "all" ? "/" + sec : "") : currentMode;
   history.replaceState(null, "", "#" + h);
 }
+function updateDueBadge(){
+  const now = Date.now();
+  let due = 0;
+  CARDS.forEach((c) => { const p = Srs.record(c.id); if (p && p.d <= now) due++; });
+  document.querySelectorAll('.tab[data-mode="quiz"]').forEach((tab) => {
+    let b = tab.querySelector('.badge');
+    if (!b) { b = document.createElement('i'); b.className = 'badge'; tab.appendChild(b); }
+    b.textContent = due > 99 ? '99+' : due;
+    b.hidden = !due;
+  });
+}
+
 let modeInitialized = false;
 function setMode(mode) {
   currentMode = mode;

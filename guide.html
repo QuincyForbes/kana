@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/guide.css?v=16">
+<link rel="stylesheet" href="css/guide.css?v=17">
 </head>
 <body>
 <a class="skip" href="#chart">Skip to the chart</a>
@@ -52,10 +52,10 @@
   <p class="warn" id="audio-warn" hidden>Audio couldn't play here. Open the hosted page (or serve the project folder) so the clips in <code>audio/ja/</code> can load.</p>
 
   <div class="grid" id="grid"></div>
-  <p class="gridnote">Each square: <b class="gh" lang="ja">あ</b> hiragana on top, <b class="gk" lang="ja">ア</b> katakana below, romaji underneath.</p>
+  <p class="gridnote">Each square: <b class="gh" lang="ja">あ</b> hiragana on top, <b class="gk" lang="ja">ア</b> katakana below, romaji underneath. Shading: <span class="sw learn"></span> learning · <span class="sw known"></span> known — from your quiz record.</p>
 
   <dialog class="detail-modal" id="detail-modal" aria-label="Character detail">
-    <button class="modal-x" id="detail-close" type="button" aria-label="Close">×</button>
+    <div class="modal-bar"><button class="modal-nav" id="detail-prev" type="button" aria-label="Previous character">‹</button><button class="modal-nav" id="detail-next" type="button" aria-label="Next character">›</button><span class="modal-spacer"></span><button class="modal-x" id="detail-close" type="button" aria-label="Close">×</button></div>
     <div class="detail" id="detail"></div>
   </dialog>
 </section>
@@ -260,6 +260,13 @@
     <li><b>Drop romaji entirely by day three.</b> Every extra day of reading romaji is a day your brain isn't building the mapping you need.</li>
     <li><b>Then katakana, same schedule.</b> Practice on convenience-store shelves and menus — コーヒー, ビール, コンビニ. Nearly every katakana word is a loanword you already know.</li>
   </ol>
+
+  <div class="afterkana">
+    <h3>After kana — where to go next</h3>
+    <p><b>Grammar:</b> start <a href="https://guidetojapanese.org/learn/" rel="noopener">Tae Kim's Guide</a> (free) or the Genki textbooks. You only need a few chapters before real sentences start unlocking.</p>
+    <p><b>Kanji &amp; vocabulary:</b> <a href="https://www.wanikani.com/" rel="noopener">WaniKani</a> or a free Anki core deck. The 30 survival kanji here are a taste — the real climb starts now, and daily spaced repetition is what makes it stick.</p>
+    <p><b>Reading:</b> the <a href="https://tadoku.org/japanese/en/free-books-en/" rel="noopener">Tadoku free graded readers</a> are written for exactly this stage — whole little books in kana and beginner kanji. Reading real pages is what turns characters into a language.</p>
+  </div>
 </section>
 
 <footer>
@@ -270,12 +277,12 @@
 
 </div>
 
-<script src="js/srs.js?v=16"></script>
-<script src="js/kana-data.js?v=16"></script>
-<script src="js/guide-data.js?v=16"></script>
-<script src="js/guide-shapes.js?v=16"></script>
-<script src="js/strokes.js?v=16"></script>
-<script src="js/guide-words.js?v=16"></script>
-<script src="js/guide.js?v=16"></script>
+<script src="js/srs.js?v=17"></script>
+<script src="js/kana-data.js?v=17"></script>
+<script src="js/guide-data.js?v=17"></script>
+<script src="js/guide-shapes.js?v=17"></script>
+<script src="js/strokes.js?v=17"></script>
+<script src="js/guide-words.js?v=17"></script>
+<script src="js/guide.js?v=17"></script>
 </body>
 </html>
