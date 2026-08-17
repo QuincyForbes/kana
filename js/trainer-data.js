@@ -70,7 +70,10 @@ const DATA = [
  [["カ","ー","ド","で","い","い","で","す","か"],["ka","~","do","de","i","i","de","su","ka"],"Is card okay?"],
  [["ふ","く","ろ","は","い","り","ま","せ","ん"],["fu","ku","ro","*wa","i","ri","ma","se","n"],"I don't need a bag"],
  [["す","こ","し","ま","っ","て","く","だ","さ","い"],["su","ko","shi","ma","~","te","ku","da","sa","i"],"One moment, please"],
- [["み","て","い","る","だ","け","で","す"],["mi","te","i","ru","da","ke","de","su"],"Just looking, thanks"]
+ [["み","て","い","る","だ","け","で","す"],["mi","te","i","ru","da","ke","de","su"],"Just looking, thanks"],
+ [["え","い","ご","の","メ","ニュ","ー","は","あ","り","ま","す","か"],["e","i","go","no","me","nyu","~","*wa","a","ri","ma","su","ka"],"Is there an English menu?"],
+ [["め","ん","ぜ","い","で","き","ま","す","か"],["me","n","ze","i","de","ki","ma","su","ka"],"Can I get this tax-free?"],
+ [["よ","や","く","し","て","い","ま","せ","ん"],["yo","ya","ku","shi","te","i","ma","se","n"],"I don't have a reservation"]
 ]],
 ["Getting around","みち・でんしゃ",[
  [["ト","イ","レ","は","ど","こ","で","す","か"],["to","i","re","*wa","do","ko","de","su","ka"],"Where is the toilet?"],
@@ -86,7 +89,8 @@ const DATA = [
  [["な","ん","ば","ん","せ","ん","で","す","か"],["na","n","ba","n","se","n","de","su","ka"],"Which platform?"],
  [["つ","ぎ","の","で","ん","しゃ","は","な","ん","じ","で","す","か"],["tsu","gi","no","de","n","sha","*wa","na","n","ji","de","su","ka"],"What time is the next train?"],
  [["き","っ","ぷ","を","か","い","た","い","で","す"],["ki","~","pu","*o","ka","i","ta","i","de","su"],"I'd like to buy a ticket"],
- [["と","う","きょ","う","ま","で","お","ね","が","い","し","ま","す"],["to","u","kyo","u","ma","de","o","ne","ga","i","shi","ma","su"],"To Tokyo, please — say it to a taxi driver"]
+ [["と","う","きょ","う","ま","で","お","ね","が","い","し","ま","す"],["to","u","kyo","u","ma","de","o","ne","ga","i","shi","ma","su"],"To Tokyo, please — say it to a taxi driver"],
+ [["しゃ","し","ん","を","と","っ","て","も","い","い","で","す","か"],["sha","shi","n","*o","to","~","te","mo","i","i","de","su","ka"],"May I take a photo?"]
 ]],
 ["Numbers and time","かず・じかん",[
  [["い","ち"],["i","chi"],"1"],
@@ -128,7 +132,10 @@ const DATA = [
  [["パ","ス","ポ","ー","ト","を","な","く","し","ま","し","た"],["pa","su","po","~","to","*o","na","ku","shi","ma","shi","ta"],"I lost my passport"],
  [["き","ぶ","ん","が","わ","る","い","で","す"],["ki","bu","n","ga","wa","ru","i","de","su"],"I don't feel well"],
  [["ア","レ","ル","ギ","ー","が","あ","り","ま","す"],["a","re","ru","gi","~","ga","a","ri","ma","su"],"I have an allergy"],
- [["で","ん","わ","を","か","し","て","く","だ","さ","い"],["de","n","wa","*o","ka","shi","te","ku","da","sa","i"],"Please lend me a phone"]
+ [["で","ん","わ","を","か","し","て","く","だ","さ","い"],["de","n","wa","*o","ka","shi","te","ku","da","sa","i"],"Please lend me a phone"],
+ [["あ","た","ま","が","い","た","い","で","す"],["a","ta","ma","ga","i","ta","i","de","su"],"My head hurts"],
+ [["お","な","か","が","い","た","い","で","す"],["o","na","ka","ga","i","ta","i","de","su"],"My stomach hurts"],
+ [["ね","つ","が","あ","り","ま","す"],["ne","tsu","ga","a","ri","ma","su"],"I have a fever"]
 ]],
 ["Reacting like a human","きもち",[
  [["す","ご","い"],["su","go","i"],"Wow / amazing"],
@@ -173,6 +180,83 @@ const DATA = [
  [["ト","イ","レ","は","ど","こ","に","あ","り","ま","す","か"],["to","i","re","*wa","do","ko","ni","a","ri","ma","su","ka"],"Where is the toilet? — the ありますか pattern"],
  [["に","ほ","ん","ご","は","た","の","し","い","で","す"],["ni","ho","n","go","*wa","ta","no","shi","i","de","su"],"Japanese is fun"],
  [["あ","し","た","も","き","ま","す","ね"],["a","shi","ta","mo","ki","ma","su","ne"],"I'll come again tomorrow, okay?"]
+]],
+["Question words","しつもん",[
+ [["な","に"],["na","ni"],"What"],
+ [["ど","こ"],["do","ko"],"Where"],
+ [["い","つ"],["i","tsu"],"When"],
+ [["だ","れ"],["da","re"],"Who"],
+ [["ど","れ"],["do","re"],"Which one — of three or more"],
+ [["ど","っ","ち"],["do","~","chi"],"Which — of two, casual"],
+ [["ど","う","や","っ","て"],["do","u","ya","~","te"],"How — by what means"],
+ [["ど","う","し","て"],["do","u","shi","te"],"Why"],
+ [["い","く","つ"],["i","ku","tsu"],"How many — also how old"]
+]],
+["Phrases you'll hear","みせで",[
+ [["い","ら","っ","しゃ","い","ま","せ"],["i","ra","~","sha","i","ma","se"],"Welcome! — shouted as you enter any shop"],
+ [["あ","た","た","め","ま","す","か"],["a","ta","ta","me","ma","su","ka"],"Shall I heat it up? — the konbini bento question"],
+ [["お","は","し","は","い","り","ま","す","か"],["o","ha","shi","*wa","i","ri","ma","su","ka"],"Do you need chopsticks?"],
+ [["ふ","く","ろ","に","い","れ","ま","す","か"],["fu","ku","ro","ni","i","re","ma","su","ka"],"Shall I put it in a bag?"],
+ [["ポ","イ","ン","ト","カ","ー","ド","は","お","も","ち","で","す","か"],["po","i","n","to","ka","~","do","*wa","o","mo","chi","de","su","ka"],"Do you have a point card?"],
+ [["こ","ち","ら","で","お","め","し","あ","が","り","で","す","か"],["ko","chi","ra","de","o","me","shi","a","ga","ri","de","su","ka"],"Eating here? — for here or to go"],
+ [["い","じょ","う","で","よ","ろ","し","い","で","す","か"],["i","jo","u","de","yo","ro","shi","i","de","su","ka"],"Will that be all?"],
+ [["しょ","う","しょ","う","お","ま","ち","く","だ","さ","い"],["sho","u","sho","u","o","ma","chi","ku","da","sa","i"],"One moment, please — the keigo version staff use"],
+ [["お","ま","た","せ","し","ま","し","た"],["o","ma","ta","se","shi","ma","shi","ta"],"Sorry to keep you waiting"]
+]],
+["Counting things","かぞえかた",[
+ [["ひ","と","つ"],["hi","to","tsu"],"One — of anything"],
+ [["ふ","た","つ"],["fu","ta","tsu"],"Two"],
+ [["み","っ","つ"],["mi","~","tsu"],"Three"],
+ [["よ","っ","つ"],["yo","~","tsu"],"Four"],
+ [["い","つ","つ"],["i","tsu","tsu"],"Five"],
+ [["む","っ","つ"],["mu","~","tsu"],"Six"],
+ [["な","な","つ"],["na","na","tsu"],"Seven"],
+ [["や","っ","つ"],["ya","~","tsu"],"Eight"],
+ [["こ","こ","の","つ"],["ko","ko","no","tsu"],"Nine"],
+ [["と","お"],["to","o"],"Ten — after ten, switch to plain numbers"],
+ [["ふ","た","つ","く","だ","さ","い"],["fu","ta","tsu","ku","da","sa","i"],"Two of those, please — the counter in action"]
+]],
+["Days of the week","ようび",[
+ [["げ","つ","よ","う","び"],["ge","tsu","yo","u","bi"],"Monday — moon day"],
+ [["か","よ","う","び"],["ka","yo","u","bi"],"Tuesday — fire day"],
+ [["す","い","よ","う","び"],["su","i","yo","u","bi"],"Wednesday — water day"],
+ [["も","く","よ","う","び"],["mo","ku","yo","u","bi"],"Thursday — wood day"],
+ [["き","ん","よ","う","び"],["ki","n","yo","u","bi"],"Friday — gold day"],
+ [["ど","よ","う","び"],["do","yo","u","bi"],"Saturday — earth day"],
+ [["に","ち","よ","う","び"],["ni","chi","yo","u","bi"],"Sunday — sun day"],
+ [["きょ","う","は","な","ん","よ","う","び","で","す","か"],["kyo","u","*wa","na","n","yo","u","bi","de","su","ka"],"What day is it today?"],
+ [["しゅ","う","ま","つ"],["shu","u","ma","tsu"],"Weekend"]
+]],
+["Essential verbs","どうし",[
+ [["い","き","ま","す"],["i","ki","ma","su"],"To go"],
+ [["き","ま","す"],["ki","ma","su"],"To come"],
+ [["か","え","り","ま","す"],["ka","e","ri","ma","su"],"To go home"],
+ [["た","べ","ま","す"],["ta","be","ma","su"],"To eat"],
+ [["の","み","ま","す"],["no","mi","ma","su"],"To drink"],
+ [["み","ま","す"],["mi","ma","su"],"To see, to watch"],
+ [["き","き","ま","す"],["ki","ki","ma","su"],"To listen — also to ask"],
+ [["は","な","し","ま","す"],["ha","na","shi","ma","su"],"To speak"],
+ [["か","い","ま","す"],["ka","i","ma","su"],"To buy"],
+ [["わ","か","り","ま","す"],["wa","ka","ri","ma","su"],"To understand"],
+ [["あ","り","ま","す"],["a","ri","ma","su"],"There is — things"],
+ [["い","ま","す"],["i","ma","su"],"There is — people and animals"],
+ [["し","ま","す"],["shi","ma","su"],"To do"],
+ [["ね","ま","す"],["ne","ma","su"],"To sleep"]
+]],
+["Essential adjectives","けいようし",[
+ [["お","お","き","い"],["o","o","ki","i"],"Big"],
+ [["ち","い","さ","い"],["chi","i","sa","i"],"Small"],
+ [["た","か","い"],["ta","ka","i"],"Expensive — also tall"],
+ [["や","す","い"],["ya","su","i"],"Cheap"],
+ [["い","い"],["i","i"],"Good"],
+ [["わ","る","い"],["wa","ru","i"],"Bad"],
+ [["は","や","い"],["ha","ya","i"],"Fast — also early"],
+ [["お","そ","い"],["o","so","i"],"Slow — also late"],
+ [["あ","た","ら","し","い"],["a","ta","ra","shi","i"],"New"],
+ [["ふ","る","い"],["fu","ru","i"],"Old — for things, not people"],
+ [["と","お","い"],["to","o","i"],"Far"],
+ [["む","ず","か","し","い"],["mu","zu","ka","shi","i"],"Difficult"],
+ [["か","ん","た","ん"],["ka","n","ta","n"],"Easy, simple"]
 ]]
 ];
 

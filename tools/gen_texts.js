@@ -5,9 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
 
+const kanaData = fs.readFileSync(path.join(root, 'js/kana-data.js'), 'utf8');
 const trainerData = fs.readFileSync(path.join(root, 'js/trainer-data.js'), 'utf8');
 const { DATA, KANJI, GOJU, DAKU, YOON, EXTRA } =
-  new Function(trainerData + '; return {DATA, KANJI, GOJU, DAKU, YOON, EXTRA};')();
+  new Function(kanaData + trainerData + '; return {DATA, KANJI, GOJU, DAKU, YOON, EXTRA};')();
 const WORDS = new Function(
   fs.readFileSync(path.join(root, 'js/guide-words.js'), 'utf8') + '; return WORDS;')();
 
