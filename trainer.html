@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=19">
+<link rel="stylesheet" href="css/trainer.css?v=20">
 </head>
 <body>
 <a class="skip" href="#study">Skip to content</a>
@@ -30,6 +30,7 @@
       <span class="search"><input id="q" type="search" placeholder="Search — try &ldquo;please&rdquo;, &ldquo;train&rdquo;, or ku&hellip; ( / )" aria-label="Search all study items"><button id="q-clear" type="button" aria-label="Clear search" hidden>×</button></span>
       <span id="count"></span>
     </span>
+    <span id="sitenav-slot"></span>
   </div>
 
   <div id="study">
@@ -77,6 +78,7 @@
       <span><b id="stNew">0</b>unseen</span>
       <span><b id="stLearn">0</b>learning</span>
       <span><b id="stKnown">0</b>known</span>
+      <span id="sprint-box" hidden><b id="sprint-left">60</b>sprint · <b id="sprint-count">0</b>correct</span>
       <span style="margin-left:auto"><b id="stToday">0</b>reviewed this session</span>
     </div>
 
@@ -91,8 +93,10 @@
         <option value="flip">Flip &amp; self-grade</option>
         <option value="type">Type the romaji</option>
         <option value="listen">Listen &amp; type</option>
+        <option value="match">Match ひらがな ↔ カタカナ</option>
       </select></label>
       <label class="opt"><span>New / session</span><input type="number" id="qnewn" min="0" max="50" value="10"></label>
+      <button id="qsprint" type="button" class="minibtn qsprint">60s sprint</button>
       <span class="optchecks">
         <label><input type="checkbox" id="qspeak" checked> speak on reveal</label>
         <label><input type="checkbox" id="qvoice"> male voice</label>
@@ -147,9 +151,10 @@
   <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
 </nav>
 
-<script src="js/srs.js?v=19"></script>
-<script src="js/kana-data.js?v=19"></script>
-<script src="js/trainer-data.js?v=19"></script>
-<script src="js/trainer.js?v=19"></script>
+<script src="js/site.js?v=20"></script>
+<script src="js/srs.js?v=20"></script>
+<script src="js/kana-data.js?v=20"></script>
+<script src="js/trainer-data.js?v=20"></script>
+<script src="js/trainer.js?v=20"></script>
 </body>
 </html>

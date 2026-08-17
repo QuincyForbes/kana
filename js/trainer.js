@@ -670,17 +670,21 @@ const Quiz = (() => {
                     reviewed: 0, correct: 0, newIntroduced: 0, missed: [], customPending: false };
   const undoStack = []; /* up to 20 grades deep */
 
+  const TRICKY_CHARS = new Set(TRICKY.flatMap((p) => p.g.flatMap((g) => [g, H2K[g] || "", K2H[g] || ""])));
   const COMPOSITE = {
     "All decks": () => CARDS,
     "All characters": () => CARDS.filter((c) => c.type === "char"),
     "All phrases": () => CARDS.filter((c) => c.type === "phrase"),
+    "Look-alikes": () => CARDS.filter((c) => c.type === "char" && TRICKY_CHARS.has(c.char)),
   };
   const deckCards = () =>
     (COMPOSITE[settings.deck] || (() => CARDS.filter((c) => c.deck === settings.deck)))();
+  const counterpart = (c) => H2K[c.char] || K2H[c.char] || "";
   const pickFace = () =>
     settings.mode === "listen" ? "jp"
     : settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
   const listening = () => settings.mode === "listen" && session.face === "jp";
+  const matching = () => settings.mode === "match" && session.current?.type === "char" && counterpart(session.current);
   const typedApplies = () => (settings.mode === "type" || settings.mode === "listen") && session.face === "jp";
 
   function saveSettings() {
@@ -723,7 +727,58 @@ const Quiz = (() => {
     render();
   }
 
+  let sprint = null;
+  function nextSprintCard() {
+    const cards = deckCards().filter((c) => !c.custom);
+    session.current = cards[Math.floor(Math.random() * cards.length)];
+    session.face = "jp";
+    session.revealed = false;
+    session.verdict = null;
+    render();
+  }
+  function endSprint(aborted) {
+    clearInterval(sprint.timer);
+    const n = sprint.count;
+    sprint = null;
+    $("qsprint").textContent = "60s sprint";
+    $("sprint-box").hidden = true;
+    const bests = store.get("kanaTrainerSprint.v1") || {};
+    const key = settings.deck;
+    if (!aborted) {
+      const isBest = n > (bests[key] || 0);
+      if (isBest) { bests[key] = n; store.set("kanaTrainerSprint.v1", bests); }
+      $("qarea").innerHTML = `<div class="qcard"><div class="qdone">
+        <p><b>Sprint over — ${n} correct in 60 seconds.</b>${isBest && n > 0 ? " New best for this deck!" : ` Best: ${bests[key] || 0}.`}</p>
+        <div class="qbtns"><button class="qb" id="qsprint-again">Again</button><button class="qb ghost" id="qsprint-done">Back to reviews</button></div>
+      </div></div>`;
+      $("qsprint-again").onclick = startSprint;
+      $("qsprint-done").onclick = () => { buildQueue(); next(); };
+    } else { buildQueue(); next(); }
+  }
+  function startSprint() {
+    if (sprint) return endSprint(true);
+    sprint = { left: 60, count: 0, timer: setInterval(() => {
+      if (--sprint.left <= 0) return endSprint(false);
+      $("sprint-left").textContent = sprint.left;
+    }, 1000) };
+    $("qsprint").textContent = "Stop";
+    $("sprint-box").hidden = false;
+    $("sprint-left").textContent = "60";
+    $("sprint-count").textContent = "0";
+    nextSprintCard();
+  }
+
   function grade(good) {
+    if (sprint) {
+      if (good) sprint.count++;
+      $("sprint-count").textContent = sprint.count;
+      Srs.grade(session.current, good);
+      session.reviewed++;
+      if (good) session.correct++;
+      updateDueBadge();
+      nextSprintCard();
+      return;
+    }
     const c = session.current;
     undoStack.push({
       card: c,
@@ -811,6 +866,29 @@ const Quiz = (() => {
     if (!session.revealed) {
       const replay = listening()
         ? `<div class="qbtns"><button class="qb ghost" id="bReplay">🔊 play again</button></div>` : "";
+      if (matching()) {
+        const right = counterpart(session.current);
+        /* distractors: look-alike partners of this glyph first, then random */
+        const opts = [right];
+        /* answers stay in the counterpart's script; look-alike partners of
+           THIS character trap first, random fills the rest */
+        const answerScript = K2H[right] !== undefined ? "k" : "h";
+        const toAnswerScript = (g) => (answerScript === "k" ? (K2H[g] !== undefined ? g : H2K[g]) : (H2K[g] !== undefined ? g : K2H[g]));
+        TRICKY.forEach((p) => {
+          if (!p.g.includes(session.current.char) && !p.g.includes(right)) return;
+          p.g.forEach((g) => {
+            const cand = toAnswerScript(g);
+            if (cand && opts.length < 4 && !opts.includes(cand)) opts.push(cand);
+          });
+        });
+        const pool = Object.keys(answerScript === "k" ? K2H : H2K).filter((g) => g.length === right.length);
+        while (opts.length < 4) {
+          const cand = pool[Math.floor(Math.random() * pool.length)];
+          if (!opts.includes(cand)) opts.push(cand);
+        }
+        return `<div class="qchoices">${shuffle(opts).map((g) =>
+          `<button type="button" class="qc" lang="ja" data-match="${esc(g)}">${esc(g)}</button>`).join("")}</div>`;
+      }
       /* personalized cards have no fixed romaji — flip-grade them */
       return typedApplies() && !session.current.custom
         ? `${replay}<div class="qbtns"><input id="qtype" autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -820,7 +898,7 @@ const Quiz = (() => {
     }
     const v = session.verdict;
     const verdict = v
-      ? `<p class="verdict ${v.ok ? "ok" : "no"}">${v.ok ? "Correct" : "Not quite"} — ${esc(answerRom(session.current))}${v.ok ? "" : ` (you typed: ${esc(v.got)})`}</p>`
+      ? `<p class="verdict ${v.ok ? "ok" : "no"}">${v.ok ? "Correct" : "Not quite"} — <span lang="ja">${esc(matching() ? counterpart(session.current) : "")}</span>${matching() ? "" : esc(answerRom(session.current))}${v.ok ? "" : ` (you answered: ${esc(v.got)})`}</p>`
       : "";
     /* memory hook for the 46 base characters, from the guide */
     const c = session.current;
@@ -875,6 +953,11 @@ const Quiz = (() => {
   }
 
   function wirePrompt(c) {
+    document.querySelectorAll("[data-match]").forEach((b) =>
+      b.addEventListener("click", () => {
+        const right = counterpart(c);
+        reveal({ ok: b.dataset.match === right, got: b.dataset.match });
+      }));
     const show = $("bShow");
     if (show) show.onclick = () => reveal(null);
     const rep = $("bReplay");
@@ -896,14 +979,14 @@ const Quiz = (() => {
     const deckSel = $("qdeck");
     const deckGroups = [
       ["Everything", Object.keys(COMPOSITE)],
-      ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos"]],
+      ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos", "Look-alikes"]],
       ["Phrases & words", DATA.map((d) => d[0])],
       ["Kanji", ["Survival kanji"]],
       ...(Custom.decks.length ? [["My decks", Custom.decks.map((d) => d.name)]] : []),
     ];
     deckSel.innerHTML = deckGroups.map(([label, items]) =>
       `<optgroup label="${esc(label)}">${items.map((d) => `<option>${esc(d)}</option>`).join("")}</optgroup>`).join("");
-    if (!["All decks", "All characters", "All phrases"].includes(settings.deck) && !DECK_ORDER.includes(settings.deck))
+    if (!COMPOSITE[settings.deck] && !DECK_ORDER.includes(settings.deck))
       settings.deck = "All decks";
     deckSel.value = settings.deck;
     $("qdir").value = settings.dir;
@@ -934,6 +1017,7 @@ const Quiz = (() => {
     });
 
     on("qundo", "click", undo);
+    on("qsprint", "click", startSprint);
 
     /* voice + speed prefs are global (shared with the guide), not quiz settings */
     try { $("qvoice").checked = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
@@ -1192,7 +1276,9 @@ function setMode(mode) {
 
 /* ------------------------------- Init ------------------------------------ */
 /* #quiz, #progress, #study/s5 — read before wiring, which rewrites the hash */
-const [hashMode, hashSec] = location.hash.slice(1).split("/");
+const [hashMode, hashArg] = location.hash.slice(1).split("/").map(decodeURIComponent);
+const hashSec = hashMode === "study" ? hashArg : null;
+if (hashMode === "quiz" && hashArg) Quiz.setDeck(hashArg);
 StudyView.render();
 StudyView.wire();
 Quiz.wire();

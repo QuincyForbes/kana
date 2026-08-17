@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/guide.css?v=19">
+<link rel="stylesheet" href="css/guide.css?v=20">
 </head>
 <body>
 <a class="skip" href="#chart">Skip to the chart</a>
@@ -28,7 +28,7 @@
   <a href="#drill-sec">Drill</a>
   <a href="#plan">Plan</a>
   <a href="mnemonics.html">Print sheet</a>
-  <a class="home" href="index.html">← Trainer &amp; home</a>
+  <span id="sitenav-slot"></span>
 </nav>
 
 <header>
@@ -306,40 +306,26 @@
 </section>
 
 <section id="drill-sec">
-  <div class="drill">
-    <div class="drill-head">
-      <h2>Drill</h2>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="toggle" role="group" aria-label="Drill scope">
-          <button data-scope="both" aria-pressed="true">Both</button>
-          <button data-scope="hira" aria-pressed="false">ひらがな</button>
-          <button data-scope="kata" aria-pressed="false">カタカナ</button>
-          <button data-scope="tricky" aria-pressed="false">Look-alikes</button>
-        </div>
-        <div class="toggle" role="group" aria-label="Drill direction">
-          <button data-dir="read" aria-pressed="true">See it</button>
-          <button data-dir="listen" aria-pressed="false">Hear it</button>
-          <button data-dir="match" aria-pressed="false">Match</button>
-        </div>
-        <button class="sprintbtn" id="sprint-btn" type="button">60s sprint</button>
-      </div>
+  <div class="bar">
+    <h2>Drill</h2>
+    <span class="count">One practice engine — the trainer</span>
+  </div>
+  <p class="sub">Practice lives in the trainer now, so every answer feeds one progress record — and what you learn there lights up this guide's chart. Pick a lane:</p>
+  <div class="rules">
+    <div class="rule">
+      <h3>Characters</h3>
+      <p>Type the romaji, or listen and type. New cards arrive in chart order; misses come back until they stick.</p>
+      <p><a href="trainer.html#quiz/Hiragana">Hiragana →</a> · <a href="trainer.html#quiz/Katakana">Katakana →</a> · <a href="trainer.html#quiz/All%20characters">both →</a></p>
     </div>
-    <div class="drill-cell">
-      <div class="sq bigcell"><span id="drill-glyph">あ</span></div>
-      <button class="speak replay" type="button" id="drill-replay" aria-label="Play the sound again"></button>
+    <div class="rule">
+      <h3>Match ひらがな ↔ カタカナ</h3>
+      <p>Shown a character, pick its twin in the other script — look-alikes appear as traps. Switch the quiz mode to <b>Match</b>.</p>
+      <p><a href="trainer.html#quiz/All%20characters">Open match practice →</a></p>
     </div>
-    <div class="answer" id="drill-answer">
-      <input id="drill-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type the romaji" aria-label="Type the romaji reading">
-      <button id="drill-check">Check</button>
-    </div>
-    <div class="choices" id="drill-choices" hidden></div>
-    <p class="verdict" id="verdict" aria-live="polite"></p>
-    <div class="score">
-      <div>Streak<b id="s-streak">0</b></div>
-      <div>Correct<b id="s-right">0</b></div>
-      <div>Seen<b id="s-seen">0</b></div>
-      <div id="sprint-box" hidden>Sprint<b id="s-sprint">60</b></div>
-      <div>Sprint best<b id="s-best">—</b></div>
+    <div class="rule">
+      <h3>Look-alikes &amp; sprints</h3>
+      <p>The <b>Look-alikes</b> deck drills only the confusable pairs (シ/ツ, ぬ/め…), and the <b>60s sprint</b> races any deck for speed.</p>
+      <p><a href="trainer.html#quiz/Look-alikes">Drill look-alikes →</a></p>
     </div>
   </div>
 </section>
@@ -374,12 +360,13 @@
 
 </div>
 
-<script src="js/srs.js?v=19"></script>
-<script src="js/kana-data.js?v=19"></script>
-<script src="js/guide-data.js?v=19"></script>
-<script src="js/guide-shapes.js?v=19"></script>
-<script src="js/strokes.js?v=19"></script>
-<script src="js/guide-words.js?v=19"></script>
-<script src="js/guide.js?v=19"></script>
+<script src="js/site.js?v=20"></script>
+<script src="js/srs.js?v=20"></script>
+<script src="js/kana-data.js?v=20"></script>
+<script src="js/guide-data.js?v=20"></script>
+<script src="js/guide-shapes.js?v=20"></script>
+<script src="js/strokes.js?v=20"></script>
+<script src="js/guide-words.js?v=20"></script>
+<script src="js/guide.js?v=20"></script>
 </body>
 </html>

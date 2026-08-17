@@ -23,7 +23,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);f
 header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:8px}
 h1{font-family:var(--display);font-weight:900;font-size:26px;margin:0}
 header .sub{color:var(--ink-soft);font-size:13px}
-header a{margin-left:auto;color:var(--hira);font-size:13px}
+header a{color:var(--hira);font-size:13px}
 .printbtn{border:1px solid var(--ink);background:#fff;font-family:var(--body);font-size:13px;padding:7px 14px;cursor:pointer}
 .legend{font-size:12.5px;color:var(--ink-soft);margin:10px 0 18px}
 .legend b.h,header .sub b.h{color:var(--hira)} .legend b.k,header .sub b.k{color:var(--kata)}
@@ -69,7 +69,7 @@ tr{break-inside:avoid}
 <header>
   <h1>Hiragana &amp; katakana mnemonics</h1>
   <span class="sub">46 sounds · <b class="h">hiragana</b> + <b class="k">katakana</b> · one picture each</span>
-  <a href="guide.html">← back to the guide</a>
+  <span id="sitenav-slot"></span>
   <button class="printbtn" onclick="window.print()">Print</button>
 </header>
 <p class="legend"><b class="h">Green</b> is hiragana, <b class="k">blue</b> is katakana. The highlighted word is the picture to hang the shape on — read the row, close your eyes, redraw the shape from the picture.</p>
@@ -78,8 +78,9 @@ tr{break-inside:avoid}
   <tbody></tbody>
 </table>
 </div>
-<script src="js/kana-data.js?v=19"></script>
-<script src="js/guide-data.js?v=19"></script>
+<script src="js/site.js?v=20"></script>
+<script src="js/kana-data.js?v=20"></script>
+<script src="js/guide-data.js?v=20"></script>
 <script>
 const NAMES = {'—':'Vowels','K':'K row','S':'S row','T':'T row','N':'N row','H':'H row',
                'M':'M row','Y':'Y row','R':'R row','W':'W row'};
