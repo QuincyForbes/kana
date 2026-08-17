@@ -35,7 +35,7 @@ tbody th.rowgroup{font-family:var(--display);font-size:13px;color:var(--shu);tex
   padding:14px 8px 4px;border-bottom:1px solid var(--rule);letter-spacing:.08em}
 td{padding:7px 8px;border-bottom:1px solid #DDE4DD;vertical-align:middle}
 td.g{font-family:var(--body);font-size:26px;line-height:1;white-space:nowrap;width:1%}
-td.g .h{color:var(--hira)} td.g .k{color:var(--kata);margin-left:10px}
+td.g .h{color:var(--hira)} td.g .k{color:var(--kata)}
 td.r{font-family:var(--display);font-weight:600;font-size:16px;width:1%;padding-right:14px}
 td.r small{display:block;font-family:var(--body);font-weight:400;font-size:10.5px;color:var(--ink-soft);max-width:20ch}
 td.m{font-size:13px;width:38%}
@@ -74,7 +74,7 @@ tr{break-inside:avoid}
 </header>
 <p class="legend"><b class="h">Green</b> is hiragana, <b class="k">blue</b> is katakana. The highlighted word is the picture to hang the shape on — read the row, close your eyes, redraw the shape from the picture.</p>
 <table id="sheet">
-  <thead><tr><th>Kana</th><th>Romaji</th><th>Hiragana mnemonic</th><th>Katakana mnemonic</th></tr></thead>
+  <thead><tr><th>Hiragana</th><th>Katakana</th><th>Romaji</th><th>Hiragana mnemonic</th><th>Katakana mnemonic</th></tr></thead>
   <tbody></tbody>
 </table>
 </div>
@@ -88,13 +88,14 @@ K.forEach((row, ri) => {
   /* the final ん row shares the letter N with the na-row — label it distinctly */
   const label = ri === K.length - 1 ? 'ん — the lone consonant' : (NAMES[row.r] || row.r);
   if (label !== lastLabel) {
-    html += `<tr><th class="rowgroup" colspan="4">${label}</th></tr>`;
+    html += `<tr><th class="rowgroup" colspan="5">${label}</th></tr>`;
     lastLabel = label;
   }
   row.c.forEach(c => {
     if (!c) return;
     html += `<tr>
-      <td class="g"><span class="h">${c.h}</span><span class="k">${c.k}</span></td>
+      <td class="g"><span class="h" lang="ja">${c.h}</span></td>
+      <td class="g"><span class="k" lang="ja">${c.k}</span></td>
       <td class="r">${c.r}${c.s ? `<small>${c.s}</small>` : ''}</td>
       <td class="m">${c.mh}</td>
       <td class="m">${c.mk}</td>
