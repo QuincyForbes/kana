@@ -415,6 +415,9 @@ const StudyView = (() => {
       $("count").textContent = t ? `${shown} of ${total}` : focus ? cur.label : `${total} items`;
       $("empty").hidden = !t || shown > 0;
       $("qsec").disabled = !!t;
+      /* search mode: the input takes the row, other controls step aside */
+      document.body.classList.toggle("searching", !!t);
+      $("q-clear").hidden = !t;
 
       const nav = $("secnav");
       nav.hidden = !focus;
@@ -473,6 +476,18 @@ const StudyView = (() => {
     });
 
     on("q", "input", apply);
+    on("q-clear", "click", () => { $("q").value = ""; apply(); $("q").focus(); });
+    on("q", "keydown", (e) => {
+      if (e.key === "Escape") { $("q").value = ""; apply(); $("q").blur(); }
+    });
+    /* press / anywhere in Study to jump into search */
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "/" && document.body.classList.contains("mode-study")
+          && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) {
+        e.preventDefault();
+        $("q").focus();
+      }
+    });
 
     /* number sprint: random number → typed reading */
     let numCur = 247;

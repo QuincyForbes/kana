@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=15">
+<link rel="stylesheet" href="css/trainer.css?v=16">
 </head>
 <body>
 <a class="skip" href="#study">Skip to content</a>
@@ -27,7 +27,7 @@
       <select id="qsec" aria-label="Study section"></select>
       <button class="tog" id="tR" aria-pressed="true">Romaji</button>
       <button class="tog" id="tM" aria-pressed="true">Meaning</button>
-      <input id="q" type="search" placeholder="Filter — try &ldquo;please&rdquo;, &ldquo;train&rdquo;, or ku">
+      <span class="search"><input id="q" type="search" placeholder="Search — try &ldquo;please&rdquo;, &ldquo;train&rdquo;, or ku&hellip; ( / )" aria-label="Search all study items"><button id="q-clear" type="button" aria-label="Clear search" hidden>×</button></span>
       <span id="count"></span>
     </span>
   </div>
@@ -134,9 +134,9 @@
   <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
 </nav>
 
-<script src="js/srs.js?v=15"></script>
-<script src="js/kana-data.js?v=15"></script>
-<script src="js/trainer-data.js?v=15"></script>
-<script src="js/trainer.js?v=15"></script>
+<script src="js/srs.js?v=16"></script>
+<script src="js/kana-data.js?v=16"></script>
+<script src="js/trainer-data.js?v=16"></script>
+<script src="js/trainer.js?v=16"></script>
 </body>
 </html>

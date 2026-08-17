@@ -329,3 +329,13 @@
   button:active{transform:scale(.97)}
   .kjcard,.pdeck{transition:border-color .15s ease}
   .kjcard:hover{border-color:var(--muted)}
+
+  /* ---------- search mode ---------- */
+  .search{position:relative;display:flex;flex:1;min-width:130px}
+  .search #q{flex:1;width:100%;padding-right:30px;transition:box-shadow .12s ease}
+  .search:focus-within #q{border-color:var(--rule)}
+  #q-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+    border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer}
+  #q-clear:hover{color:var(--ink);background:var(--unseen)}
+  body.searching #qsec,body.searching #tR,body.searching #tM{display:none}
+  body.searching .search{flex:1 1 100%}
