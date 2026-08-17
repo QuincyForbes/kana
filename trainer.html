@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=18">
+<link rel="stylesheet" href="css/trainer.css?v=19">
 </head>
 <body>
 <a class="skip" href="#study">Skip to content</a>
@@ -114,14 +114,14 @@
 
     <details class="mydecks" id="mydecks">
       <summary>My decks — import your own (Anki-style, CSV)</summary>
-      <p class="mdhelp">One card per line: <code>front, reading (kana, optional), meaning</code>. Commas in the meaning are fine. Tab-separated works too. Decks live in this browser and ride the same spaced-repetition scheduler; audio uses the browser's Japanese voice.</p>
+      <p class="mdhelp">One card per line: <code>front, reading (kana, optional), meaning</code>. Commas in the meaning are fine. Tab-separated works too. Decks live in this browser and ride the same spaced-repetition scheduler; audio uses the browser's Japanese voice. Kana readings unlock typed-romaji answers automatically; kanji-only cards flip-grade.</p>
       <div class="mdrow">
         <input id="md-name" placeholder="Deck name" aria-label="Deck name">
         <button id="md-load" type="button">Load file…</button>
         <input type="file" id="md-fileinput" accept=".csv,.tsv,.txt" hidden>
       </div>
       <textarea id="md-csv" rows="5" spellcheck="false" placeholder="日本, にほん, Japan&#10;水, みず, water&#10;ありがとう, , thanks"></textarea>
-      <div class="mdrow"><button id="md-import" type="button">Add deck</button></div>
+      <div class="mdrow"><button id="md-import" type="button">Add deck</button><span id="md-count" class="mdcount"></span></div>
       <ul id="md-list"></ul>
     </details>
   </div>
@@ -147,9 +147,9 @@
   <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
 </nav>
 
-<script src="js/srs.js?v=18"></script>
-<script src="js/kana-data.js?v=18"></script>
-<script src="js/trainer-data.js?v=18"></script>
-<script src="js/trainer.js?v=18"></script>
+<script src="js/srs.js?v=19"></script>
+<script src="js/kana-data.js?v=19"></script>
+<script src="js/trainer-data.js?v=19"></script>
+<script src="js/trainer.js?v=19"></script>
 </body>
 </html>

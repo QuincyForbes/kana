@@ -154,12 +154,14 @@ const DECK_ORDER = [
 const CUSTOM_KEY = "kanaTrainerCustom.v1";
 const Custom = {
   decks: store.get(CUSTOM_KEY) || [],
-  save() { store.set(CUSTOM_KEY, this.decks); },
+  commit() { store.set(CUSTOM_KEY, this.decks); location.reload(); },
   cardsOf(d) {
-    return d.cards.map((c, i) => ({
-      id: `u:${d.name}:${i}`, deck: d.name, type: "custom",
-      front: c.f, reading: c.r || "", mean: c.m, custom: true,
-    }));
+    return d.cards.map((c, i) => {
+      /* a kana reading (or kana front) yields romaji, enabling typed answers */
+      const rom = kanaToRomaji(c.r || c.f);
+      return { id: `u:${d.name}:${i}`, deck: d.name, type: "custom",
+        front: c.f, reading: c.r || "", mean: c.m, rom: rom || "", custom: !rom };
+    });
   },
   parse(text) {
     return String(text).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((line) => {
@@ -170,6 +172,13 @@ const Custom = {
       return { f, r: "", m: (parts[1] || "").trim() };
     }).filter(Boolean);
   },
+  toCSV(d) { return d.cards.map((c) => [c.f, c.r, c.m].join(", ")).join("\n"); },
+  upsert(name, cards) {
+    const i = this.decks.findIndex((d) => d.name === name);
+    if (i >= 0) this.decks[i] = { name, cards }; else this.decks.push({ name, cards });
+    this.commit();
+  },
+  remove(i) { this.decks.splice(i, 1); this.commit(); },
 };
 Custom.decks.forEach((d) => { CARDS.push(...Custom.cardsOf(d)); DECK_ORDER.push(d.name); });
 
@@ -190,7 +199,7 @@ function spokenRom(c) {
   });
   return out.join("");
 }
-const answerRom = (c) => (c.type === "phrase" ? spokenRom(c) : c.type === "custom" ? (c.reading || c.front) : c.rom);
+const answerRom = (c) => (c.type === "phrase" ? spokenRom(c) : c.type === "custom" ? (c.rom || c.reading || c.front) : c.rom);
 const speechText = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.type === "custom" ? (c.reading || c.front) : c.say);
 
 /* Typed-answer checking.
@@ -223,7 +232,7 @@ const aliasize = (s) => s.replace(ALIAS_RX, (m) => ALIAS_MAP[m]);
    the kanji itself or its furigana. */
 const kataToHira = (s) => s.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
 const kanaNorm = (s) => kataToHira(String(s).replace(/[\s・、。・]/g, ""));
-const expectedKana = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.char);
+const expectedKana = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.type === "custom" ? (c.reading || c.front) : c.char);
 
 function checkTyped(input, card) {
   const raw = String(input).trim();
@@ -661,11 +670,13 @@ const Quiz = (() => {
                     reviewed: 0, correct: 0, newIntroduced: 0, missed: [], customPending: false };
   const undoStack = []; /* up to 20 grades deep */
 
+  const COMPOSITE = {
+    "All decks": () => CARDS,
+    "All characters": () => CARDS.filter((c) => c.type === "char"),
+    "All phrases": () => CARDS.filter((c) => c.type === "phrase"),
+  };
   const deckCards = () =>
-    settings.deck === "All decks" ? CARDS
-    : settings.deck === "All characters" ? CARDS.filter((c) => c.type === "char")
-    : settings.deck === "All phrases" ? CARDS.filter((c) => c.type === "phrase")
-    : CARDS.filter((c) => c.deck === settings.deck);
+    (COMPOSITE[settings.deck] || (() => CARDS.filter((c) => c.deck === settings.deck)))();
   const pickFace = () =>
     settings.mode === "listen" ? "jp"
     : settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
@@ -883,7 +894,15 @@ const Quiz = (() => {
   /* ---- wiring ---- */
   function wire() {
     const deckSel = $("qdeck");
-    ["All decks", "All characters", "All phrases", ...DECK_ORDER].forEach((d) => deckSel.append(new Option(d)));
+    const deckGroups = [
+      ["Everything", Object.keys(COMPOSITE)],
+      ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos"]],
+      ["Phrases & words", DATA.map((d) => d[0])],
+      ["Kanji", ["Survival kanji"]],
+      ...(Custom.decks.length ? [["My decks", Custom.decks.map((d) => d.name)]] : []),
+    ];
+    deckSel.innerHTML = deckGroups.map(([label, items]) =>
+      `<optgroup label="${esc(label)}">${items.map((d) => `<option>${esc(d)}</option>`).join("")}</optgroup>`).join("");
     if (!["All decks", "All characters", "All phrases"].includes(settings.deck) && !DECK_ORDER.includes(settings.deck))
       settings.deck = "All decks";
     deckSel.value = settings.deck;
@@ -951,36 +970,67 @@ const Quiz = (() => {
       });
     });
     /* ---- My decks (CSV) ---- */
+    const SAMPLE = "日本, にほん, Japan\n水, みず, water\nはしります, , to run (polite)";
     function renderCustomList() {
       const ul = $("md-list");
       if (!ul) return;
       ul.innerHTML = Custom.decks.length
-        ? Custom.decks.map((d, i) =>
-            `<li><b>${esc(d.name)}</b> · ${d.cards.length} cards <button type="button" class="minibtn" data-deldeck="${i}">remove</button></li>`).join("")
-        : '<li class="pempty">No custom decks yet — paste some lines above.</li>';
+        ? Custom.decks.map((d, i) => {
+            const typed = Custom.cardsOf(d).filter((c) => !c.custom).length;
+            return `<li><b>${esc(d.name)}</b> · ${d.cards.length} cards${typed ? ` (${typed} typeable)` : ""}
+              <span class="mdacts">
+                <button type="button" class="minibtn" data-editdeck="${i}">edit</button>
+                <button type="button" class="minibtn" data-dldeck="${i}">download</button>
+                <button type="button" class="minibtn" data-deldeck="${i}">remove</button>
+              </span></li>`;
+          }).join("")
+        : '<li class="pempty">No custom decks yet — paste some lines above, or <button type="button" class="minibtn" id="md-sample">insert a sample</button>.</li>';
     }
     renderCustomList();
+    const mdCount = () => {
+      const n = Custom.parse($("md-csv").value).length;
+      $("md-count").textContent = n ? `${n} card${n > 1 ? "s" : ""} ready` : "";
+    };
+    on("md-csv", "input", mdCount);
     on("md-import", "click", () => {
       const name = $("md-name").value.trim();
       const cards = Custom.parse($("md-csv").value);
       if (!name || !cards.length) { alert("Give the deck a name and at least one line: front, reading, meaning"); return; }
-      const i = Custom.decks.findIndex((d) => d.name === name);
-      if (i >= 0) Custom.decks[i] = { name, cards }; else Custom.decks.push({ name, cards });
-      Custom.save();
-      location.reload();
+      Custom.upsert(name, cards);
     });
     on("md-load", "click", () => $("md-fileinput").click());
     on("md-fileinput", "change", (e) => {
       const f = e.target.files[0];
-      if (f) f.text().then((txt) => { $("md-csv").value = txt; if (!$("md-name").value) $("md-name").value = f.name.replace(/\.[^.]+$/, ""); });
+      if (f) f.text().then((txt) => {
+        $("md-csv").value = txt;
+        if (!$("md-name").value) $("md-name").value = f.name.replace(/\.[^.]+$/, "");
+        mdCount();
+      });
     });
     on("md-list", "click", (e) => {
-      const b = e.target.closest("[data-deldeck]");
-      if (!b) return;
-      if (!confirm("Remove this deck from the trainer?")) return;
-      Custom.decks.splice(+b.dataset.deldeck, 1);
-      Custom.save();
-      location.reload();
+      const act = (attr) => { const b = e.target.closest(`[data-${attr}]`); return b ? +b.dataset[attr] : null; };
+      if (e.target.id === "md-sample") { $("md-csv").value = SAMPLE; $("md-name").value ||= "Sample deck"; mdCount(); return; }
+      const del = act("deldeck");
+      if (del !== null) { if (confirm("Remove this deck from the trainer?")) Custom.remove(del); return; }
+      const ed = act("editdeck");
+      if (ed !== null) {
+        const d = Custom.decks[ed];
+        $("md-name").value = d.name;
+        $("md-csv").value = Custom.toCSV(d);
+        mdCount();
+        $("mydecks").open = true;
+        $("md-csv").focus();
+        return;
+      }
+      const dl = act("dldeck");
+      if (dl !== null) {
+        const d = Custom.decks[dl];
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([Custom.toCSV(d)], { type: "text/csv" }));
+        a.download = d.name + ".csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
     });
 
     on("qreset", "click", () => {

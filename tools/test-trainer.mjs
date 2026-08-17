@@ -7,6 +7,8 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = readFileSync(join(root, 'js/trainer.js'), 'utf8');
 const srs = readFileSync(join(root, 'js/srs.js'), 'utf8');
+const kanaData = readFileSync(join(root, 'js/kana-data.js'), 'utf8');
+const { kanaToRomaji } = new Function(kanaData + '; return { kanaToRomaji };')();
 
 const slice = (from, to) => {
   const a = src.indexOf(from), b = src.indexOf(to);
@@ -73,6 +75,15 @@ is(missed.d, T + CONFIG.againDelay, 'missed card comes back after againDelay');
 const input = { b: 2, d: 5, s: 3, l: 0 };
 nextRecord(input, true, T);
 is(input.b, 2, 'nextRecord does not mutate its input');
+
+/* kana -> romaji converter (drives typed answers for custom decks) */
+is(kanaToRomaji('はしる'), 'hashiru', 'plain kana');
+is(kanaToRomaji('きゃく'), 'kyaku', 'yoon combo');
+is(kanaToRomaji('がっこう'), 'gakkou', 'small tsu doubles');
+is(kanaToRomaji('ざっし'), 'zasshi', 'small tsu before digraph');
+is(kanaToRomaji('コーヒー'), 'koohii', 'long-vowel bar');
+is(kanaToRomaji('ニュース'), 'nyuusu', 'katakana combo + bar');
+is(kanaToRomaji('走る'), null, 'kanji returns null (flip-grade fallback)');
 
 if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
 console.log('\nall tests passed');
