@@ -152,6 +152,19 @@ function buildGrid(){
 }
 
 const detail=document.getElementById('detail');
+/* drawn mnemonic: the glyph with the memory image sketched over it */
+function shapeSVG(c, script){
+  const s = typeof SHAPES !== 'undefined' && SHAPES[c.r]?.[script];
+  if(!s) return '';
+  const glyph = script==='h' ? c.h : c.k;
+  const col = script==='h' ? 'var(--hira)' : 'var(--kata)';
+  return `<svg class="shape" viewBox="0 0 120 120" aria-hidden="true">
+    <text x="60" y="63" text-anchor="middle" dominant-baseline="central" font-size="86"
+      font-family="var(--kana)" fill="${col}">${glyph}</text>
+    <g fill="none" stroke="var(--shu)" stroke-width="3" stroke-linecap="round"
+      stroke-linejoin="round" opacity=".85">${s}</g>
+  </svg>`;
+}
 function renderDetail(){
   const c=current;
   const showH = mode!=='kata', showK = mode!=='hira';
@@ -172,8 +185,8 @@ function renderDetail(){
         <span class="chip h"><em>hiragana</em><b>${c.h}</b></span>
         <span class="chip k"><em>katakana</em><b>${c.k}</b></span>
       </div>
-      ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><p>${c.mh}</p></div>`:''}
-      ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><p>${c.mk}</p></div>`:''}
+      ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><div class="mnemrow">${shapeSVG(c,'h')}<p>${c.mh}</p></div></div>`:''}
+      ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><div class="mnemrow">${shapeSVG(c,'k')}<p>${c.mk}</p></div></div>`:''}
       ${(WORDS[c.r]||[]).length?`<div class="words"><dt>In the wild</dt>${WORDS[c.r].map(w=>
         `<button type="button" class="word" data-play-word="${w[0]}"><b>${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('')}</div>`:''}
     </div>`;
