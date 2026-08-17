@@ -264,3 +264,40 @@
   .numdrill .numq{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--ink);min-width:90px}
   .numdrill input{width:100%}
   #num-verdict b{font-family:var(--gothic);font-size:13px}
+
+  /* ---------- mobile: bottom tab bar + touch-sized quiz ---------- */
+  .bottomnav{display:none}
+  @media (max-width:720px){
+    .bar .tab{display:none}
+    body:not(.mode-study) .bar{display:none}
+    .bottomnav{
+      position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;
+      background:var(--paper);border-top:1px solid var(--grid);
+      padding-bottom:env(safe-area-inset-bottom);
+      box-shadow:0 -4px 14px rgba(0,0,0,.06);
+    }
+    .bottomnav .tab{
+      flex:1;display:block;border:0;border-radius:0;background:transparent;
+      padding:14px 0 13px;font:700 13.5px/1 var(--gothic);letter-spacing:.06em;color:var(--muted);
+    }
+    .bottomnav .tab[aria-selected="true"]{background:transparent;color:var(--rule);box-shadow:inset 0 3px 0 var(--rule)}
+    .wrap{padding-bottom:120px}
+    body.mode-quiz #quiz,body.mode-progress #progress{padding-top:16px}
+
+    /* stop iOS auto-zoom: inputs at 16px+ */
+    #q,#qsec,#qtype,.qopts select,.qopts input,.youform input{font-size:16px}
+    #q{min-width:110px}
+    #count{display:none}
+
+    /* thumb-sized quiz controls */
+    .qb{flex:1 1 40%;max-width:230px;padding:16px 10px;font-size:15px}
+    .qbtns{gap:12px}
+    .qopts{gap:10px}
+    .qopts select{flex:1 1 44%;padding:10px 8px}
+    .qopts label{padding:10px 12px}
+    .spk{width:42px;height:42px;margin-top:calc(var(--cell)/2 - 21px)}
+    .playall{width:34px;height:34px}
+    .qman button,.minibtn{padding:10px 14px}
+  }
+  /* keyboard hints are noise on touch screens */
+  @media (hover:none){.kbd{display:none}}

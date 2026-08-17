@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kana Trainer</title>
 <meta name="description" content="Kana trainer: survival phrases split one kana per box, survival kanji, and a spaced-repetition quiz with audio. Progress saves in your browser.">
 <meta property="og:title" content="Kana Trainer">
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=6">
+<link rel="stylesheet" href="css/trainer.css?v=7">
 </head>
 <body>
 <div class="wrap">
@@ -121,7 +121,13 @@
   </div>
 </div>
 
-<script src="js/trainer-data.js?v=6"></script>
-<script src="js/trainer.js?v=6"></script>
+<nav class="bottomnav" aria-label="Sections">
+  <button class="tab" data-mode="study" aria-selected="true">Study</button>
+  <button class="tab" data-mode="quiz" aria-selected="false">Quiz</button>
+  <button class="tab" data-mode="progress" aria-selected="false">Progress</button>
+</nav>
+
+<script src="js/trainer-data.js?v=7"></script>
+<script src="js/trainer.js?v=7"></script>
 </body>
 </html>

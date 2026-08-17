@@ -243,3 +243,20 @@ html{scroll-behavior:smooth;scroll-padding-top:48px}
 button[data-rec-play]{width:auto;padding:0 12px;font-size:11.5px;letter-spacing:.04em}
 @keyframes recpulse{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){.speak.rec{animation:none}}
+
+/* ---------- mobile: scrollable nav + touch-sized drill ---------- */
+@media (max-width:720px){
+  .jumpnav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:20px;
+    scrollbar-width:none}
+  .jumpnav::-webkit-scrollbar{display:none}
+  .jumpnav a{flex:0 0 auto}
+  .jumpnav .home{margin-left:12px}
+
+  .answer input{font-size:16px;padding:13px}
+  .answer button{padding:0 22px;font-size:15px}
+  .choices button{padding:18px 0;font-size:34px}
+  .toggle button{padding:10px 13px}
+  .sprintbtn,.slowbtn{padding:10px 13px}
+  .speak{width:44px;height:44px}
+  .words .word{padding:9px 13px}
+}
