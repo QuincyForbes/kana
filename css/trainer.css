@@ -371,3 +371,11 @@
     border:1px solid var(--grid);border-radius:2px;color:var(--ink);cursor:pointer}
   .qchoices .qc:hover{border-color:var(--rule)}
   @media (max-width:480px){.qchoices{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+  /* ---------- top bar: deliberate two-row layout in Study ---------- */
+  .bar{row-gap:9px}
+  .bar .tab{order:1}
+  .bar .sitenav{order:2}
+  .bar .studyonly{order:3;flex:1 1 100%;min-width:0}
+  .studyonly #qsec{max-width:240px}
+  .studyonly .search{flex:1 1 220px}
