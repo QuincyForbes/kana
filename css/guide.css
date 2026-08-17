@@ -5,8 +5,8 @@
   --rule-faint:#D6DFD7;
   --ink:#1B221E;
   --ink-soft:#5D675F;
-  --hira:#3F6B54;
-  --kata:#2C4770;
+  --hira:#2E7D4F;
+  --kata:#2F5FBE;
   --shu:#BE3A22;
   --display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
   --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
@@ -232,7 +232,7 @@ html{scroll-behavior:smooth;scroll-padding-top:48px}
 @media (prefers-color-scheme: dark){
   :root{
     --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#222922;
-    --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#82C4A0; --kata:#93B4E4; --shu:#E37A62;
+    --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62;
     --hl:rgba(63,107,84,.55);
   }
 }
