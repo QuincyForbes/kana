@@ -6,16 +6,18 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = readFileSync(join(root, 'js/trainer.js'), 'utf8');
+const srs = readFileSync(join(root, 'js/srs.js'), 'utf8');
 
 const slice = (from, to) => {
   const a = src.indexOf(from), b = src.indexOf(to);
   if (a < 0 || b < 0 || b <= a) throw new Error(`markers not found: ${from}`);
   return src.slice(a, b);
 };
-const config = slice('const CONFIG = {', '/* ------------------------------ Utils');
 const helpers = slice('const numDigits =', '/* ---------------------------- Study view');
+/* srs.js is DOM-free apart from SrsBridge's localStorage use, which is never
+   invoked here — evaluate it whole. */
 const { CONFIG, numToRomaji, numNorm, nextRecord } = new Function(
-  config + helpers + '; return { CONFIG, numToRomaji, numNorm, nextRecord };')();
+  srs + helpers + '; return { CONFIG, numToRomaji, numNorm, nextRecord };')();
 
 let failed = 0;
 const is = (actual, expected, label) => {
@@ -48,8 +50,20 @@ is(fresh.b, 1, 'first hit promotes to box 1');
 is(fresh.d, T + CONFIG.intervals[1], 'due after box-1 interval');
 is(fresh.s, 1, 'seen count increments');
 
-const top = nextRecord({ b: CONFIG.intervals.length - 1, d: 0, s: 9, l: 0 }, true, T);
-is(top.b, CONFIG.intervals.length - 1, 'top box caps');
+/* ease-based growth beyond the top box */
+const topBox = CONFIG.intervals.length - 1;
+const top = nextRecord({ b: topBox, d: 0, s: 9, l: 0 }, true, T);
+is(top.b, topBox, 'top box caps');
+is(top.iv, Math.round(45 * CONFIG.easeStart), 'first post-top interval grows by ease (45d × 2.5)');
+is(top.d, T + top.iv * 864e5, 'due matches the eased interval');
+const top2 = nextRecord(top, true, T);
+is(top2.iv > top.iv, true, 'intervals keep stretching on subsequent hits');
+is(top2.e > top.e, true, 'ease drifts up on hits');
+const eased = nextRecord({ b: topBox, d: 0, s: 9, l: 0, e: 2.0, iv: 100 }, false, T);
+is(eased.e, 1.8, 'a miss reduces ease');
+is(eased.b, 0, 'a miss still resets the box');
+const floor = nextRecord({ b: 0, d: 0, s: 1, l: 0, e: CONFIG.easeMin, iv: 0 }, false, T);
+is(floor.e, CONFIG.easeMin, 'ease never drops below the floor');
 
 const missed = nextRecord({ b: 4, d: 0, s: 5, l: 1 }, false, T);
 is(missed.b, 0, 'a miss resets to box 0');

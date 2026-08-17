@@ -26,6 +26,8 @@ Notes on non-code assets:
 
 - Written content (mnemonics, phrase decks, pronunciation notes) is licensed
   under CC BY 4.0 — reuse freely with attribution.
+- Stroke-order data in js/strokes.js is derived from KanjiVG
+  (https://kanjivg.tagaini.net) by Ulrich Apel, licensed CC BY-SA 3.0.
 - Audio clips in audio/ja/ and audio/ja-m/ were synthesised with Microsoft
   Edge neural voices (ja-JP-NanamiNeural, ja-JP-KeitaNeural) via edge-tts;
   they are provided as-is for this project's educational use.

@@ -210,41 +210,7 @@ const KANJI=[
  ["止まれ","とまれ","tomare","stop","road markings"]
 ];
 
-const GOJU=[
- ["—",[["あ","ア","a"],["い","イ","i"],["う","ウ","u"],["え","エ","e"],["お","オ","o"]]],
- ["K",[["か","カ","ka"],["き","キ","ki"],["く","ク","ku"],["け","ケ","ke"],["こ","コ","ko"]]],
- ["S",[["さ","サ","sa"],["し","シ","shi",1],["す","ス","su"],["せ","セ","se"],["そ","ソ","so"]]],
- ["T",[["た","タ","ta"],["ち","チ","chi",1],["つ","ツ","tsu",1],["て","テ","te"],["と","ト","to"]]],
- ["N",[["な","ナ","na"],["に","ニ","ni"],["ぬ","ヌ","nu"],["ね","ネ","ne"],["の","ノ","no"]]],
- ["H",[["は","ハ","ha"],["ひ","ヒ","hi"],["ふ","フ","fu",1],["へ","ヘ","he"],["ほ","ホ","ho"]]],
- ["M",[["ま","マ","ma"],["み","ミ","mi"],["む","ム","mu"],["め","メ","me"],["も","モ","mo"]]],
- ["Y",[["や","ヤ","ya"],null,["ゆ","ユ","yu"],null,["よ","ヨ","yo"]]],
- ["R",[["ら","ラ","ra"],["り","リ","ri"],["る","ル","ru"],["れ","レ","re"],["ろ","ロ","ro"]]],
- ["W",[["わ","ワ","wa"],null,null,null,["を","ヲ","o",1]]],
- ["N",[["ん","ン","n"],null,null,null,null]]
-];
-const DAKU=[
- ["G",[["が","ガ","ga"],["ぎ","ギ","gi"],["ぐ","グ","gu"],["げ","ゲ","ge"],["ご","ゴ","go"]]],
- ["Z",[["ざ","ザ","za"],["じ","ジ","ji",1],["ず","ズ","zu"],["ぜ","ゼ","ze"],["ぞ","ゾ","zo"]]],
- ["D",[["だ","ダ","da"],["ぢ","ヂ","ji",1],["づ","ヅ","zu",1],["で","デ","de"],["ど","ド","do"]]],
- ["B",[["ば","バ","ba"],["び","ビ","bi"],["ぶ","ブ","bu"],["べ","ベ","be"],["ぼ","ボ","bo"]]],
- ["P",[["ぱ","パ","pa"],["ぴ","ピ","pi"],["ぷ","プ","pu"],["ぺ","ペ","pe"],["ぽ","ポ","po"]]]
-];
-const YOON=[
- ["K",[["きゃ","キャ","kya"],["きゅ","キュ","kyu"],["きょ","キョ","kyo"]]],
- ["S",[["しゃ","シャ","sha",1],["しゅ","シュ","shu",1],["しょ","ショ","sho",1]]],
- ["T",[["ちゃ","チャ","cha",1],["ちゅ","チュ","chu",1],["ちょ","チョ","cho",1]]],
- ["N",[["にゃ","ニャ","nya"],["にゅ","ニュ","nyu"],["にょ","ニョ","nyo"]]],
- ["H",[["ひゃ","ヒャ","hya"],["ひゅ","ヒュ","hyu"],["ひょ","ヒョ","hyo"]]],
- ["M",[["みゃ","ミャ","mya"],["みゅ","ミュ","myu"],["みょ","ミョ","myo"]]],
- ["R",[["りゃ","リャ","rya"],["りゅ","リュ","ryu"],["りょ","リョ","ryo"]]],
- ["G",[["ぎゃ","ギャ","gya"],["ぎゅ","ギュ","gyu"],["ぎょ","ギョ","gyo"]]],
- ["J",[["じゃ","ジャ","ja",1],["じゅ","ジュ","ju",1],["じょ","ジョ","jo",1]]],
- ["B",[["びゃ","ビャ","bya"],["びゅ","ビュ","byu"],["びょ","ビョ","byo"]]],
- ["P",[["ぴゃ","ピャ","pya"],["ぴゅ","ピュ","pyu"],["ぴょ","ピョ","pyo"]]]
-];
-const EXTRA=[["ファ","fa"],["フィ","fi"],["フェ","fe"],["フォ","fo"],["ティ","ti"],["ディ","di"],["トゥ","tu"],["ドゥ","du"],["ウィ","wi"],["ウェ","we"],["ウォ","wo"],["チェ","che"],["シェ","she"],["ジェ","je"],["ヴ","vu"],["クォ","kwo"]];
 
 
-/* Mnemonics for the 46 base characters (from the guide) — [hiragana, katakana] keyed by romaji. */
-const MNEM = {"a":["An <b>apple</b>: a cross for the stem, a loop for the fruit.","An <b>axe</b> head with the handle slanting off."],"i":["Two <b>icicles</b> hanging off a gutter, one longer.","An <b>easel</b> leg propping up a canvas."],"u":["A <b>duck</b> in profile, beak tipped up going \"oo\".","A <b>roof</b> with a chimney — you're under it going \"ooh\"."],"e":["A <b>swan</b>: long neck, flat back on the water.","An <b>I-beam</b> girder — an engineer's E."],"o":["A <b>golf</b> ball flying off the tee, flag flicking right.","An <b>oar</b> dipping into the water."],"ka":["A <b>kite</b> with the string whipping off it.","A <b>karate</b> chop splitting a board."],"ki":["A <b>key</b> with two teeth.","The same <b>key</b>, teeth filed flat."],"ku":["A <b>cuckoo's</b> open beak.","A <b>croissant</b> curl."],"ke":["A <b>keg</b> with the tap on its side.","A <b>kettle</b> with a handle."],"ko":["Two <b>coins</b> stacked flat.","A <b>corner</b> bracket — half a box."],"sa":["A <b>sardine</b> on a hook, crossed by the rod.","A <b>cactus</b> with two arms, stuck in <b>sand</b>."],"shi":["A <b>shoehorn</b> curving up at the heel.","A <b>smiley</b> tipped left — two eyes and a wink."],"su":["A <b>swing</b> hanging from a looped rope.","A <b>ski</b> slope with a jump at the bottom."],"se":["A <b>seesaw</b> on its post, tipping back.","A <b>scythe</b> curving to its point."],"so":["A zigzag <b>stitch</b> — sewing.","Two loose <b>stitches</b> of the same thread."],"ta":["Literally a <b>t</b> next to an <b>a</b>: ta.","A luggage <b>tag</b> with a slash across it."],"chi":["A <b>cheerleader</b> leaning back, ponytail out.","A <b>cheap</b> price tag — a 7 with a line through it."],"tsu":["A <b>tsunami</b> curling over.","The same wave with three <b>droplets</b> flying off."],"te":["A <b>telephone</b> pole with the wire drooping.","A <b>TV antenna</b> on a roof."],"to":["A <b>toe</b> with a splinter in it.","A <b>totem</b> pole with one peg."],"na":["A <b>knot</b> tied in a rope.","A <b>knife</b> driven through a board."],"ni":["A <b>needle</b> and two stitches beside it.","Two lines — and <b>ni</b> means <b>two</b> in Japanese."],"nu":["<b>Noodles</b> twirled on chopsticks, one strand escaping.","The same <b>noodles</b>, chopsticks crossed, no loop."],"ne":["A <b>cat</b> curled up with its tail looping (猫 = neko).","A <b>nest</b> wedged in a tree fork."],"no":["The swirl of a <b>\"no entry\"</b> sign.","A single slash: <b>no</b>."],"ha":["A capital <b>H</b> with a small a — and a <b>house</b> with a chimney.","Two legs of someone doubled over laughing, <b>ha ha</b>."],"hi":["A wide <b>grin</b> — hee hee.","The <b>heel</b> of a shoe from the side."],"fu":["Mount <b>Fuji</b> with two clouds beside it.","The bare slope of <b>Fuji</b> in one stroke."],"he":["A <b>hill</b> you hike over. Same shape in both scripts.","The same <b>hill</b> — the one freebie in the whole chart."],"ho":["The は <b>house</b> plus an antenna — Santa on the roof, ho ho ho.","A <b>totem</b> pole with two arms."],"ma":["<b>Mama</b> with two arms out and a bun in her hair.","An open <b>mouth</b> with the tongue showing."],"mi":["A <b>mermaid's</b> tail curling under her.","Three strokes — and <b>mi</b> means <b>three</b> in Japanese."],"mu":["A <b>cow</b> face: muuu.","A <b>muzzle</b>, or a scoop tipped forward."],"me":["An <b>eye</b> with a lash — め literally means eye.","<b>X marks the spot</b> on a treasure map."],"mo":["A fishing hook with two <b>more</b> worms on it.","The same hook, straightened out."],"ya":["A <b>yacht</b> with mast and sail.","The same <b>yacht</b>, sail only."],"yu":["A <b>yo-yo</b> at the end of its string.","A <b>U-magnet</b> lying on its side."],"yo":["Someone doing <b>yoga</b>, folded over their knees.","A <b>comb</b> with three teeth."],"ra":["A <b>rabbit</b> sitting up, one ear laid back.","A bowl of <b>ramen</b> on a table."],"ri":["Two banks of a <b>river</b>.","The same <b>river</b>, straightened."],"ru":["A <b>route</b> that loops back on itself.","Two legs <b>running</b> that route."],"re":["A <b>ribbon</b> streaming off to the side.","A <b>ramp</b> — or a hockey stick."],"ro":["A <b>road</b> with no loop — dead end.","A <b>robot's</b> square head."],"wa":["A <b>whale</b> with a curl of spout.","An open mouth: <b>wah!</b>"],"wo":["An <b>ox</b> with horns, dragging a yoke behind it.","Essentially never used — recognise it, don't drill it."],"n":["A lazy cursive <b>n</b>.","A <b>wink</b> — one eye, one lash sweeping up."]};
+/* Mnemonics derived from the shared KANA_INFO table (js/kana-data.js) */
+const MNEM = Object.fromEntries(Object.entries(KANA_INFO).map(([r, v]) => [r, [v.mh, v.mk]]));

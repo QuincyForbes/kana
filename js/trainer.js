@@ -6,20 +6,8 @@
    Data tables (DATA, KANJI, GOJU, DAKU, YOON, EXTRA) are defined above.
    ========================================================================= */
 
-/* ------------------------------ Config ---------------------------------- */
-const CONFIG = {
-  /* Leitner boxes 0–5. A hit promotes one box; a miss resets to box 0.     */
-  intervals: [10 * 60e3, 864e5, 3 * 864e5, 7 * 864e5, 21 * 864e5, 45 * 864e5],
-  againDelay: 2 * 60e3,     /* a missed card is due again in 2 minutes      */
-  requeueGap: 3,            /* …and resurfaces this many cards later        */
-  knownBox: 4,              /* box that counts as "learned" (survived 21 d) */
-  interleaveEvery: 3,       /* new cards are spliced in every N due cards   */
-  progressKey: "kanaTrainerProgress.v1",
-  settingsKey: "kanaTrainerSettings.v1",
-  daysKey: "kanaTrainerDays.v1",
-};
-const ymd = (d = new Date()) =>
-  d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+/* Config (CONFIG), ymd and nextRecord live in js/srs.js, shared with the
+   guide so both drills feed one progress record.                            */
 
 /* ------------------------------ Utils ----------------------------------- */
 const $ = (id) => document.getElementById(id);
@@ -245,21 +233,6 @@ function numToRomaji(n) {
   return s;
 }
 const numNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "").replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
-
-/* one SRS grade step: returns the card's next record without touching storage */
-function nextRecord(p, good, now) {
-  const n = { ...(p || { b: 0, d: 0, s: 0, l: 0 }) };
-  n.s++;
-  if (good) {
-    n.b = Math.min(n.b + 1, CONFIG.intervals.length - 1);
-    n.d = now + CONFIG.intervals[n.b];
-  } else {
-    n.l++;
-    n.b = 0;
-    n.d = now + CONFIG.againDelay;
-  }
-  return n;
-}
 
 /* ---------------------------- Study view --------------------------------- */
 const StudyView = (() => {

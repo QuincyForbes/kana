@@ -14,7 +14,10 @@ Two self-contained, offline-friendly HTML apps for learning hiragana and katakan
 ```
 index.html / guide.html / trainer.html / mnemonics.html   markup only
 css/guide.css, css/trainer.css                            styles
-js/guide-data.js    kana table (K), look-alikes (TRICKY), ROM2KANA audio map
+js/kana-data.js     shared syllabary tables + per-sound guide content
+js/srs.js           shared scheduler (Leitner boxes -> per-card ease growth)
+js/strokes.js       stroke-order paths (KanjiVG, CC BY-SA)
+js/guide-data.js    K chart + TRICKY (derived from kana-data)
 js/guide.js         guide logic (chart, detail, drill, audio)
 js/trainer-data.js  DATA (phrases), KANJI, GOJU/DAKU/YOON/EXTRA charts, MNEM
 js/trainer.js       trainer engine (study, SRS, quiz, progress)

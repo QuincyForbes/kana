@@ -152,6 +152,99 @@ function buildGrid(){
 }
 
 const detail=document.getElementById('detail');
+
+/* ---- stroke order (KanjiVG data, js/strokes.js) ---- */
+function strokeSVG(glyph, colorVar){
+  const paths = typeof STROKES !== 'undefined' && STROKES[glyph];
+  if(!paths) return '';
+  /* every stroke light; numbered dots mark each stroke's start point */
+  const marks = paths.map((d, i) => {
+    const m = d.match(/^M\s*([\d.]+)[,\s]+([\d.]+)/i);
+    if(!m) return '';
+    return `<circle cx="${m[1]}" cy="${m[2]}" r="7" fill="var(--shu)" opacity=".85"/>
+      <text x="${m[1]}" y="${+m[2] + 3.5}" text-anchor="middle" font-size="9" fill="#fff" font-family="var(--body)">${i + 1}</text>`;
+  }).join('');
+  return `<svg class="strokes" viewBox="0 0 109 109" aria-label="Stroke order for ${glyph}">
+    <g fill="none" stroke="${colorVar}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      ${paths.map(d => `<path class="st" d="${d}"/>`).join('')}
+    </g>${marks}
+  </svg>`;
+}
+
+/* animate: strokes draw themselves in order */
+function animateStrokes(svg){
+  const paths = svg.querySelectorAll('.st');
+  let delay = 0;
+  paths.forEach(p => {
+    const len = p.getTotalLength();
+    p.style.transition = 'none';
+    p.style.strokeDasharray = len;
+    p.style.strokeDashoffset = len;
+    p.getBoundingClientRect(); /* flush */
+    const dur = Math.max(0.35, len / 120);
+    p.style.transition = `stroke-dashoffset ${dur}s ease ${delay}s`;
+    p.style.strokeDashoffset = 0;
+    delay += dur + 0.15;
+  });
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-anim]');
+  if(!b) return;
+  const svg = b.closest('.strokebox')?.querySelector('.strokes');
+  if(svg) animateStrokes(svg);
+});
+
+/* ---- tracing canvas: draw over a faint template ---- */
+const Trace = {
+  open(glyph){
+    const host = document.getElementById('trace-host');
+    if(!host) return;
+    host.innerHTML = `<div class="tracebox">
+      <canvas id="trace-cv" width="240" height="240"></canvas>
+      <div class="tracebtns">
+        <button type="button" id="trace-clear">clear</button>
+        <button type="button" id="trace-close">done</button>
+      </div></div>`;
+    const cv = document.getElementById('trace-cv'), ctx = cv.getContext('2d');
+    const paint = () => {
+      ctx.clearRect(0, 0, 240, 240);
+      ctx.save();
+      ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--rule');
+      ctx.setLineDash([5, 5]); ctx.lineWidth = 1; ctx.globalAlpha = .55;
+      ctx.beginPath(); ctx.moveTo(120, 12); ctx.lineTo(120, 228); ctx.moveTo(12, 120); ctx.lineTo(228, 120); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--ink');
+      ctx.font = `190px ${getComputedStyle(document.body).getPropertyValue('--kana') || 'sans-serif'}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(glyph, 120, 132);
+      ctx.restore();
+    };
+    paint();
+    ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--shu');
+    let drawing = false;
+    const pos = (e) => {
+      const r = cv.getBoundingClientRect();
+      return [(e.clientX - r.left) * 240 / r.width, (e.clientY - r.top) * 240 / r.height];
+    };
+    cv.addEventListener('pointerdown', e => { drawing = true; cv.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pos(e)); e.preventDefault(); });
+    cv.addEventListener('pointermove', e => { if(drawing){ ctx.lineTo(...pos(e)); ctx.stroke(); } });
+    cv.addEventListener('pointerup', () => drawing = false);
+    cv.style.touchAction = 'none';
+    document.getElementById('trace-clear').onclick = () => {
+      paint();
+      ctx.lineWidth = 7; ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--shu');
+    };
+    document.getElementById('trace-close').onclick = () => { host.innerHTML = ''; };
+  },
+};
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-trace]');
+  if(b) Trace.open(b.dataset.trace);
+});
+
 /* drawn mnemonic: the glyph with the memory image sketched over it */
 function shapeSVG(c, script){
   const s = typeof SHAPES !== 'undefined' && SHAPES[c.r]?.[script];
@@ -185,6 +278,13 @@ function renderDetail(){
         <span class="chip h"><em>hiragana</em><b lang="ja">${c.h}</b></span>
         <span class="chip k"><em>katakana</em><b lang="ja">${c.k}</b></span>
       </div>
+      <div class="strokerow">
+        ${showH?`<div class="strokebox"><dt>Strokes · <span lang="ja">${c.h}</span></dt>${strokeSVG(c.h,'var(--hira)')}
+          <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${c.h}">✎ trace</button></div></div>`:''}
+        ${showK?`<div class="strokebox"><dt>Strokes · <span lang="ja">${c.k}</span></dt>${strokeSVG(c.k,'var(--kata)')}
+          <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${c.k}">✎ trace</button></div></div>`:''}
+      </div>
+      <div id="trace-host"></div>
       ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><div class="mnemrow">${shapeSVG(c,'h')}<p>${c.mh}</p></div></div>`:''}
       ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><div class="mnemrow">${shapeSVG(c,'k')}<p>${c.mk}</p></div></div>`:''}
       ${(WORDS[c.r]||[]).length?`<div class="words"><dt>In the wild</dt>${WORDS[c.r].map(w=>
@@ -295,6 +395,9 @@ function finish(ok, given){
   if(!ok) misses[q.c.r] = (misses[q.c.r] || 0) + 1;
   else if(misses[q.c.r]) misses[q.c.r] = Math.max(0, misses[q.c.r] - 0.5);
   saveDrill();
+  /* feed the shared SRS record — drilling here counts in the trainer too */
+  if(typeof SrsBridge !== 'undefined')
+    SrsBridge.grade(q.script === 'hiragana' ? 'hg-' + q.c.h : 'kt-' + q.c.k, ok);
   gl.classList.remove('hidden-glyph');
   if(dir!=='listen') play(q.c.r, replay);
   const answer = dir==='match' ? (q.script==='hiragana'?q.c.k:q.c.h) : q.c.r;
