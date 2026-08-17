@@ -562,7 +562,7 @@ if(Pairs.els.play){
 }
 
 /* ---- panels: one section at a time instead of a 9,000px scroll ---- */
-const PANELS = ['chart','tricky','rules','pron','drill-sec','plan'];
+const PANELS = ['chart','tricky','rules','grammar','pron','drill-sec','plan'];
 const PANEL_KEY = 'kanaGuidePanel.v1';
 let panel = 'chart';
 try{ const s = localStorage.getItem(PANEL_KEY); if(PANELS.includes(s)) panel = s; }catch{}

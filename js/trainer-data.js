@@ -257,6 +257,28 @@ const DATA = [
  [["と","お","い"],["to","o","i"],"Far"],
  [["む","ず","か","し","い"],["mu","zu","ka","shi","i"],"Difficult"],
  [["か","ん","た","ん"],["ka","n","ta","n"],"Easy, simple"]
+]],
+["Basic grammar","ぶんぽう",[
+ [["わ","た","し","は","が","く","せ","い","で","す"],["wa","ta","shi","*wa","ga","ku","se","i","de","su"],"I am a student — XはYです, the master sentence"],
+ [["こ","れ","は","ほ","ん","じゃ","な","い","で","す"],["ko","re","*wa","ho","n","ja","na","i","de","su"],"This isn't a book — じゃないです makes です negative"],
+ [["き","の","う","は","あ","め","で","し","た"],["ki","no","u","*wa","a","me","de","shi","ta"],"Yesterday was rainy — でした is past です"],
+ [["み","ず","を","の","み","ま","す"],["mi","zu","*o","no","mi","ma","su"],"I drink water — を marks what the verb acts on"],
+ [["と","う","きょ","う","に","い","き","ま","す"],["to","u","kyo","u","ni","i","ki","ma","su"],"I go to Tokyo — に marks the destination"],
+ [["で","ん","しゃ","で","い","き","ま","す"],["de","n","sha","de","i","ki","ma","su"],"I go by train — で marks the means"],
+ [["レ","ス","ト","ラ","ン","で","た","べ","ま","す"],["re","su","to","ra","n","de","ta","be","ma","su"],"I eat at a restaurant — で also marks where the action happens"],
+ [["こ","れ","は","わ","た","し","の","か","ば","ん","で","す"],["ko","re","*wa","wa","ta","shi","no","ka","ba","n","de","su"],"This is my bag — の makes possession"],
+ [["わ","た","し","も","い","き","ま","す"],["wa","ta","shi","mo","i","ki","ma","su"],"I'm going too — も replaces は to say 'also'"],
+ [["こ","れ","は","だ","れ","の","で","す","か"],["ko","re","*wa","da","re","no","de","su","ka"],"Whose is this? — か turns any statement into a question"],
+ [["す","し","を","た","べ","ま","し","た"],["su","shi","*o","ta","be","ma","shi","ta"],"I ate sushi — ました is past tense"],
+ [["に","く","を","た","べ","ま","せ","ん"],["ni","ku","*o","ta","be","ma","se","n"],"I don't eat meat — ません is the negative"],
+ [["き","の","う","べ","ん","きょ","う","し","ま","せ","ん","で","し","た"],["ki","no","u","be","n","kyo","u","shi","ma","se","n","de","shi","ta"],"I didn't study yesterday — ませんでした is past negative"],
+ [["み","ず","が","あ","り","ま","す"],["mi","zu","ga","a","ri","ma","su"],"There is water — あります for things, が spotlights what exists"],
+ [["ね","こ","が","い","ま","す"],["ne","ko","ga","i","ma","su"],"There is a cat — います for living things"],
+ [["に","ほ","ん","に","い","き","た","い","で","す"],["ni","ho","n","ni","i","ki","ta","i","de","su"],"I want to go to Japan — 〜たいです expresses wanting"],
+ [["ま","ど","を","あ","け","て","も","い","い","で","す","か"],["ma","do","*o","a","ke","te","mo","i","i","de","su","ka"],"May I open the window? — 〜てもいいですか asks permission"],
+ [["しゃ","し","ん","を","と","ら","な","い","で","く","だ","さ","い"],["sha","shi","n","*o","to","ra","na","i","de","ku","da","sa","i"],"Please don't take photos — 〜ないでください forbids politely"],
+ [["こ","の","ラ","ー","メ","ン","は","お","い","し","い","で","す"],["ko","no","ra","~","me","n","*wa","o","i","shi","i","de","su"],"This ramen is delicious — い-adjectives sit straight before です"],
+ [["た","か","く","な","い","で","す"],["ta","ka","ku","na","i","de","su"],"It's not expensive — い-adjectives flip to 〜くない in the negative"]
 ]]
 ];
 

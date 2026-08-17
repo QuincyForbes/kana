@@ -349,3 +349,17 @@
   .snmid{display:flex;flex-direction:column;gap:7px;align-items:center}
   .sn.quizsec{border-color:var(--shu);color:var(--shu);max-width:none}
   .sn.quizsec:hover{background:var(--shu);color:var(--paper)}
+
+  /* ---------- My decks (CSV import) ---------- */
+  .mydecks{max-width:600px;margin:26px auto 0;border:1px dashed var(--grid);background:var(--panel);padding:0 16px 14px}
+  .mydecks summary{font:700 13px var(--gothic);color:var(--rule);padding:12px 0;cursor:pointer}
+  .mdhelp{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .mdhelp code{background:var(--unseen);padding:1px 5px;border-radius:2px}
+  .mdrow{display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+  #md-name{flex:1;min-width:140px;font:400 13px var(--gothic);border:1px solid var(--grid);background:var(--card);color:var(--ink);padding:8px 10px;border-radius:2px}
+  #md-csv{width:100%;font:400 13px var(--mono);border:1px solid var(--grid);background:var(--card);color:var(--ink);padding:8px 10px;border-radius:2px;margin:0 0 8px;resize:vertical}
+  .mydecks button{font:500 12.5px var(--gothic);padding:8px 14px;border:1px solid var(--rule);border-radius:2px;background:var(--card);color:var(--rule);cursor:pointer}
+  .mydecks button:hover{background:var(--rule);color:var(--paper)}
+  #md-list{list-style:none;margin:10px 0 0;padding:0;font-size:13px}
+  #md-list li{padding:6px 0;border-top:1px dashed var(--grid);display:flex;gap:10px;align-items:center}
+  #md-list .minibtn{margin-left:auto}

@@ -148,6 +148,31 @@ const DECK_ORDER = [
   ...DATA.map((d) => d[0]), "Survival kanji",
 ];
 
+/* ---- custom CSV decks (Anki-style, stored in this browser) ---------------
+   Card ids are deck-name + line index, so re-importing a deck under the
+   same name keeps prior SRS records for unchanged lines.                   */
+const CUSTOM_KEY = "kanaTrainerCustom.v1";
+const Custom = {
+  decks: store.get(CUSTOM_KEY) || [],
+  save() { store.set(CUSTOM_KEY, this.decks); },
+  cardsOf(d) {
+    return d.cards.map((c, i) => ({
+      id: `u:${d.name}:${i}`, deck: d.name, type: "custom",
+      front: c.f, reading: c.r || "", mean: c.m, custom: true,
+    }));
+  },
+  parse(text) {
+    return String(text).split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((line) => {
+      const parts = line.includes("\t") ? line.split("\t") : line.split(",");
+      const f = (parts[0] || "").trim();
+      if (!f) return null;
+      if (parts.length >= 3) return { f, r: (parts[1] || "").trim(), m: parts.slice(2).join(",").trim() };
+      return { f, r: "", m: (parts[1] || "").trim() };
+    }).filter(Boolean);
+  },
+};
+Custom.decks.forEach((d) => { CARDS.push(...Custom.cardsOf(d)); DECK_ORDER.push(d.name); });
+
 /* ------------------------------ Romaji ---------------------------------- */
 /* spokenRom: what a phrase sounds like — particles resolved (*wa → wa),
    small tsu doubles the next consonant, ー stretches the previous vowel.   */
@@ -165,8 +190,8 @@ function spokenRom(c) {
   });
   return out.join("");
 }
-const answerRom = (c) => (c.type === "phrase" ? spokenRom(c) : c.rom);
-const speechText = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.say);
+const answerRom = (c) => (c.type === "phrase" ? spokenRom(c) : c.type === "custom" ? (c.reading || c.front) : c.rom);
+const speechText = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.type === "custom" ? (c.reading || c.front) : c.say);
 
 /* Typed-answer checking.
    Kunrei→Hepburn aliases apply to the INPUT only, in a single left-to-right
@@ -755,6 +780,10 @@ const Quiz = (() => {
     const hideA = listen || face === "jp";
     if (c.type === "char")
       return kanaBlock(esc(c.char), true, hideQ) + romBlock(esc(c.rom), hideA);
+    if (c.type === "custom")
+      return kanaBlock(esc(c.front), c.front.length <= 4, hideQ)
+        + (c.reading && c.reading !== c.front ? romBlock(esc(c.reading), hideA) : "")
+        + meanBlock(esc(c.mean), hideA);
     if (c.type === "kanji") {
       const ruby = (hideRt) =>
         `<ruby>${esc(c.kanji)}<rt${hideRt ? ' class="qhide"' : ""}>${esc(c.furi)}</rt></ruby>`;
@@ -855,6 +884,8 @@ const Quiz = (() => {
   function wire() {
     const deckSel = $("qdeck");
     ["All decks", "All characters", "All phrases", ...DECK_ORDER].forEach((d) => deckSel.append(new Option(d)));
+    if (!["All decks", "All characters", "All phrases"].includes(settings.deck) && !DECK_ORDER.includes(settings.deck))
+      settings.deck = "All decks";
     deckSel.value = settings.deck;
     $("qdir").value = settings.dir;
     $("qmode").value = settings.mode;
@@ -896,7 +927,7 @@ const Quiz = (() => {
     });
 
     on("qexport", "click", () => {
-      const payload = { v: 1, when: new Date().toISOString(), prog: Srs.all() };
+      const payload = { v: 2, when: new Date().toISOString(), prog: Srs.all(), custom: Custom.decks };
       const blob = new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -913,11 +944,45 @@ const Quiz = (() => {
           const j = JSON.parse(t);
           if (!j || typeof j.prog !== "object") throw new Error("shape");
           Srs.replace(j.prog);
+          if (Array.isArray(j.custom)) { Custom.decks = j.custom; Custom.save(); location.reload(); return; }
           buildQueue();
           next();
         } catch { alert("That file didn't parse as progress JSON."); }
       });
     });
+    /* ---- My decks (CSV) ---- */
+    function renderCustomList() {
+      const ul = $("md-list");
+      if (!ul) return;
+      ul.innerHTML = Custom.decks.length
+        ? Custom.decks.map((d, i) =>
+            `<li><b>${esc(d.name)}</b> · ${d.cards.length} cards <button type="button" class="minibtn" data-deldeck="${i}">remove</button></li>`).join("")
+        : '<li class="pempty">No custom decks yet — paste some lines above.</li>';
+    }
+    renderCustomList();
+    on("md-import", "click", () => {
+      const name = $("md-name").value.trim();
+      const cards = Custom.parse($("md-csv").value);
+      if (!name || !cards.length) { alert("Give the deck a name and at least one line: front, reading, meaning"); return; }
+      const i = Custom.decks.findIndex((d) => d.name === name);
+      if (i >= 0) Custom.decks[i] = { name, cards }; else Custom.decks.push({ name, cards });
+      Custom.save();
+      location.reload();
+    });
+    on("md-load", "click", () => $("md-fileinput").click());
+    on("md-fileinput", "change", (e) => {
+      const f = e.target.files[0];
+      if (f) f.text().then((txt) => { $("md-csv").value = txt; if (!$("md-name").value) $("md-name").value = f.name.replace(/\.[^.]+$/, ""); });
+    });
+    on("md-list", "click", (e) => {
+      const b = e.target.closest("[data-deldeck]");
+      if (!b) return;
+      if (!confirm("Remove this deck from the trainer?")) return;
+      Custom.decks.splice(+b.dataset.deldeck, 1);
+      Custom.save();
+      location.reload();
+    });
+
     on("qreset", "click", () => {
       if (!confirm("Wipe all quiz progress? This can't be undone (export first if unsure).")) return;
       Srs.reset();
