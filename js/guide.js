@@ -145,13 +145,28 @@ function buildGrid(){
       if(mode==='both'||mode==='kata') inner+=`<span class="gk" lang="ja">${c.k}</span>`;
       inner+=`<span class="gr">${c.r}</span>`;
       b.innerHTML=inner;
-      b.addEventListener('click',()=>{current=c;buildGrid();renderDetail();play(c.r);});
+      b.addEventListener('click',()=>{current=c;buildGrid();renderDetail();openDetail();play(c.r);});
       grid.appendChild(b);
     });
   });
 }
 
 const detail=document.getElementById('detail');
+
+/* the character detail opens as a modal over the chart — no scrolling */
+const detailModal = document.getElementById('detail-modal');
+function openDetail(){
+  if(detailModal && !detailModal.open) detailModal.showModal();
+}
+if(detailModal){
+  document.getElementById('detail-close').addEventListener('click', ()=>detailModal.close());
+  detailModal.addEventListener('click', e=>{
+    if(e.target === detailModal) detailModal.close(); /* backdrop click */
+  });
+  detailModal.addEventListener('close', ()=>{
+    try{ speechSynthesis.cancel(); }catch{}
+  });
+}
 
 /* ---- stroke order (KanjiVG data, js/strokes.js) ---- */
 function strokeSVG(glyph, colorVar){
@@ -558,7 +573,7 @@ function applyCharHash(){
   if(!f) return false;
   current = f;
   setPanel('chart', false);
-  buildGrid(); renderDetail();
+  buildGrid(); renderDetail(); openDetail();
   return true;
 }
 window.addEventListener('hashchange', () => {

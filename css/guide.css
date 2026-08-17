@@ -348,3 +348,25 @@ button:active{transform:scale(.97)}
 .tcard,.rule,.pcard{transition:border-color .15s ease}
 .tcard:hover,.rule:hover,.pcard:hover{border-color:var(--ink-soft)}
 .words .word,.chip{border-radius:2px}
+
+/* ---------- character detail modal ---------- */
+.detail-modal{
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  padding:26px 28px 22px;width:min(860px,94vw);max-height:88vh;overflow-y:auto;
+  box-shadow:0 24px 70px rgba(10,16,12,.28);
+}
+.detail-modal::backdrop{background:rgba(15,20,16,.45);backdrop-filter:blur(1.5px)}
+.detail-modal .detail{margin-top:0}
+.modal-x{
+  position:sticky;top:0;float:right;margin:-10px -12px 0 12px;
+  width:34px;height:34px;border:1px solid var(--rule);border-radius:50%;
+  background:var(--cell);color:var(--ink-soft);font-size:19px;line-height:1;cursor:pointer;z-index:2;
+}
+.modal-x:hover{border-color:var(--ink);color:var(--ink)}
+@media (max-width:620px){
+  .detail-modal{width:100vw;max-width:100vw;max-height:100dvh;height:100dvh;margin:0;border:0;padding:18px 16px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .detail-modal[open]{animation:modalIn .16s ease}
+  @keyframes modalIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}

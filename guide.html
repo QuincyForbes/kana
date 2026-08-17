@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/guide.css?v=14">
+<link rel="stylesheet" href="css/guide.css?v=15">
 </head>
 <body>
 <a class="skip" href="#chart">Skip to the chart</a>
@@ -54,7 +54,10 @@
   <div class="grid" id="grid"></div>
   <p class="gridnote">Each square: <b class="gh" lang="ja">あ</b> hiragana on top, <b class="gk" lang="ja">ア</b> katakana below, romaji underneath.</p>
 
-  <div class="detail" id="detail" aria-live="polite"></div>
+  <dialog class="detail-modal" id="detail-modal" aria-label="Character detail">
+    <button class="modal-x" id="detail-close" type="button" aria-label="Close">×</button>
+    <div class="detail" id="detail"></div>
+  </dialog>
 </section>
 
 <section id="tricky">
@@ -267,12 +270,12 @@
 
 </div>
 
-<script src="js/srs.js?v=14"></script>
-<script src="js/kana-data.js?v=14"></script>
-<script src="js/guide-data.js?v=14"></script>
-<script src="js/guide-shapes.js?v=14"></script>
-<script src="js/strokes.js?v=14"></script>
-<script src="js/guide-words.js?v=14"></script>
-<script src="js/guide.js?v=14"></script>
+<script src="js/srs.js?v=15"></script>
+<script src="js/kana-data.js?v=15"></script>
+<script src="js/guide-data.js?v=15"></script>
+<script src="js/guide-shapes.js?v=15"></script>
+<script src="js/strokes.js?v=15"></script>
+<script src="js/guide-words.js?v=15"></script>
+<script src="js/guide.js?v=15"></script>
 </body>
 </html>
