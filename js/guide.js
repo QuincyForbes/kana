@@ -245,6 +245,21 @@ document.addEventListener('click', e=>{
   if(b) Trace.open(b.dataset.trace);
 });
 
+/* one aligned card per script: strokes · shape drawing · mnemonic text */
+function scriptCard(c, s){
+  const glyph = s === 'h' ? c.h : c.k;
+  return `<div class="mnem scriptcard${s === 'k' ? ' k' : ''}">
+    <dt>${s === 'h' ? 'Hiragana' : 'Katakana'} <span lang="ja">${glyph}</span></dt>
+    <div class="scriptrow">
+      <div class="strokebox">${strokeSVG(glyph, s === 'h' ? 'var(--hira)' : 'var(--kata)')}
+        <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${glyph}">✎ trace</button></div>
+      </div>
+      ${shapeSVG(c, s)}
+      <p class="mnemtext">${s === 'h' ? c.mh : c.mk}</p>
+    </div>
+  </div>`;
+}
+
 /* drawn mnemonic: the glyph with the memory image sketched over it */
 function shapeSVG(c, script){
   const s = typeof SHAPES !== 'undefined' && SHAPES[c.r]?.[script];
@@ -278,15 +293,9 @@ function renderDetail(){
         <span class="chip h"><em>hiragana</em><b lang="ja">${c.h}</b></span>
         <span class="chip k"><em>katakana</em><b lang="ja">${c.k}</b></span>
       </div>
-      <div class="strokerow">
-        ${showH?`<div class="strokebox"><dt>Strokes · <span lang="ja">${c.h}</span></dt>${strokeSVG(c.h,'var(--hira)')}
-          <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${c.h}">✎ trace</button></div></div>`:''}
-        ${showK?`<div class="strokebox"><dt>Strokes · <span lang="ja">${c.k}</span></dt>${strokeSVG(c.k,'var(--kata)')}
-          <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${c.k}">✎ trace</button></div></div>`:''}
-      </div>
+      ${showH?scriptCard(c,'h'):''}
+      ${showK?scriptCard(c,'k'):''}
       <div id="trace-host"></div>
-      ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><div class="mnemrow">${shapeSVG(c,'h')}<p>${c.mh}</p></div></div>`:''}
-      ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><div class="mnemrow">${shapeSVG(c,'k')}<p>${c.mk}</p></div></div>`:''}
       ${(WORDS[c.r]||[]).length?`<div class="words"><dt>In the wild</dt>${WORDS[c.r].map(w=>
         `<button type="button" class="word" data-play-word="${w[0]}"><b lang="ja">${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('')}</div>`:''}
     </div>`;
@@ -514,18 +523,53 @@ if(Pairs.els.play){
   });
 }
 
+/* ---- panels: one section at a time instead of a 9,000px scroll ---- */
+const PANELS = ['chart','tricky','rules','pron','drill-sec','plan'];
+const PANEL_KEY = 'kanaGuidePanel.v1';
+let panel = 'chart';
+try{ const s = localStorage.getItem(PANEL_KEY); if(PANELS.includes(s)) panel = s; }catch{}
+
+function setPanel(id, updateHash = true){
+  if(!PANELS.includes(id)) return;
+  panel = id;
+  try{ localStorage.setItem(PANEL_KEY, id); }catch{}
+  PANELS.forEach(p => { document.getElementById(p).hidden = p !== id; });
+  document.querySelectorAll('.jumpnav a[href^="#"]').forEach(a => {
+    const t = a.getAttribute('href').slice(1);
+    if(PANELS.includes(t)) a.setAttribute('aria-current', String(t === id));
+  });
+  if(updateHash) history.replaceState(null, '', '#' + id);
+  window.scrollTo({top: 0, behavior: 'instant'});
+}
+
+document.querySelector('.jumpnav').addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]');
+  if(!a) return;
+  const id = a.getAttribute('href').slice(1);
+  if(PANELS.includes(id)){ e.preventDefault(); setPanel(id); }
+});
+
 /* deep link from the trainer: guide.html#c=<romaji> opens that character */
 function applyCharHash(){
   const m = location.hash.match(/^#c=([a-z]+)/);
-  if(!m) return;
+  if(!m) return false;
   const f = flat.find(x => x.r === m[1]);
-  if(!f) return;
+  if(!f) return false;
   current = f;
+  setPanel('chart', false);
   buildGrid(); renderDetail();
-  document.getElementById('chart').scrollIntoView();
+  return true;
 }
-window.addEventListener('hashchange', applyCharHash);
+window.addEventListener('hashchange', () => {
+  if(applyCharHash()) return;
+  const id = location.hash.slice(1);
+  if(PANELS.includes(id) && id !== panel) setPanel(id, false);
+});
 
 document.querySelectorAll('.jp,.ex,.beat,.mini td:first-child,h1 .jp,#drill-glyph').forEach(e=>e.setAttribute('lang','ja'));
 
-buildGrid(); renderDetail(); nextQ(false); applyCharHash();
+buildGrid(); renderDetail(); nextQ(false);
+{
+  const initial = location.hash.slice(1);
+  if(!applyCharHash()) setPanel(PANELS.includes(initial) ? initial : panel, PANELS.includes(initial));
+}
