@@ -169,8 +169,8 @@ function renderDetail(){
       </div>
       <p class="sound">${c.s || 'regular — consonant + vowel, one even beat'}</p>
       <div class="pair">
-        <span class="chip h"><em>hira</em><b>${c.h}</b></span>
-        <span class="chip k"><em>kata</em><b>${c.k}</b></span>
+        <span class="chip h"><em>hiragana</em><b>${c.h}</b></span>
+        <span class="chip k"><em>katakana</em><b>${c.k}</b></span>
       </div>
       ${showH?`<div class="mnem"><dt>Hiragana ${c.h}</dt><p>${c.mh}</p></div>`:''}
       ${showK?`<div class="mnem k"><dt>Katakana ${c.k}</dt><p>${c.mk}</p></div>`:''}
