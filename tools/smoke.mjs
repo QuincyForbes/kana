@@ -1,8 +1,9 @@
 // Browser smoke test — drives the real pages in Chromium and fails on any
 // console error, uncaught exception or broken same-origin request. It covers
-// the stateful flows the node tests can't reach: grading and undo, typed
-// answers, view switching, export → import, custom decks, the sprint, the
-// theme toggle, the guide's modal, and loading offline through the worker.
+// the stateful flows the node tests can't reach: introductions, grading and
+// undo, typed answers, view switching, collecting cards into decks, export →
+// import, the sprint, the theme toggle, the guide's modal, and loading
+// offline through the worker.
 //
 //   npm install --no-save --no-package-lock playwright@1 && npx playwright install chromium
 //   node tools/smoke.mjs
@@ -82,12 +83,22 @@ try {
   const first = await romaji();
   await page.keyboard.press('ArrowRight');
   check(await page.locator('#detail-modal[open]').count() === 1 && await romaji() !== first, 'chart cell opens the detail modal; arrow keys walk it');
+  check(await page.locator('#grid .k-cell', { hasText: 'を' }).locator('.gr').textContent() === '(w)o', 'を is labelled (w)o in the chart');
+  await page.locator('#detail .wordadd').first().click();
+  await page.fill('.deckmenu .dm-new input', 'Words');
+  await page.click('.deckmenu .dm-new button');
+  await page.keyboard.press('Escape');
+  check(await page.locator('.deckmenu').count() === 0 && await page.locator('#detail-modal[open]').count() === 1
+    && await page.evaluate(() => Decks.get('Words').cards.length) === 1, 'an example word goes into a new deck; Escape closes the menu, not the modal');
   await page.click('#detail-close');
 
   /* ---- trainer: grade, undo, typed answers, view switches ---- */
   await open('trainer.html#quiz');
   await page.selectOption('#qdeck', 'Hiragana');
   const c1 = await card();
+  check(await page.locator('.qcard.intro').count() === 1, 'a card never seen before is introduced, not asked');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Space');
+  check(await card() === c1 && await page.locator('.qcard.intro').count() === 0, '…and comes back as a question a few cards later');
   await page.keyboard.press('Space');
   await page.locator('#bGood').waitFor();
   await page.keyboard.press('2');
@@ -110,6 +121,12 @@ try {
 
   await page.click('#tab-study');
   check(await page.locator('#out .row').count() > 200, 'study view lists the phrases');
+  await page.locator('#out .addbtn').first().click();
+  await page.fill('.deckmenu .dm-new input', 'Picked');
+  await page.click('.deckmenu .dm-new button');
+  await page.keyboard.press('Escape');
+  check(await page.evaluate(() => deckMembers('Picked').length) === 1
+    && await page.locator('#qdeck option', { hasText: 'Picked' }).count() === 1, 'a phrase is collected into a new deck from Study, and the quiz can pick it');
   await page.click('#tab-progress');
   check(await page.locator('#pstats .ptotals').isVisible() && await page.locator('#pbars .pdeck').count() > 20, 'progress view renders totals and decks');
 
@@ -137,7 +154,11 @@ try {
   await page.fill('#md-csv', '日本, にほん, Japan\n水, , water');
   check(await page.inputValue('#md-csv') === '日本, にほん, Japan\n水, , water', 'the CSV box accepts spaces and new lines');
   await Promise.all([page.waitForEvent('load'), page.click('#md-import')]);
+  await page.evaluate(() => { document.getElementById('qopts').hidden = false; });
+  await page.uncheck('#qlearn');
+  await page.evaluate(() => document.activeElement.blur()); /* or Space would re-tick the box */
   await page.selectOption('#qdeck', 'Smoke deck');
+  check(await page.locator('.qcard.intro').count() === 0, 'introductions can be switched off');
   await page.keyboard.press('Space'); await page.keyboard.press('1');
   for (let i = 0; i < 8 && await page.locator('#bShow').count(); i++) { await page.keyboard.press('Space'); await page.keyboard.press('2'); }
   check(await page.locator('.qsummary').count() === 1 && (await page.locator('.qsummary').textContent()).includes('日本'), 'session summary lists the missed custom card');

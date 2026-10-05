@@ -24,13 +24,17 @@ const StudyView = (() => {
     const key = `${c.kana.join("")} ${spokenRom(c)} ${c.mean}`.toLowerCase();
     return `<div class="row" data-k="${esc(key)}">
       <div class="rmain"><div class="cells">${cells}</div><p class="meaning">${esc(c.mean)}</p></div>
-      <button class="spk" data-say="${esc(c.kana.join(""))}"${hasClip(c) ? "" : " data-tts"} title="Listen" aria-label="Listen">🔊</button>
+      <div class="ract">
+        <button class="spk" data-say="${esc(c.kana.join(""))}"${hasClip(c) ? "" : " data-tts"} title="Listen" aria-label="Listen">🔊</button>
+        <button class="addbtn" type="button" data-add="${esc(c.id)}" title="Add to a deck" aria-label="Add to a deck">＋</button>
+      </div>
     </div>`;
   };
 
   const kanjiCard = (c) => {
     const key = `${c.kanji} ${c.furi} ${c.rom} ${c.mean}`.toLowerCase();
     return `<div class="row" data-k="${esc(key)}" style="display:block"><div class="kjcard">
+      <button class="addbtn" type="button" data-add="${esc(c.id)}" title="Add to a deck" aria-label="Add to a deck">＋</button>
       <ruby lang="ja">${esc(c.kanji)}<rt>${esc(c.furi)}</rt></ruby>
       <span class="en">${esc(c.mean)}</span><span class="whr">${esc(c.where)}</span>
     </div></div>`;
@@ -43,7 +47,7 @@ const StudyView = (() => {
       const tds = cells.map((c) => {
         if (!c) return `<td class="nil"></td>`;
         const glyphs = script === "both" ? `${c[0]} ${c[1]}` : script === "h" ? c[0] : c[1];
-        return `<td class="${c[3] ? "odd" : ""}"><div class="pair" lang="ja">${glyphs}</div><div class="rom">${c[2]}</div></td>`;
+        return `<td class="${c[3] ? "odd" : ""}"><div class="pair" lang="ja">${glyphs}</div><div class="rom">${c[0] === "を" ? "(w)o" : c[2]}</div></td>`;
       }).join("");
       return `<tr><th>${label}</th>${tds}</tr>`;
     }).join("");
@@ -142,6 +146,8 @@ const StudyView = (() => {
     $("count").textContent = total + " items";
 
     document.addEventListener("click", (e) => {
+      const add = e.target.closest("[data-add]");
+      if (add) return DeckMenu.open(add, { ref: add.dataset.add }, { reserved: RESERVED_DECKS });
       const b = e.target.closest(".spk");
       if (b) { Player.stop(); Speech.say(b.dataset.say, !("tts" in b.dataset)); } /* a tapped row takes over from play-all */
     });

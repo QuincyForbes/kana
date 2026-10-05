@@ -145,11 +145,11 @@ function buildGrid(){
       const b=document.createElement('button');
       b.className='sq k-cell' + stateOf(c); b.type='button';
       b.setAttribute('aria-current', c===current ? 'true':'false');
-      b.setAttribute('aria-label', c.r);
+      b.setAttribute('aria-label', c.d);
       let inner='';
       if(mode==='both'||mode==='hira') inner+=`<span class="gh" lang="ja">${c.h}</span>`;
       if(mode==='both'||mode==='kata') inner+=`<span class="gk" lang="ja">${c.k}</span>`;
-      inner+=`<span class="gr">${c.r}</span>`;
+      inner+=`<span class="gr">${c.d}</span>`;
       b.innerHTML=inner;
       b.addEventListener('click',()=>{current=c;buildGrid();renderDetail();openDetail();play(c.r);});
       grid.appendChild(b);
@@ -278,6 +278,14 @@ document.addEventListener('click', e=>{
   if(b) Trace.open(b.dataset.trace);
 });
 
+/* ---- build a deck as you go: a character, or one of its example words ---- */
+document.addEventListener('click', e=>{
+  const ch = e.target.closest('[data-add-char]');
+  if(ch) return DeckMenu.open(ch, {ref: ch.dataset.addChar});
+  const w = e.target.closest('[data-add-word]');
+  if(w) DeckMenu.open(w, {card: {f: w.dataset.addWord, r: w.dataset.addWord, m: w.dataset.mean}});
+});
+
 /* one aligned card per script: strokes · shape drawing · mnemonic text */
 function scriptCard(c, s){
   const glyph = s === 'h' ? c.h : c.k;
@@ -285,7 +293,7 @@ function scriptCard(c, s){
     <dt>${s === 'h' ? 'Hiragana' : 'Katakana'} <span lang="ja">${glyph}</span></dt>
     <div class="scriptrow">
       <div class="strokebox">${strokeSVG(glyph, s === 'h' ? 'var(--hira)' : 'var(--kata)')}
-        <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${glyph}">✎ trace</button></div>
+        <div class="strokebtns"><button type="button" data-anim>▶ draw</button><button type="button" data-trace="${glyph}">✎ trace</button><button type="button" data-add-char="${s === 'h' ? 'hg-' : 'kt-'}${glyph}" title="Add this character to a deck of your own">＋ deck</button></div>
       </div>
       ${shapeSVG(c, s)}
       <p class="mnemtext">${s === 'h' ? c.mh : c.mk}</p>
@@ -319,7 +327,7 @@ function renderDetail(){
     <div class="sq bigcell"><span lang="ja" style="color:${col}">${glyph}</span></div>
     <div>
       <div class="romaji-row">
-        <p class="romaji-big">${c.r}</p>
+        <p class="romaji-big">${c.d}</p>
         <button class="speak" type="button" data-play="${c.r}" aria-label="Play ${c.r}">${SPK}</button>
         <button class="speak mic" type="button" data-rec="${c.r}" title="Record yourself, then compare" aria-label="Record yourself">●</button>
         <button class="speak" type="button" data-rec-play="${c.r}" title="Your take, then the native clip" aria-label="Play your recording then the native clip" hidden>you→native</button>
@@ -334,7 +342,7 @@ function renderDetail(){
       ${showK?scriptCard(c,'k'):''}
       <div id="trace-host"></div>
       ${(WORDS[c.r]||[]).length?`<div class="words"><dt>In the wild</dt>${WORDS[c.r].map(w=>
-        `<button type="button" class="word" data-play-word="${w[0]}"><b lang="ja">${w[0]}</b> ${w[1]} <em>${w[2]}</em></button>`).join('')}</div>`:''}
+        `<span class="wordpair"><button type="button" class="word" data-play-word="${w[0]}"><b lang="ja">${w[0]}</b> ${w[1]} <em>${w[2]}</em></button><button type="button" class="wordadd" data-add-word="${w[0]}" data-mean="${w[2]}" title="Add to a deck" aria-label="Add ${w[0]} to a deck">＋</button></span>`).join('')}</div>`:''}
     </div>`;
 }
 

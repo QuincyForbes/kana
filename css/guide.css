@@ -203,6 +203,13 @@ html{scroll-behavior:smooth;scroll-padding-top:48px}
 .words .word b{font-family:var(--kana);font-size:17px;font-weight:400;color:var(--hira)}
 .words .word em{font-style:normal;color:var(--ink-soft);font-size:12px}
 .words .word:hover,.words .word.on{border-color:var(--ink)}
+/* a word and its add-to-deck button read as one pill */
+.wordpair{display:inline-flex;margin:0 8px 8px 0;vertical-align:top}
+.wordpair .word{margin:0}
+.wordadd{border:1px solid var(--rule);border-left:0;background:var(--cell);color:var(--ink-soft);font-family:var(--body);
+  font-size:16px;line-height:1;padding:0 10px;cursor:pointer}
+.wordadd:hover{color:var(--hira);border-color:var(--ink)}
+.wordadd:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
 
 /* ---------- record & compare ---------- */
 .speak.mic{color:var(--shu);font-size:13px}

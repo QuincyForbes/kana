@@ -1,31 +1,35 @@
 "use strict";
 /* Kana Trainer — the cards: every character, phrase and kanji from the data
    tables (js/kana-data.js, js/trainer-data.js), the personalised intro rows,
-   and the learner's own CSV decks. No DOM; storage through js/store.js.     */
+   and the learner's own decks (js/decks.js). No DOM; storage through
+   js/store.js.                                                             */
 
 /* ------------------------------ Cards ----------------------------------- */
 /* Card shapes:
      char   {id, deck, char, rom, say, alt?}      alt: other accepted spellings
      phrase {id, deck, kana[], rom[], mean, slot?} rom: "*x" = particle, "~" = modifier
      kanji  {id, deck, kanji, furi, rom, mean, where}
+     custom {id, deck, front, reading, mean, rom, custom}
    Ids are built from content, never position — hg-あ, p:こんにちは, k:出口 —
    so adding or reordering rows in the data files can't move anyone's
    progress onto a different card. (Positional ids from before v22 are
-   carried across by migrateIds + js/legacy-ids.js.)                        */
+   carried across by migrateIds + js/legacy-ids.js.)
+
+   The ORDER of this list is the order new cards are introduced in, so it
+   follows the guide's advice: all of hiragana before any katakana, then
+   phrases, then kanji.                                                      */
 const CARDS = [];
 
 (function buildCharCards() {
   /* を is "o" when spoken but "wo" on most charts and every keyboard; ん is
      typed "nn" in an IME — accept both rather than mark a right answer wrong */
   const ALT = { "を": ["wo"], "ん": ["nn"] };
-  const push = (h, k, r) => {
+  const cells = [GOJU, DAKU, YOON].flatMap((rows) => rows.flatMap(([, row]) => row.filter(Boolean)));
+  for (const [h, , r] of cells)
     CARDS.push({ id: "hg-" + h, deck: h.length > 1 ? "Hiragana combos" : "Hiragana", char: h, rom: r, say: h, alt: ALT[h], type: "char" });
+  for (const [h, k, r] of cells)
     /* speak the hiragana twin — TTS reads a lone ヲ/ヅ badly */
     CARDS.push({ id: "kt-" + k, deck: k.length > 1 ? "Katakana combos" : "Katakana", char: k, rom: r, say: h, alt: ALT[h], type: "char" });
-  };
-  for (const rows of [GOJU, DAKU, YOON])
-    for (const [, cells] of rows)
-      for (const c of cells) if (c) push(c[0], c[1], c[2]);
   for (const [k, r] of EXTRA)
     CARDS.push({ id: "kx-" + k, deck: "Katakana combos", char: k, rom: r, say: k, type: "char" });
 })();
@@ -65,21 +69,24 @@ GOJU.forEach(([, cells]) => cells.forEach((c) => { if (c) { BASE_LINK[c[0]] = c[
 BASE_LINK["を"] = BASE_LINK["ヲ"] = "wo"; /* the guide keys the particle as wo */
 
 const DECK_ORDER = [
-  "Hiragana", "Katakana", "Hiragana combos", "Katakana combos",
+  "Hiragana", "Hiragana combos", "Katakana", "Katakana combos",
   ...DATA.map((d) => d[0]), "Survival kanji",
 ];
 /* virtual decks the quiz builds from the others */
 const COMPOSITE_DECKS = ["All decks", "All characters", "All phrases", "Look-alikes"];
-/* names a custom deck can't take */
+/* names a personal deck can't take */
 const RESERVED_DECKS = [...COMPOSITE_DECKS, ...DECK_ORDER];
 
-/* ---- custom CSV decks (Anki-style, stored in this browser) ---------------
-   Card ids are deck name + front text (customIds), so editing a deck or
-   re-importing it under the same name keeps the SRS record of every line
-   whose front is unchanged.                                                */
+/* ---- personal decks (js/decks.js) as the trainer sees them ---------------
+   Own cards become trainer cards here (ids from customIds: deck name +
+   front text, so editing a deck keeps the record of every line whose front
+   is unchanged). Collected cards — refs — are looked up by deckMembers.    */
+Decks.replace(cleanDecks(Decks.list, RESERVED_DECKS)); /* a name the guide allowed may clash here */
 const Custom = {
-  decks: cleanDecks(store.get(KEYS.custom), RESERVED_DECKS),
-  commit() { store.set(KEYS.custom, this.decks); location.reload(); },
+  get decks() { return Decks.list; },
+  set decks(next) { Decks.replace(next); },
+  /* CSV edits and removals change the card list itself — save and start over */
+  commit() { store.set(KEYS.custom, Decks.list); location.reload(); },
   cardsOf(d) {
     const ids = customIds(d);
     return d.cards.map((c, i) => {
@@ -99,40 +106,23 @@ const Custom = {
     }).filter(Boolean);
   },
   toCSV(d) { return d.cards.map((c) => [c.f, c.r, c.m].join(", ")).join("\n"); },
+  /* replace a deck's own cards (the CSV editor); what it has collected stays */
   upsert(name, cards) {
-    const i = this.decks.findIndex((d) => d.name === name);
-    if (i >= 0) this.decks[i] = { name, cards }; else this.decks.push({ name, cards });
+    const old = Decks.get(name);
+    if (old) old.cards = cards; else Decks.list.push({ name, cards, refs: [] });
     this.commit();
   },
-  remove(i) { this.decks.splice(i, 1); this.commit(); },
+  remove(i) { Decks.list.splice(i, 1); this.commit(); },
 };
 Custom.decks.forEach((d) => { CARDS.push(...Custom.cardsOf(d)); DECK_ORDER.push(d.name); });
+/* a deck started from the "add to a deck" menu appears without a reload */
+Decks.onChange(() => Decks.list.forEach((d) => { if (!DECK_ORDER.includes(d.name)) DECK_ORDER.push(d.name); }));
 
-/* ------------------------- Custom deck helpers -------------------------- */
-/* custom-deck card ids: deck name + front text; a repeated front gets #2, #3… */
-function customIds(d) {
-  const seen = new Map();
-  return d.cards.map((c) => {
-    const n = (seen.get(c.f) || 0) + 1;
-    seen.set(c.f, n);
-    return `c:${d.name}:${c.f}` + (n > 1 ? "#" + n : "");
-  });
-}
-
-/* Keep only well-formed decks from storage or an imported file. A name that
-   collides with a built-in deck (or an earlier deck) gets a numeric suffix
-   instead of silently merging into it.                                     */
-function cleanDecks(raw, reserved = []) {
-  if (!Array.isArray(raw)) return [];
-  const taken = new Set(reserved);
-  const str = (v) => (typeof v === "string" ? v.trim() : "");
-  return raw.flatMap((d) => {
-    let name = str(d?.name);
-    if (!name || !Array.isArray(d.cards)) return [];
-    const cards = d.cards.flatMap((c) => (str(c?.f) ? [{ f: str(c.f), r: str(c.r), m: str(c.m) }] : []));
-    if (!cards.length) return [];
-    for (let n = 2; taken.has(name); n++) name = `${str(d.name)} (${n})`;
-    taken.add(name);
-    return [{ name, cards }];
-  });
+/* the cards of a deck: its own, plus any existing cards collected into it */
+function deckMembers(name) {
+  const own = CARDS.filter((c) => c.deck === name);
+  const refs = Decks.get(name)?.refs;
+  if (!refs || !refs.length) return own;
+  const want = new Set(refs);
+  return own.concat(CARDS.filter((c) => want.has(c.id) && c.deck !== name));
 }

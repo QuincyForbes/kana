@@ -83,8 +83,11 @@ function memoryOf(p) {
 
 /* One grade step: returns the card's next record without touching storage.
    Records carry {b: level, d: due-ms, s: seen, l: lapses, st: stability,
-   df: difficulty, lr: last-review-ms, iv: interval-days}.                  */
-function nextRecord(p, good, now) {
+   df: difficulty, lr: last-review-ms, iv: interval-days}.
+   learnedToday: this first grade follows an introduction earlier in the
+   session — the card was learned today, not known on sight — so a hit
+   brings it back tomorrow rather than at FSRS's four-day opening gap.      */
+function nextRecord(p, good, now, learnedToday = false) {
   const g = good ? 3 : 1;
   const n = { b: 0, d: 0, s: 0, l: 0, ...(p || {}) };
   delete n.e; /* the pre-FSRS ease factor */
@@ -100,7 +103,8 @@ function nextRecord(p, good, now) {
   n.df = +n.df.toFixed(4);
   n.lr = now;
   if (good) {
-    n.iv = Math.min(CONFIG.maxIntervalDays, Math.max(1, Math.round(FSRS.interval(n.st))));
+    n.iv = !p && learnedToday ? 1
+      : Math.min(CONFIG.maxIntervalDays, Math.max(1, Math.round(FSRS.interval(n.st))));
     n.d = now + n.iv * DAY;
   } else {
     /* relearn it this session; the shrunken stability sets what follows */

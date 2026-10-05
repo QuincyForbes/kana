@@ -71,6 +71,13 @@ const oldEase = nextRecord({ b: 5, d: T, s: 9, l: 0, e: 2.5, iv: 300 }, true, T)
 is([oldEase.iv, 'e' in oldEase], [CONFIG.maxIntervalDays, false], 'an eased record keeps its interval (capped) and drops the ease field');
 is(nextRecord({ b: 4, d: T, s: 6, l: 3 }, true, T).df > oldBox.df, true, 'past lapses count toward difficulty');
 
+/* learn-then-test: a first hit after an introduction comes back tomorrow */
+const taught = nextRecord(null, true, T, true);
+is([taught.iv, taught.b, taught.st], [1, 1, CONFIG.w[2]], 'learned today: one day, same starting stability');
+is(path(taught, 4)[0], [1, 7, 25, 79, 224], '…then the curve picks up from there');
+is(nextRecord(null, false, T, true).d, T + CONFIG.againDelay, 'a miss after an introduction is relearned as usual');
+is(nextRecord(fresh, true, fresh.d, true).iv, onTime.iv, 'the flag only matters for a first grade');
+
 const input = { b: 2, d: 5, s: 3, l: 0 };
 nextRecord(input, true, T);
 is(input, { b: 2, d: 5, s: 3, l: 0 }, 'nextRecord does not mutate its input');
@@ -123,7 +130,9 @@ is(customIds({ name: 'D', cards: [{ f: '水' }, { f: '日' }, { f: '水' }, { f:
    ['c:D:水', 'c:D:日', 'c:D:水#2', 'c:D:constructor'], 'ids follow the front text; repeats are numbered');
 is(cleanDecks('nope'), [], 'non-array storage yields no decks');
 is(cleanDecks([{ name: ' A ', cards: [{ f: ' x ', m: 'y' }, { r: 'no front' }, null] }, { name: '', cards: [] }, { cards: 3 }, null]),
-   [{ name: 'A', cards: [{ f: 'x', r: '', m: 'y' }] }], 'malformed decks and cards are dropped, fields trimmed');
+   [{ name: 'A', cards: [{ f: 'x', r: '', m: 'y' }], refs: [] }], 'malformed decks and cards are dropped, fields trimmed');
+is(cleanDecks([{ name: 'B', cards: [], refs: ['hg-あ', ' k:出口 ', 'hg-あ', 7, ''] }]),
+   [{ name: 'B', cards: [], refs: ['hg-あ', 'k:出口'] }], 'a deck of collected cards is kept; refs are trimmed and de-duplicated');
 is(cleanDecks([{ name: 'Hiragana', cards: [{ f: 'x' }] }, { name: 'Mine', cards: [{ f: 'y' }] }, { name: 'Mine', cards: [{ f: 'z' }] }], ['Hiragana'])
      .map((d) => d.name), ['Hiragana (2)', 'Mine', 'Mine (2)'], 'a taken name is suffixed, never merged');
 

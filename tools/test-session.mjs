@@ -8,7 +8,7 @@ const { is, done } = checker();
 const { KEYS } = loadApp();
 const far = Date.now() + 9e9, past = Date.now() - 1000;
 const app = (settings = {}, seed = {}) => loadApp({ storage: fakeStorage({
-  [KEYS.settings]: { deck: 'Hiragana', dir: 'jp', mode: 'flip', newn: 3, speak: false, ...settings }, ...seed }) });
+  [KEYS.settings]: { deck: 'Hiragana', dir: 'jp', mode: 'flip', newn: 3, speak: false, learn: false, ...settings }, ...seed }) });
 const cur = (S) => S.state.current && S.state.current.id;
 
 /* ---- queue + allowance ---- */
@@ -35,6 +35,63 @@ const cur = (S) => S.state.current && S.state.current.id;
   S.saveSettings({ newn: 0 });
   S.learnMore(2);
   is(S.stats().left, 2, '…whatever the allowance has been changed to');
+}
+
+/* ---- learn, then test ---- */
+{
+  const { QuizSession: S, Srs } = app({ learn: true, newn: 6 });
+  S.resume();
+  is([cur(S), S.state.intro], ['hg-あ', true], 'a card never seen before is introduced, not asked');
+  S.grade(true);
+  is([cur(S), Srs.record('hg-あ')], ['hg-あ', undefined], 'an introduction cannot be graded');
+  const order = [];
+  for (let i = 0; i < 8; i++) {
+    order.push((S.state.intro ? 'show ' : 'ask ') + cur(S).slice(3));
+    if (S.state.intro) S.learned(); else S.grade(true);
+  }
+  is(order, ['show あ', 'show い', 'show う', 'show え', 'ask あ', 'ask い', 'ask う', 'ask え'],
+     'new cards are shown in a small batch, then asked in the same order');
+  is([Srs.record('hg-あ').iv, S.newToday()], [1, 4], 'a card learned today returns tomorrow and counts toward the allowance');
+  is(S.state.intro, true, 'the next new card is introduced in turn');
+  S.knowIt();
+  is([Srs.record('hg-お').iv, cur(S)], [4, 'hg-か'], '"I already know this" grades it as known on sight');
+  S.resume(); S.resume();
+  is([cur(S), S.state.intro], ['hg-か', true], 're-entering the quiz keeps an introduction on screen');
+}
+{
+  const seed = { [KEYS.progress]: { 'hg-あ': { b: 1, d: past, s: 1, l: 0 } } };
+  const { QuizSession: S } = app({ learn: true }, seed);
+  S.resume();
+  const sawIntroOfSeen = [];
+  for (let i = 0; i < 6 && S.state.current; i++) {
+    if (S.state.intro && cur(S) === 'hg-あ') sawIntroOfSeen.push(1);
+    if (S.state.intro) S.learned(); else S.grade(true);
+  }
+  is(sawIntroOfSeen, [], 'a card with a record is never re-introduced');
+}
+
+/* ---- personal decks: own cards plus cards collected from the built-ins ---- */
+{
+  const decks = [{ name: 'Mine', cards: [{ f: '水', r: 'みず', m: 'water' }], refs: ['p:こんにちは', 'k:出口', 'gone'] }];
+  const { QuizSession: S, Srs, Decks, deckMembers, DECK_ORDER } = app({ deck: 'Mine', newn: 10 }, { [KEYS.custom]: decks });
+  is(deckMembers('Mine').map((c) => c.id), ['c:Mine:水', 'p:こんにちは', 'k:出口'], 'a deck is its own cards plus what it collected; dead refs are ignored');
+  S.resume();
+  is(S.stats().left, 3, 'the quiz deals from the whole deck');
+  while (cur(S) !== 'p:こんにちは') S.grade(true);
+  S.grade(true);
+  is(!!Srs.record('p:こんにちは'), true, 'a collected card keeps its one record');
+  S.setDeck('Greetings');
+  is(S.stats().unseen, 15, '…so its home deck sees it as started too');
+
+  Decks.toggleRef('Mine', 'hg-あ');
+  is(deckMembers('Mine').length, 4, 'collecting a card adds it');
+  Decks.toggleRef('Mine', 'hg-あ');
+  is(deckMembers('Mine').length, 3, '…and collecting it again takes it back out');
+  is(Decks.create('Greetings', ['Greetings']), null, 'a new deck cannot take a built-in name');
+  is([!!Decks.create('Travel'), DECK_ORDER.includes('Travel'), S.setDeck('Travel')], [true, true, true],
+     'a deck created on the fly is usable at once');
+  Decks.toggleCard('Travel', { f: 'えき', r: 'えき', m: 'station' });
+  is([Decks.hasCard('Travel', 'えき'), Decks.list.find((d) => d.name === 'Travel').cards.length], [true, 1], 'a new card of its own can be added to it');
 }
 
 /* ---- misses come back; the summary lists each once ---- */
@@ -117,6 +174,9 @@ const cur = (S) => S.state.current && S.state.current.id;
 {
   const { CARDS } = loadApp();
   is(new Set(CARDS.map((c) => c.id)).size, CARDS.length, 'no two cards share an id');
+  const firstKata = CARDS.findIndex((c) => c.id.startsWith('kt-'));
+  is(CARDS.slice(0, firstKata).every((c) => c.id.startsWith('hg-')) && firstKata === 104, true,
+     'new cards run through all of hiragana before any katakana');
   is(CARDS.filter((c) => c.slot).map((c) => c.id), ['p:you-name', 'p:you-country', 'p:you-job'], 'intro slots keep fixed ids');
 }
 

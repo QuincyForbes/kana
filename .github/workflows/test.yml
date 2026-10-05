@@ -18,6 +18,8 @@ jobs:
         run: node tools/test-trainer.mjs
       - name: Quiz session engine tests
         run: node tools/test-session.mjs
+      - name: Content checks (readings, audio, teaching material)
+        run: node tools/test-content.mjs
       - name: Cache-bust versions consistent across pages
         run: |
           v=$(grep -o '?v=[0-9]*' guide.html | sort -u)

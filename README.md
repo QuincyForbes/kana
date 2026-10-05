@@ -6,7 +6,7 @@ Two self-contained, offline-friendly HTML apps for learning hiragana and katakan
 
 - **[index.html](index.html)** — landing page linking the apps; returning learners see what's due, what's known and their streak.
 - **[guide.html](guide.html)** — the learning guide: interactive gojūon chart with per-character mnemonics, stroke order and tracing, look-alike pairs (シ/ツ, ン/ソ, …), the four modifier rules (dakuten, handakuten, small ゃゅょ, small っ / ー), starter grammar, a pronunciation section (mora timing, vowel devoicing, pitch accent) with a minimal-pair listening drill, and audio throughout. Practice itself lives in the trainer; the chart shades each square from your quiz record.
-- **[trainer.html](trainer.html)** — the practice app: survival phrases split one kana per box, 30 survival kanji, single-script and combined kana charts, and a spaced-repetition quiz with separate decks for hiragana, katakana, combos, phrases, kanji and your own CSV decks. Modes: flip, type the romaji, listen & type, match ひらがな ↔ カタカナ, plus a 60-second sprint. Progress saves to `localStorage`; export/import as JSON under **Backup & reset** on the Quiz tab.
+- **[trainer.html](trainer.html)** — the practice app: survival phrases split one kana per box, 30 survival kanji, single-script and combined kana charts, and a spaced-repetition quiz with separate decks for hiragana, katakana, combos, phrases, kanji and decks you build yourself. New cards are introduced before they are tested. Modes: flip, type the romaji, listen & type, match ひらがな ↔ カタカナ, plus a 60-second sprint. Progress saves to `localStorage`; export/import as JSON under **Backup & reset** on the Quiz tab.
 - **[mnemonics.html](mnemonics.html)** — printable sheet: all 92 characters with both scripts' memory hooks, print-formatted.
 
 Every page shares one header (page links and a light/dark toggle). The theme follows the system setting until you pick one; the choice is remembered per browser. The site is installable and works offline — see [Offline](#offline).
@@ -21,6 +21,7 @@ css/guide.css, css/trainer.css                            page styles + palettes
 js/theme.js         applies the light/dark theme (loaded in <head>, before CSS)
 js/site.js          shared header, toasts, service-worker registration, install prompt
 js/store.js         the one place that touches localStorage: keys, safe wrapper, audio prefs
+js/decks.js         personal decks + the "add to a deck" menu (shared by guide and trainer)
 js/srs.js           FSRS scheduler + record helpers (validation, id migration) — pure
 js/kana-data.js     shared syllabary tables + per-sound guide content
 js/legacy-ids.js    frozen map of pre-v22 positional card ids (migration only)
@@ -33,7 +34,7 @@ js/guide.js         guide logic (chart, detail, audio, listening drill)
 
 js/trainer-data.js      DATA (phrases), KANJI, MNEM
 js/trainer-romaji.js    answer checking, number readings — pure
-js/trainer-cards.js     CARDS, decks, custom CSV decks
+js/trainer-cards.js     CARDS (in the order they are introduced), built-in decks, deck membership
 js/trainer-session.js   Srs + QuizSession: the quiz engine, no DOM
 js/trainer-ui.js        DOM helpers, speech, play-all
 js/trainer-study.js / trainer-quiz.js / trainer-progress.js   the three views
@@ -50,7 +51,8 @@ No build step and no modules — plain scripts loaded in order, sharing globals.
 
 The trainer schedules with **FSRS-4.5** (default parameters). Each card carries a *stability* — the number of days until recall is expected to fall to 90% — and a *difficulty* from 1 to 10; every review updates both, and the next review is timed for 90% retention, capped at a year. The two grades map to FSRS's Again and Good.
 
-- A card you know on sight comes back after 4, 15, 49, 146 days; one that started with a miss after 1, 2, 6, 16, 39.
+- **Learn, then test.** A card you have never seen is shown in full first — glyph, reading, meaning, memory hook, audio — and asked a few cards later. A hit on that first question brings it back tomorrow (then 7, 25, 79 days). "I already know this" skips the introduction and grades it as known on sight: 4, 15, 49, 146 days. A card that starts with a miss: 1, 2, 6, 16, 39. Switch introductions off under Options.
+- **New cards arrive in a fixed order:** all of hiragana, then katakana, then phrases and kanji — so "All decks" follows the guide's own advice.
 - A miss comes back within minutes in the same session; what follows is set by the (now smaller) stability.
 - A card counts as **known** once its next review is three weeks or more away. The six dots on a card show the same thing as a level.
 - **New cards are limited per day** (default 10), counted when a card is first graded — reloading or switching tabs never spends the allowance. "Learn 5 more" on the done screen goes past it on request.
@@ -58,9 +60,16 @@ The trainer schedules with **FSRS-4.5** (default parameters). Each card carries 
 
 Records written by the older fixed-interval scheduler convert on their next review; nothing in storage needs rewriting.
 
+## Decks you build
+
+Besides the built-in decks, a learner can build their own as they go (`js/decks.js`, stored under `kanaTrainerCustom.v1`). A deck holds two kinds of thing:
+
+- **collected cards** — tap ＋ beside a phrase or kanji in Study, ＋ Add to a deck under a quiz card, or ＋ deck on a character in the guide. The card is referenced, not copied: it keeps its single progress record and simply shows up in the deck too. "Save as a deck" on the Progress tab does the same for the cards that keep tripping you.
+- **its own cards** — `{front, reading, meaning}`, added from the guide's example words (＋ beside each) or in bulk as CSV in the trainer's My decks panel.
+
 ## Card ids
 
-Ids are built from content, never position: `hg-あ` / `kt-ア` / `kx-ファ` for characters, `p:<kana>` for phrases, `k:<kanji>` for kanji, `c:<deck>:<front>` for custom decks. Adding, removing or reordering rows in the data files therefore can't move anyone's progress onto a different card. Records written before v22 (`s3r0`, `k5`, `u:Deck:7`) are renamed on load and on import through `migrateIds` and the frozen table in `js/legacy-ids.js` — don't edit or regenerate that file.
+Ids are built from content, never position: `hg-あ` / `kt-ア` / `kx-ファ` for characters, `p:<kana>` for phrases, `k:<kanji>` for kanji, `c:<deck>:<front>` for a deck's own cards. Adding, removing or reordering rows in the data files therefore can't move anyone's progress onto a different card. Records written before v22 (`s3r0`, `k5`, `u:Deck:7`) are renamed on load and on import through `migrateIds` and the frozen table in `js/legacy-ids.js` — don't edit or regenerate that file.
 
 Changing the *text* of an existing phrase gives it a new id (its old record is orphaned), which is the honest outcome: it's a different card.
 
@@ -81,21 +90,22 @@ The worker is not registered on `localhost`, so edits show up without a version 
 ```
 node tools/test-romaji.mjs     answer checking: romaji aliases, long vowels, kana/IME input
 node tools/test-trainer.mjs    numbers, the FSRS scheduler, record validation, id migration, custom decks
-node tools/test-session.mjs    the quiz engine: queue, allowance, grading, undo, drills, sprint, decks
+node tools/test-session.mjs    the quiz engine: introductions, queue, allowance, grading, undo, drills, sprint, decks
+node tools/test-content.mjs    the content: readings agree with the kana, every character has audio, strokes, mnemonic, sketch, words
 node tools/smoke.mjs           the real pages in Chromium: every flow above, plus import/export and offline
 ```
 
-The first three load the app's DOM-free scripts through `tools/load-app.mjs` and need nothing but node. The smoke test needs Playwright, which is deliberately not a repo dependency — CI installs it for that job only (see the header of `tools/smoke.mjs` to run it locally). CI also checks that every page and `sw.js` carry the same version.
+The first four load the app's DOM-free scripts through `tools/load-app.mjs` and need nothing but node. The smoke test needs Playwright, which is deliberately not a repo dependency — CI installs it for that job only (see the header of `tools/smoke.mjs` to run it locally). CI also checks that every page and `sw.js` carry the same version.
 
 ## localStorage keys
 
 | Key | Holds |
 |---|---|
 | `kanaTrainerProgress.v1` | SRS record per card id: `{b: level, d: due-ms, s: seen, l: lapses, st: stability, df: difficulty, lr: last-review-ms, iv: interval-days}` |
-| `kanaTrainerSettings.v1` | quiz settings (deck, direction, mode, new cards/day, speak) |
+| `kanaTrainerSettings.v1` | quiz settings (deck, direction, mode, new cards/day, speak, introduce new cards) |
 | `kanaTrainerDays.v1` | reviews per day `{"YYYY-MM-DD": n}` — streak and heatmap |
 | `kanaTrainerNewDay.v1` | new cards introduced today `{day, n}` |
-| `kanaTrainerCustom.v1` | custom CSV decks `[{name, cards: [{f, r, m}]}]` |
+| `kanaTrainerCustom.v1` | personal decks `[{name, cards: [{f, r, m}], refs: [card id]}]` |
 | `kanaTrainerYou.v1` | name / country / job for the personalised intro phrases |
 | `kanaTrainerSprint.v1` | best 60s sprint score per deck |
 | `kanaTrainerStudySec.v1`, `kanaTrainerSeenSec.v1` | last study section; sections already visited |

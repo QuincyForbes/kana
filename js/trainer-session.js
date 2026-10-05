@@ -34,10 +34,11 @@ const Srs = (() => {
   }
 
   /* practice: an extra rep (sprint, lapse drill) — see practiceRecord.
+     learnedToday: a first grade that follows an introduction — see nextRecord.
      @returns true if the card should resurface this session */
-  function grade(card, good, { practice = false, now = Date.now() } = {}) {
+  function grade(card, good, { practice = false, learnedToday = false, now = Date.now() } = {}) {
     const before = prog[card.id];
-    const after = practice ? practiceRecord(before, good, now) : nextRecord(before, good, now);
+    const after = practice ? practiceRecord(before, good, now) : nextRecord(before, good, now, learnedToday);
     if (after !== before) { prog[card.id] = after; save(); }
     const days = store.get(KEYS.days) || {};
     days[ymd()] = (days[ymd()] || 0) + 1;
@@ -66,14 +67,16 @@ const Srs = (() => {
    card in play, grading, undo, the daily new-card allowance and the sprint.
    The view (js/trainer-quiz.js) calls in, then draws whatever state it finds. */
 const QuizSession = (() => {
-  const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true };
+  const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true, learn: true };
   const settings = Object.assign({}, DEFAULTS, store.get(KEYS.settings) || {});
-  /* practice: the queue is an extra-reps drill, graded via practiceRecord.
+  /* intro: the card in play is being shown, not asked (learn-then-test).
+     practice: the queue is an extra-reps drill, graded via practiceRecord.
      bonusNew: new cards asked for on top of today's allowance.
      pending: a drill is loaded and waits for the Quiz tab to open.         */
-  const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null,
+  const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null, intro: false,
                     reviewed: 0, correct: 0, missed: [], pending: false,
                     practice: false, bonusNew: 0 };
+  const introduced = new Set(); /* ids shown as an introduction this session */
   const undoStack = []; /* up to 20 grades deep */
   let sprint = null;    /* {count} while a 60s sprint runs — the view owns the clock */
 
@@ -88,7 +91,7 @@ const QuizSession = (() => {
      "constructor" must not resolve to Object.prototype's                    */
   const isDeck = (name) => Object.hasOwn(COMPOSITE, name) || DECK_ORDER.includes(name);
   const deckCards = () =>
-    (Object.hasOwn(COMPOSITE, settings.deck) ? COMPOSITE[settings.deck]() : CARDS.filter((c) => c.deck === settings.deck));
+    (Object.hasOwn(COMPOSITE, settings.deck) ? COMPOSITE[settings.deck]() : deckMembers(settings.deck));
   if (!isDeck(settings.deck)) settings.deck = DEFAULTS.deck; /* a stored deck that no longer exists */
 
   /* The new-card allowance is per day, counted when a card is first graded
@@ -132,7 +135,28 @@ const QuizSession = (() => {
     session.face = pickFace();
     session.revealed = false;
     session.verdict = null;
-    return session.current;
+    /* Learn, then test: a card never seen before is shown in full first and
+       asked a few cards later, instead of being a question you can only
+       fail. Practice drills only hold cards that already have a record.   */
+    const c = session.current;
+    session.intro = !!c && settings.learn !== false && !session.practice
+      && !Srs.record(c.id) && !introduced.has(c.id);
+    return c;
+  }
+
+  /* the learner has taken the new card in: bring it back as a question */
+  function learned() {
+    const c = session.current;
+    if (!c || !session.intro) return;
+    introduced.add(c.id);
+    session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
+    next();
+  }
+  /* "I already know this": skip the introduction and grade it as known */
+  function knowIt() {
+    if (!session.intro) return;
+    session.intro = false;
+    grade(true);
   }
 
   function reveal(verdict) {
@@ -154,6 +178,7 @@ const QuizSession = (() => {
     session.face = "jp";
     session.revealed = false;
     session.verdict = null;
+    session.intro = false;
   }
   /* @returns false when the deck has nothing a sprint can use */
   function startSprint() {
@@ -177,7 +202,7 @@ const QuizSession = (() => {
 
   function grade(good) {
     const c = session.current;
-    if (!c) return;
+    if (!c || session.intro) return;
     if (sprint) {
       if (good) sprint.count++;
       Srs.grade(c, good, { practice: true });
@@ -199,7 +224,7 @@ const QuizSession = (() => {
     if (undoStack.length > 20) undoStack.shift();
     if (!good) session.missed.push(c);
     if (good) session.correct++;
-    if (Srs.grade(c, good, { practice: session.practice }))
+    if (Srs.grade(c, good, { practice: session.practice, learnedToday: introduced.has(c.id) }))
       session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
     if (!prev && Srs.record(c.id)) { step.wasNew = true; addNewToday(1); }
     session.reviewed++;
@@ -218,6 +243,7 @@ const QuizSession = (() => {
     session.face = pickFace();
     session.revealed = false;
     session.verdict = null;
+    session.intro = false;
     session.reviewed = u.reviewed;
     session.correct = u.correct;
     if (session.missed[session.missed.length - 1]?.id === u.card.id) session.missed.pop();
@@ -285,6 +311,7 @@ const QuizSession = (() => {
   function restart() {
     sprint = null;
     undoStack.length = 0;
+    introduced.clear();
     session.missed = [];
     session.bonusNew = 0;
     buildQueue();
@@ -300,7 +327,7 @@ const QuizSession = (() => {
   return {
     settings, state: session,
     isDeck, deckCards, counterpart, listening, matching, typedApplies,
-    saveSettings, buildQueue, next, reveal,
+    saveSettings, buildQueue, next, reveal, learned, knowIt,
     repick() { session.face = pickFace(); },
     sprinting: () => !!sprint, sprintCount: () => (sprint ? sprint.count : 0),
     sprintCards, nextSprintCard, startSprint, endSprint,

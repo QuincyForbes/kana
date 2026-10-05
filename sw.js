@@ -11,7 +11,7 @@
      fonts   Google Fonts, stale-while-revalidate
 
    VERSION is bumped by tools/bump.js together with the ?v= in the pages.   */
-const VERSION = 23;
+const VERSION = 24;
 const SHELL = `kana-shell-v${VERSION}`, AUDIO = 'kana-audio-v1', FONTS = 'kana-fonts-v1';
 const PAGES = ['./', 'index.html', 'guide.html', 'trainer.html', 'mnemonics.html', '404.html'];
 const EXTRAS = ['manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

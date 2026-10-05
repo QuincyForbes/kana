@@ -29,6 +29,9 @@ const Quiz = (() => {
   /* rebuild the queue from what's due and deal from it */
   const deal = () => { S.buildQueue(); S.next(); show(); };
   function reveal(verdict) { S.reveal(verdict); render(); }
+  /* out of an introduction: on to the next card, or straight to "known" */
+  function learned() { S.learned(); show(); }
+  function knowIt() { S.knowIt(); show(); updateDueBadge(); }
 
   /* ---- 60s sprint: the session picks and grades, the clock lives here ---- */
   let clock = null, left = 0;
@@ -101,6 +104,7 @@ const Quiz = (() => {
     $("stToday").textContent = s.reviewed;
     $("stAcc").textContent = s.reviewed ? ` · ${Math.round(100 * s.correct / s.reviewed)}% right` : "";
     $("qundo").disabled = !s.canUndo;
+    $("qadd").disabled = !session.current || S.sprinting();
   }
 
   /* One face descriptor per card type: prompt shown up front, answer parts
@@ -183,6 +187,7 @@ const Quiz = (() => {
     stats();
     const c = session.current;
     if (!c) return renderDone();
+    if (session.intro) return renderIntro(c);
     const p = Srs.record(c.id);
     const levels = CONFIG.levels.length;
     const level = p
@@ -201,6 +206,28 @@ const Quiz = (() => {
       const v = session.verdict;
       announce((v ? (v.ok ? "Correct. " : "Not quite. ") : "") + `${cardJp(c)} — ${answerRom(c)}` + (c.mean ? `, ${c.mean}` : ""));
     }
+  }
+
+  /* Learn, then test: a card you've never seen is laid out in full — glyph,
+     reading, meaning, memory hook, audio — and comes back as a question a
+     few cards later.                                                      */
+  function renderIntro(c) {
+    const m = mnemOf(c);
+    $("qarea").innerHTML = `<div class="qcard intro">
+      <span class="tag">${esc(c.deck)}</span>
+      <span class="box"><span class="newtag">new</span></span>
+      <p class="qlearn">New card — take it in. You'll be asked it in a moment.</p>
+      ${faceHTML(c, "jp")}${m ? `<p class="qmnem">${m}</p>` : ""}
+      <div class="qbtns">
+        <button class="qb" id="bLearned">Got it — test me <kbd>space</kbd></button>
+        <button class="qb ghost" id="bKnow">I already know this</button>
+      </div>
+    </div>`;
+    document.querySelectorAll("#qarea .qhide").forEach((e) => e.classList.remove("qhide"));
+    $("bLearned").onclick = learned;
+    $("bKnow").onclick = knowIt;
+    if (settings.speak) speak(c);
+    announce(`New card. ${cardJp(c)} — ${answerRom(c)}` + (c.mean ? `, ${c.mean}` : ""));
   }
 
   function renderDone() {
@@ -269,6 +296,7 @@ const Quiz = (() => {
   /* ---- wiring ---- */
   function wire() {
     const deckSel = $("qdeck");
+    const fillDecks = () => {
     const deckGroups = [
       ["Everything", COMPOSITE_DECKS.filter((d) => d !== "Look-alikes")],
       ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos", "Look-alikes"]],
@@ -279,10 +307,13 @@ const Quiz = (() => {
     deckSel.innerHTML = deckGroups.map(([label, items]) =>
       `<optgroup label="${esc(label)}">${items.map((d) => `<option>${esc(d)}</option>`).join("")}</optgroup>`).join("");
     deckSel.value = settings.deck;
+    };
+    fillDecks();
     $("qdir").value = settings.dir;
     $("qmode").value = settings.mode;
     $("qnewn").value = settings.newn;
     $("qspeak").checked = settings.speak;
+    $("qlearn").checked = settings.learn !== false;
 
     on("qopts-btn", "click", () => {
       const open = $("qopts").hidden;
@@ -294,7 +325,7 @@ const Quiz = (() => {
        dropping back into the review queue                                  */
     const saveSettings = () => S.saveSettings({
       deck: $("qdeck").value, dir: $("qdir").value, mode: $("qmode").value,
-      newn: Math.max(0, +$("qnewn").value || 0), speak: $("qspeak").checked,
+      newn: Math.max(0, +$("qnewn").value || 0), speak: $("qspeak").checked, learn: $("qlearn").checked,
     });
     const onChange = {
       qdeck: () => {
@@ -311,6 +342,7 @@ const Quiz = (() => {
         if (session.current) stats(); else { S.next(); show(); }
       },
       qspeak: () => {},
+      qlearn: () => {}, /* takes effect from the next new card */
     };
     Object.entries(onChange).forEach(([id, fn]) =>
       on(id, "change", () => { saveSettings(); fn(); }));
@@ -332,7 +364,7 @@ const Quiz = (() => {
       if (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
       if (e.key === " " || e.key === "Enter") {
         if (keyboardFocused(t)) return;
-        if (!session.revealed && session.current) { e.preventDefault(); reveal(null); }
+        if (!session.revealed && session.current) { e.preventDefault(); session.intro ? learned() : reveal(null); }
       } else if (e.key === "1" && session.revealed) grade(false);
       else if (e.key === "2" && session.revealed) grade(true);
       else if (e.key === "s" && session.current) speak(session.current);
@@ -389,7 +421,8 @@ const Quiz = (() => {
       ul.innerHTML = Custom.decks.length
         ? Custom.decks.map((d, i) => {
             const typed = Custom.cardsOf(d).filter((c) => !c.custom).length;
-            return `<li><b>${esc(d.name)}</b> · ${d.cards.length} cards${typed ? ` (${typed} typeable)` : ""}
+            const picked = d.refs.length ? ` + ${d.refs.length} collected` : "";
+            return `<li><b>${esc(d.name)}</b> · ${d.cards.length} card${d.cards.length === 1 ? "" : "s"}${typed ? ` (${typed} typeable)` : ""}${picked}
               <span class="mdacts">
                 <button type="button" class="minibtn" data-editdeck="${i}">edit</button>
                 <button type="button" class="minibtn" data-dldeck="${i}">download</button>
@@ -399,6 +432,11 @@ const Quiz = (() => {
         : '<li class="pempty">No custom decks yet — paste some lines above, or <button type="button" class="minibtn" id="md-sample">insert a sample</button>.</li>';
     }
     renderCustomList();
+    /* collect the card on screen into a deck of your own */
+    on("qadd", "click", () => {
+      if (session.current) DeckMenu.open($("qadd"), { ref: session.current.id }, { reserved: RESERVED_DECKS });
+    });
+    Decks.onChange(() => { fillDecks(); renderCustomList(); if (!S.sprinting()) stats(); });
     const mdCount = () => {
       const n = Custom.parse($("md-csv").value).length;
       $("md-count").textContent = n ? `${n} card${n > 1 ? "s" : ""} ready` : "";

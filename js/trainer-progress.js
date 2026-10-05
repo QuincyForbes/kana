@@ -53,13 +53,13 @@ const Progress = (() => {
   function render() {
     stats();
     $("pbars").innerHTML = DECK_ORDER.map((deck) => {
-      const cards = CARDS.filter((c) => c.deck === deck);
+      const cards = deckMembers(deck);
       let known = 0, learning = 0, unseen = 0;
       cards.forEach((c) => {
         const p = Srs.record(c.id);
         if (!p) unseen++; else if (Srs.isKnown(p)) known++; else learning++;
       });
-      const w = (x) => (100 * x / cards.length).toFixed(1) + "%";
+      const w = (x) => (100 * x / (cards.length || 1)).toFixed(1) + "%";
       const split = `${known} known · ${learning} learning · ${unseen} unseen`;
       return `<div class="pdeck">
         <h3><button type="button" class="pname" data-quizdeck="${esc(deck)}" title="Quiz this deck">${esc(deck)}<i>quiz →</i></button>
@@ -80,6 +80,18 @@ const Progress = (() => {
       ? lapsed.map((c) => li(c, ` · missed ×${Srs.record(c.id).l}`)).join("")
       : `<li class="pempty">No repeat offenders. Cards land here after three misses.</li>`;
 
+    /* keep the troublemakers as a deck of their own to come back to */
+    const keep = $("plapseSave");
+    keep.hidden = !lapsed.length;
+    keep.onclick = () => {
+      const name = "Tricky cards";
+      const d = Decks.get(name) || Decks.create(name, RESERVED_DECKS);
+      if (!d) return;
+      d.refs = [...new Set([...d.refs, ...lapsed.map((c) => c.id)])];
+      Decks.save();
+      toast(`${lapsed.length} card${lapsed.length === 1 ? "" : "s"} saved to "${name}"`);
+      render();
+    };
     const btn = $("plapseDrill");
     btn.hidden = !lapsed.length;
     btn.onclick = () => { Quiz.drillCards(lapsed); setMode("quiz"); };

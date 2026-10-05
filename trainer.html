@@ -12,13 +12,13 @@
 <meta name="theme-color" content="#F6F4EC" data-light="#F6F4EC" data-dark="#151917">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<script src="js/theme.js?v=23"></script>
+<script src="js/theme.js?v=24"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=23">
-<link rel="stylesheet" href="css/site.css?v=23">
+<link rel="stylesheet" href="css/trainer.css?v=24">
+<link rel="stylesheet" href="css/site.css?v=24">
 </head>
 <body class="has-bottomnav">
 <a class="skip" href="#study">Skip to content</a>
@@ -50,7 +50,7 @@
     </header>
 
     <div class="hello" id="hello" hidden>
-      <p><b>New here?</b> ① Pick a section in the dropdown and study it out loud → ② flip to <b>Quiz</b> — it schedules reviews and brings back what you miss → ③ <b>Progress</b> shows what stuck. Tap any 🔊 for audio.</p>
+      <p><b>New here?</b> ① Pick a section in the dropdown and read it out loud → ② flip to <b>Quiz</b> — it shows each new card first, then tests it and brings back what you miss → ③ <b>Progress</b> shows what stuck. Tap any 🔊 for audio, ＋ to keep something in a deck of your own.</p>
       <button id="hello-x" type="button">Got it</button>
     </div>
 
@@ -74,8 +74,8 @@
 
     <div class="howto">
       <h2>Using this</h2>
-      <p>Read a phrase box by box out loud before reading it as a word. Tap 🔊 to hear it. Then live in the <b>Quiz</b> tab: single characters, phrases and kanji are all separate decks, or take everything at once. Type-the-romaji mode checks your answer and accepts both Hepburn and Kunrei spelling (shi/si, tsu/tu). Misses come back within minutes; hits come back in days. Ten minutes a day beats an hour on Sunday.</p>
-      <p>Suggested order: <b>Hiragana</b> and <b>Katakana</b> character decks in typed mode until they're automatic, katakana loanwords next, then phrases, kanji throughout. <b>Progress</b> shows exactly where you stand per deck.</p>
+      <p>Read a phrase box by box out loud before reading it as a word. Tap 🔊 to hear it. Then live in the <b>Quiz</b> tab: single characters, phrases and kanji are all separate decks, or take everything at once. A card you haven't met is shown in full first and asked a few cards later. Type-the-romaji mode checks your answer and accepts both Hepburn and Kunrei spelling (shi/si, tsu/tu). Misses come back within minutes; hits come back in days. Ten minutes a day beats an hour on Sunday.</p>
+      <p><b>All decks</b> introduces things in a sensible order on its own — all of hiragana, then katakana, then phrases and kanji — or pick a single deck to stay on it. Typed mode is the one that builds speed. Hide the romaji with the <b>Romaji</b> toggle as soon as the characters start to stick. <b>Progress</b> shows exactly where you stand per deck.</p>
       <p>Found a mistake? <a href="https://github.com/QuincyForbes/kana/issues" rel="noopener">Open an issue on GitHub</a>.</p>
     </div>
   </div>
@@ -100,6 +100,7 @@
       </select></label>
       <label class="opt" title="New cards introduced per day, on top of reviews"><span>New cards / day</span><input type="number" id="qnewn" min="0" max="50" value="10" inputmode="numeric"></label>
       <span class="optchecks">
+        <label title="Show each new card in full before it is asked"><input type="checkbox" id="qlearn" checked> introduce new cards first</label>
         <label><input type="checkbox" id="qspeak" checked> speak on reveal</label>
         <label><input type="checkbox" id="qvoice"> male voice</label>
         <label><input type="checkbox" id="qslow"> slow audio</label>
@@ -119,12 +120,16 @@
     <p class="sr" id="qlive" aria-live="polite"></p>
     <div class="qfoot">
       <p class="kbd"><kbd>space</kbd>/<kbd>enter</kbd> reveal · check &nbsp; <kbd>1</kbd> again &nbsp; <kbd>2</kbd> got it &nbsp; <kbd>s</kbd> speak &nbsp; <kbd>u</kbd> undo</p>
-      <button id="qundo" type="button" class="linkbtn" disabled>↶ Undo last grade</button>
+      <span class="qfootacts">
+        <button id="qadd" type="button" class="linkbtn" disabled>＋ Add to a deck</button>
+        <button id="qundo" type="button" class="linkbtn" disabled>↶ Undo last grade</button>
+      </span>
     </div>
 
     <details class="panel mydecks" id="mydecks">
-      <summary>My decks — import your own (Anki-style, CSV)</summary>
-      <p class="mdhelp">One card per line: <code>front, reading (kana, optional), meaning</code>. Commas in the meaning are fine. Tab-separated works too. Decks live in this browser and ride the same spaced-repetition scheduler; audio uses the browser's Japanese voice. Kana readings unlock typed-romaji answers automatically; kanji-only cards flip-grade.</p>
+      <summary>My decks — build your own</summary>
+      <p class="mdhelp"><b>As you learn:</b> tap <b>＋</b> beside any phrase or kanji in Study, or <b>＋ Add to a deck</b> under a quiz card, to collect it into a deck of your own — the guide's example words have one too. A collected card isn't copied: it keeps its single progress record and simply appears in your deck as well.</p>
+      <p class="mdhelp"><b>In bulk:</b> paste or load cards, one per line: <code>front, reading (kana, optional), meaning</code>. Commas in the meaning are fine. Tab-separated works too. Decks live in this browser and ride the same spaced-repetition scheduler; audio uses the browser's Japanese voice. Kana readings unlock typed-romaji answers automatically; kanji-only cards flip-grade.</p>
       <div class="mdrow">
         <input id="md-name" placeholder="Deck name" aria-label="Deck name">
         <button id="md-load" type="button">Load file…</button>
@@ -172,7 +177,7 @@
     <div id="pbars"></div>
     <div class="plists">
       <div><h3>Learned</h3><ul id="pknown"></ul></div>
-      <div><h3>Keeps tripping you <button id="plapseDrill" type="button" class="minibtn" hidden>drill these now</button></h3><ul id="plapse"></ul></div>
+      <div><h3>Keeps tripping you <button id="plapseDrill" type="button" class="minibtn" hidden>drill these now</button><button id="plapseSave" type="button" class="minibtn" hidden>save as a deck</button></h3><ul id="plapse"></ul></div>
     </div>
   </div>
 </div>
@@ -183,19 +188,20 @@
   <button class="tab" role="tab" data-mode="progress" aria-controls="progress" aria-selected="false" tabindex="-1">Progress</button>
 </div>
 
-<script src="js/site.js?v=23"></script>
-<script src="js/store.js?v=23"></script>
-<script src="js/srs.js?v=23"></script>
-<script src="js/kana-data.js?v=23"></script>
-<script src="js/trainer-data.js?v=23"></script>
-<script src="js/legacy-ids.js?v=23"></script>
-<script src="js/trainer-romaji.js?v=23"></script>
-<script src="js/trainer-cards.js?v=23"></script>
-<script src="js/trainer-session.js?v=23"></script>
-<script src="js/trainer-ui.js?v=23"></script>
-<script src="js/trainer-study.js?v=23"></script>
-<script src="js/trainer-quiz.js?v=23"></script>
-<script src="js/trainer-progress.js?v=23"></script>
-<script src="js/trainer.js?v=23"></script>
+<script src="js/site.js?v=24"></script>
+<script src="js/store.js?v=24"></script>
+<script src="js/srs.js?v=24"></script>
+<script src="js/kana-data.js?v=24"></script>
+<script src="js/trainer-data.js?v=24"></script>
+<script src="js/legacy-ids.js?v=24"></script>
+<script src="js/decks.js?v=24"></script>
+<script src="js/trainer-romaji.js?v=24"></script>
+<script src="js/trainer-cards.js?v=24"></script>
+<script src="js/trainer-session.js?v=24"></script>
+<script src="js/trainer-ui.js?v=24"></script>
+<script src="js/trainer-study.js?v=24"></script>
+<script src="js/trainer-quiz.js?v=24"></script>
+<script src="js/trainer-progress.js?v=24"></script>
+<script src="js/trainer.js?v=24"></script>
 </body>
 </html>

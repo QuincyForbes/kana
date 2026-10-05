@@ -173,7 +173,7 @@ const DATA = [
  [["ア","プ","リ"],["a","pu","ri"],"app"],
  [["メ","ー","ル"],["me","~","ru"],"email"],
  [["エ","ン","ジ","ニ","ア"],["e","n","ji","ni","a"],"engineer"],
- [["カ","ナ","ダ","じ","ん"],["ka","na","da","ji","n"],"Canadian — kanji-era word plus katakana country"]
+ [["カ","ナ","ダ","じ","ん"],["ka","na","da","ji","n"],"Canadian — a country name plus じん, “person”"]
 ]],
 ["Reading practice","よみもの",[
  [["コ","ー","ヒ","ー","を","く","だ","さ","い"],["ko","~","hi","~","*o","ku","da","sa","i"],"Coffee, please — katakana and a particle in one breath"],

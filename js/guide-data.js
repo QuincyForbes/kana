@@ -7,7 +7,8 @@ const K = GOJU.map(([label, cells]) => ({
     if (!c) return null;
     const r = c[0] === 'を' ? 'wo' : c[2];
     const info = KANA_INFO[r] || {};
-    return { h: c[0], k: c[1], r, s: info.s || '', mh: info.mh, mk: info.mk };
+    /* d: the label shown. を is read "o" but written and typed "wo" */
+    return { h: c[0], k: c[1], r, d: r === 'wo' ? '(w)o' : r, s: info.s || '', mh: info.mh, mk: info.mk };
   }),
 }));
 
