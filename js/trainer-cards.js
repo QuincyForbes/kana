@@ -63,6 +63,11 @@ const YOU = store.get(KEYS.you) || {};
     YOU.job, YOU.job ? `I'm ${an(YOU.job)} ${YOU.job}` : "I'm a ___ (occupation)");
 })();
 
+/* glyph → card id for every kana card, so a box in a phrase can be tied to
+   the progress made on that character                                      */
+const CHAR_ID = {};
+CARDS.forEach((c) => { if (c.type === "char") CHAR_ID[c.char] = c.id; });
+
 /* base-46 lookup for cross-links into the guide's chart detail */
 const BASE_LINK = {};
 GOJU.forEach(([, cells]) => cells.forEach((c) => { if (c) { BASE_LINK[c[0]] = c[2]; BASE_LINK[c[1]] = c[2]; } }));
@@ -73,7 +78,7 @@ const DECK_ORDER = [
   ...DATA.map((d) => d[0]), "Survival kanji",
 ];
 /* virtual decks the quiz builds from the others */
-const COMPOSITE_DECKS = ["All decks", "All characters", "All phrases", "Look-alikes"];
+const COMPOSITE_DECKS = ["All decks", "All characters", "All phrases", "Look-alikes", "Your mix-ups"];
 /* names a personal deck can't take */
 const RESERVED_DECKS = [...COMPOSITE_DECKS, ...DECK_ORDER];
 

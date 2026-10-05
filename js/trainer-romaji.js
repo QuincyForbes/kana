@@ -73,6 +73,19 @@ function checkTyped(input, card) {
   return [answerRom(card), ...(card.alt || [])].some((a) => typed.includes(collapse(pre(a))));
 }
 
+/* ------------------------------ Pitch accent ----------------------------- */
+/* An accent is the number of the mora after which the pitch falls (0: it
+   never does). Tokyo pattern: the first mora is low unless the fall comes
+   right after it, then high up to the fall, then low.  pitchPattern gives,
+   for a word of n morae, which are high and which one the fall follows.   */
+function pitchPattern(accent, n) {
+  return Array.from({ length: n }, (_, i) => ({
+    hi: accent === 1 ? i === 0 : i > 0 && (accent === 0 || i < accent),
+    drop: accent > 0 && i === accent - 1,
+  }));
+}
+const pitchLabel = (a) => (a === 0 ? "flat — no fall" : a === 1 ? "falls after the first mora" : `falls after mora ${a}`);
+
 /* --------------------------- Number readings ---------------------------- */
 const numDigits = ["", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
 function numToRomaji(n) {

@@ -10,20 +10,25 @@ const StudyView = (() => {
   const seenSec = store.get(KEYS.seenSec) || {};
 
   const phraseRow = (c) => {
+    const ids = c.kana.map((k) => CHAR_ID[k]).filter(Boolean);
+    /* pitch: boxes are morae one for one, so the contour maps straight on */
+    const acc = PITCH[c.id], pat = acc && acc[0] <= c.kana.length ? pitchPattern(acc[0], c.kana.length) : null;
     const cells = c.kana.map((k, i) => {
       let r = c.rom[i] || "", cls = "";
       if (r.startsWith("*")) { cls = " p"; r = r.slice(1); }
       else if (r === "~") { cls = " m"; r = modLabel(k); }
       if (k.length > 1) cls += " wide"; /* personalized fill-in boxes */
+      if (pat) cls += (pat[i].hi ? " hi" : "") + (pat[i].drop ? " drop" : "");
+      const cid = CHAR_ID[k] ? ` data-cid="${esc(CHAR_ID[k])}"` : "";
       const inner = `<div class="k" lang="ja">${esc(k)}</div><div class="r">${esc(r)}</div>`;
       /* base-46 boxes link to that character's guide entry */
       return BASE_LINK[k]
-        ? `<a class="c${cls}" href="guide.html#c=${BASE_LINK[k]}" title="${esc(k)} in the guide">${inner}</a>`
-        : `<div class="c${cls}">${inner}</div>`;
+        ? `<a class="c${cls}"${cid} href="guide.html#c=${BASE_LINK[k]}" title="${esc(k)} in the guide">${inner}</a>`
+        : `<div class="c${cls}"${cid}>${inner}</div>`;
     }).join("");
     const key = `${c.kana.join("")} ${spokenRom(c)} ${c.mean}`.toLowerCase();
-    return `<div class="row" data-k="${esc(key)}">
-      <div class="rmain"><div class="cells">${cells}</div><p class="meaning">${esc(c.mean)}</p></div>
+    return `<div class="row" data-k="${esc(key)}" data-ids="${esc(ids.join(" "))}"${pat ? ` data-pitch="${acc[0]}" title="Pitch: ${pitchLabel(acc[0])}${acc.length > 1 ? ` (also ${acc.slice(1).join(", ")})` : ""}"` : ""}>
+      <div class="rmain"><div class="cells">${cells}</div><p class="meaning"${ids.length ? ' title="Tap to peek at the reading"' : ""}>${esc(c.mean)}</p></div>
       <div class="ract">
         <button class="spk" data-say="${esc(c.kana.join(""))}"${hasClip(c) ? "" : " data-tts"} title="Listen" aria-label="Listen">🔊</button>
         <button class="addbtn" type="button" data-add="${esc(c.id)}" title="Add to a deck" aria-label="Add to a deck">＋</button>
@@ -33,10 +38,12 @@ const StudyView = (() => {
 
   const kanjiCard = (c) => {
     const key = `${c.kanji} ${c.furi} ${c.rom} ${c.mean}`.toLowerCase();
-    return `<div class="row" data-k="${esc(key)}" style="display:block"><div class="kjcard">
+    const ids = [...c.furi].map((k) => CHAR_ID[k]).filter(Boolean);
+    return `<div class="row" data-k="${esc(key)}" data-ids="${esc(ids.join(" "))}" style="display:block"><div class="kjcard">
       <button class="addbtn" type="button" data-add="${esc(c.id)}" title="Add to a deck" aria-label="Add to a deck">＋</button>
       <ruby lang="ja">${esc(c.kanji)}<rt>${esc(c.furi)}</rt></ruby>
       <span class="en">${esc(c.mean)}</span><span class="whr">${esc(c.where)}</span>
+      ${PITCH[c.id] ? `<span class="pt" title="Pitch: ${pitchLabel(PITCH[c.id][0])}">pitch ${PITCH[c.id].join(" / ")}</span>` : ""}
     </div></div>`;
   };
 
@@ -164,31 +171,42 @@ const StudyView = (() => {
        One section at a time with prev/next, "all" restores the full scroll.
        A non-empty search always searches everything — a filter that silently
        ignored other sections would read as "no results". */
+    /* fade: hide the romaji under characters you have learned. readable:
+       only phrases made entirely of characters you have learned.            */
+    const sp = Object.assign({ fade: true, readable: false, pitch: false }, store.get(KEYS.study) || {});
+    const rowReadable = (r) => (r.dataset.ids || "").split(" ").filter(Boolean).every((id) => {
+      const p = Srs.record(id);
+      return !!p && p.b >= 1;
+    });
     function apply() {
       const t = $("q").value.trim().toLowerCase();
-      const focus = !t && sec !== "all";
+      const filtering = !!t || sp.readable;
+      const focus = !filtering && sec !== "all";
       document.querySelectorAll(".mast, .rules, .howto").forEach((el) => (el.hidden = focus));
       let shown = 0;
       document.querySelectorAll("section[data-filterable]").forEach((s) => {
         let any = 0;
         s.querySelectorAll(".row").forEach((r) => {
-          const hit = !t || r.dataset.k.includes(t);
+          const hit = (!t || r.dataset.k.includes(t)) && (!sp.readable || rowReadable(r));
           r.hidden = !hit;
           if (hit) any++;
         });
-        s.hidden = t ? !any : (focus && s.id !== sec);
+        s.hidden = filtering ? !any : (focus && s.id !== sec);
         if (!s.hidden) shown += any;
       });
       document.querySelectorAll("#charts section").forEach((s) => {
         s.classList.toggle("dim", !!t);
-        s.hidden = focus && s.id !== sec;
+        s.hidden = sp.readable || (focus && s.id !== sec);
       });
       const cur = sections.find((x) => x.id === sec);
-      $("count").textContent = t ? `${shown} of ${total}` : focus ? cur.label : `${total} items`;
-      $("empty").hidden = !t || shown > 0;
-      $("qsec").disabled = !!t;
+      $("count").textContent = t ? `${shown} of ${total}` : sp.readable ? `${shown} readable of ${total}` : focus ? cur.label : `${total} items`;
+      $("empty").hidden = !filtering || shown > 0;
+      $("empty").textContent = t ? "No phrases match — the kana charts below stay put for reference."
+        : "Nothing you can read yet — learn some hiragana in the Quiz and phrases made from it appear here.";
+      $("qsec").disabled = filtering;
       /* search mode: the input takes the row, other controls step aside */
       document.body.classList.toggle("searching", !!t);
+      document.body.classList.toggle("reading", sp.readable);
       $("q-clear").hidden = !t;
 
       const nav = $("secnav");
@@ -203,6 +221,31 @@ const StudyView = (() => {
           (next ? `<button class="sn" data-sec="${next.id}">${esc(next.label)} →</button>` : "<span></span>");
       }
     }
+
+    /* which boxes show their romaji follows what the Quiz has taught you */
+    function refresh() {
+      document.querySelectorAll(".c[data-cid]").forEach((el) => {
+        const p = Srs.record(el.dataset.cid);
+        el.classList.toggle("kn", !!p && p.b >= 1);
+      });
+      if (sp.readable) apply();
+    }
+    const syncToggles = () => {
+      $("tF").setAttribute("aria-pressed", String(sp.fade));
+      $("tD").setAttribute("aria-pressed", String(sp.readable));
+      $("tP").setAttribute("aria-pressed", String(sp.pitch));
+      document.body.classList.toggle("pitch", sp.pitch);
+      document.body.classList.toggle("fade-r", sp.fade);
+    };
+    ["tF:fade", "tD:readable", "tP:pitch"].forEach((pair) => {
+      const [id, key] = pair.split(":");
+      on(id, "click", () => { sp[key] = !sp[key]; store.set(KEYS.study, sp); syncToggles(); apply(); });
+    });
+    api.refresh = refresh;
+    on("out", "click", (e) => {
+      const m = e.target.closest(".meaning");
+      if (m) m.closest(".row").classList.toggle("peek");
+    });
 
     function tickLabels() {
       [...$("qsec").options].forEach((o) => {
@@ -314,9 +357,11 @@ const StudyView = (() => {
       Player.toggle(items, b);
     });
 
+    syncToggles();
+    refresh();
     setSec(store.get(KEYS.studySec) || "all"); /* returning users land where they left off */
   }
 
-  const api = { render, wire, current: () => sec };
+  const api = { render, wire, current: () => sec, refresh() {} };
   return api;
 })();

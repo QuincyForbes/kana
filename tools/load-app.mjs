@@ -8,12 +8,12 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const FILES = ['store.js', 'srs.js', 'kana-data.js', 'trainer-data.js', 'legacy-ids.js', 'decks.js',
+const FILES = ['store.js', 'srs.js', 'kana-data.js', 'pitch-data.js', 'trainer-data.js', 'legacy-ids.js', 'decks.js',
   'trainer-romaji.js', 'trainer-cards.js', 'trainer-session.js'];
 const EXPORTS = ['KEYS', 'store', 'Prefs', 'CONFIG', 'ymd', 'streakOf', 'nextRecord', 'practiceRecord',
   'FSRS', 'levelOf', 'cleanProg', 'migrateIds', 'LEGACY_IDS', 'kanaToRomaji', 'DATA', 'KANJI', 'CARDS', 'DECK_ORDER', 'Custom',
-  'customIds', 'cleanDecks', 'Decks', 'deckMembers', 'checkTyped', 'spokenRom', 'answerRom', 'cardJp', 'cardGloss',
-  'numToRomaji', 'numNorm', 'Srs', 'QuizSession'];
+  'cleanConfuse', 'CHAR_ID', 'customIds', 'cleanDecks', 'Decks', 'deckMembers', 'checkTyped', 'spokenRom', 'answerRom', 'cardJp', 'cardGloss',
+  'numToRomaji', 'numNorm', 'PITCH', 'pitchPattern', 'pitchLabel', 'Srs', 'Confuse', 'learnedChar', 'readableCard', 'QuizSession'];
 
 /* a Map-backed stand-in for localStorage; seed it to start from stored state */
 export function fakeStorage(seed = {}) {

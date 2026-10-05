@@ -38,8 +38,10 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}/`;
 
 /* ---- browser + bookkeeping ---- */
-const browser = await chromium.launch({ channel: process.env.SMOKE_CHANNEL || undefined });
-const context = await browser.newContext({ acceptDownloads: true });
+/* a fake microphone, already allowed, so the Speak view can record */
+const browser = await chromium.launch({ channel: process.env.SMOKE_CHANNEL || undefined,
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+const context = await browser.newContext({ acceptDownloads: true, permissions: ['microphone'] });
 const page = await context.newPage();
 const problems = [], dialogs = [];
 let failed = 0;
@@ -137,7 +139,54 @@ try {
   await page.keyboard.press('2');
   await page.selectOption('#qmode', 'match');
   check(await page.locator('.qchoices .qc').count() === 4, 'match mode offers four choices');
+  /* listen, then pick the kana: options, a remembered mix-up, number keys */
+  await page.selectOption('#qmode', 'hear');
+  check(await page.locator('.qchoices .qc').count() === 4 && await page.locator('#bReplay').count() === 1, 'listen-and-pick offers four kana and a replay');
+  const heard = await page.evaluate(() => QuizSession.state.current.char);
+  await page.locator('.qchoices .qc', { hasNotText: heard }).first().click();
+  check(await page.locator('.verdict.no').count() === 1 && await page.evaluate(() => Object.keys(Confuse.all()).length) === 1,
+    'a wrong pick is marked and remembered as a mix-up');
+  await page.keyboard.press('1');
+  await page.selectOption('#qmode', 'mixed');
+  await page.keyboard.press('1');
+  check(await page.evaluate(() => !QuizSession.state.current || ['flip', 'type', 'listen', 'match', 'hear'].includes(QuizSession.state.mode)), 'mixed mode settles on a concrete format for each card');
   await page.selectOption('#qmode', 'flip');
+
+  /* Study: romaji fades under characters you have learned; Readable now filters */
+  await page.evaluate(() => { for (const id of ['hg-こ', 'hg-ん']) Srs.grade(CARDS.find((c) => c.id === id), true, {}); });
+  await page.click('#tab-study');
+  await page.waitForTimeout(350); /* the fade is a short transition */
+  const faded = await page.evaluate(() => {
+    const el = document.querySelector('.c[data-cid="hg-こ"].kn .r');
+    return !!el && getComputedStyle(el).opacity === '0';
+  });
+  check(faded, 'romaji under a learned character fades out in Study');
+  await page.click('#tP');
+  check(await page.evaluate(() => document.body.classList.contains('pitch') && document.querySelectorAll('.row[data-pitch] .c.hi').length > 20), 'Pitch: words carry a high/low contour');
+  await page.click('#tP');
+  await page.click('#tD');
+  const total = await page.locator('#out .row').count();
+  const some = await page.locator('#out .row:not([hidden])').count();
+  await page.evaluate(() => CARDS.filter((c) => c.id.startsWith('hg-') && c.char.length === 1).forEach((c) => Srs.grade(c, true, {})));
+  await page.click('#tab-quiz'); await page.click('#tab-study');
+  const most = await page.locator('#out .row:not([hidden])').count();
+  check(some < total && most > some, 'Readable now: phrases appear as their characters are learned');
+  await page.click('#tD');
+
+  /* Speak: shadowing with a recording */
+  await page.click('#tab-shadow');
+  check(await page.locator('#shadow-card .qkana').isVisible(), 'the Speak view offers a phrase to say');
+  await page.click('#sh-rec');
+  await page.waitForTimeout(900);
+  await page.click('#sh-rec');
+  await page.waitForSelector('#sh-mine:not([disabled])');
+  await page.click('#sh-mine');
+  check(await page.locator('#sh-both').isEnabled(), 'a recording can be played back against the voice');
+  await page.check('#sh-pitch');
+  check(await page.locator('#shadow-card .pk.hi').count() > 0 && await page.locator('#shadow-card .pk.drop').count() <= 1, 'Speak can show the pitch contour of the phrase');
+  await page.uncheck('#sh-pitch');
+  await page.click('#sh-next');
+  check(await page.locator('#sh-mine').isDisabled(), 'the next phrase starts clean — the recording is dropped');
 
   await page.click('#tab-study');
   check(await page.locator('#out .row').count() > 200, 'study view lists the phrases');
@@ -163,7 +212,7 @@ try {
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#qexport')]);
   const backup = join(tmp, 'backup.json');
   await download.saveAs(backup);
-  await page.keyboard.press('Space'); await page.keyboard.press('2');
+  await page.evaluate(() => Srs.grade(CARDS.find((c) => c.id === 'kt-ア'), true, {}));
   check(await records() !== saved, '(state changed after the export)');
   await Promise.all([page.waitForEvent('load'), page.setInputFiles('#qfile', backup)]);
   check(await records() === saved && !dialogs.some((d) => d.includes("isn't a Kana Trainer export")), 'importing the backup restores the exported record');

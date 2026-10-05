@@ -1,6 +1,6 @@
 "use strict";
-/* Kana Trainer — start-up: switches between the Study, Quiz and Progress
-   views, keeps the URL hash in step, and wires the pieces together.
+/* Kana Trainer — start-up: switches between the Study, Quiz, Speak and
+   Progress views, keeps the URL hash in step, and wires the pieces together.
 
    The app is plain scripts loaded in order by trainer.html, sharing globals:
      store.js          keys + safe storage + audio prefs
@@ -10,7 +10,7 @@
      trainer-cards.js    CARDS, decks, custom CSV decks
      trainer-session.js  Srs + QuizSession — the quiz engine, no DOM
      trainer-ui.js       DOM helpers, speech, player
-     trainer-study.js / trainer-quiz.js / trainer-progress.js   the views
+     trainer-study.js / trainer-quiz.js / trainer-shadow.js / trainer-progress.js   the views
      trainer.js          this file                                            */
 
 /* ------------------------------- Tabs ------------------------------------ */
@@ -41,7 +41,7 @@ function setMode(mode, { keepFocus = false } = {}) {
   currentMode = mode;
   document.body.className = document.body.className.replace(/mode-\w+/g, "").trim();
   document.body.classList.add("mode-" + mode);
-  /* two tablists (top bar, phone bottom bar) share the three panels; only
+  /* two tablists (top bar, phone bottom bar) share the four panels; only
      the selected tab of each is in the Tab order                            */
   document.querySelectorAll(".tab").forEach((t) => {
     const on = t.dataset.mode === mode;
@@ -50,7 +50,10 @@ function setMode(mode, { keepFocus = false } = {}) {
   });
   Player.stop();
   if (mode !== "quiz") Quiz.leave();
+  if (mode !== "shadow") Shadow.stop();
   if (mode === "quiz") Quiz.start();
+  if (mode === "study") StudyView.refresh();
+  if (mode === "shadow") Shadow.start();
   if (mode === "progress") Progress.render();
   syncHash();
   if (modeInitialized) window.scrollTo({ top: 0, behavior: "instant" });
@@ -66,7 +69,7 @@ function setMode(mode, { keepFocus = false } = {}) {
    not also restore a scroll offset — or jump to an element named by the
    hash, which is why the view panels are #view-quiz, not #quiz.            */
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-const MODES = ["study", "quiz", "progress"];
+const MODES = ["study", "quiz", "shadow", "progress"];
 const readHash = () => location.hash.slice(1).split("/").map(safeDecode);
 const [hashMode, hashArg] = readHash();
 const hashSec = hashMode === "study" ? hashArg : null;
@@ -74,6 +77,7 @@ if (hashMode === "quiz" && hashArg) Quiz.setDeck(hashArg);
 StudyView.render();
 StudyView.wire();
 Quiz.wire();
+Shadow.wire();
 document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setMode(t.dataset.mode, { keepFocus: true })));
 /* arrow keys walk the tabs, Home/End jump to the ends */
 document.querySelectorAll('[role="tablist"]').forEach((list) => list.addEventListener("keydown", (e) => {
@@ -104,6 +108,7 @@ window.addEventListener("storage", (e) => {
   Srs.reload();
   updateDueBadge();
   Quiz.refresh();
+  if (currentMode === "study") StudyView.refresh();
   if (currentMode === "progress") Progress.render();
 });
 

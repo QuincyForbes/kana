@@ -12,13 +12,13 @@
 <meta name="theme-color" content="#F2F3EE" data-light="#F2F3EE" data-dark="#141814">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<script src="js/theme.js?v=25"></script>
+<script src="js/theme.js?v=26"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600;900&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=25">
-<link rel="stylesheet" href="css/site.css?v=25">
+<link rel="stylesheet" href="css/trainer.css?v=26">
+<link rel="stylesheet" href="css/site.css?v=26">
 </head>
 <body class="has-bottomnav">
 <a class="skip" href="#view-study">Skip to content</a>
@@ -29,12 +29,16 @@
     <div class="tabs" role="tablist" aria-label="Trainer views">
       <button class="tab" role="tab" id="tab-study" data-mode="study" aria-controls="view-study" aria-selected="true">Study</button>
       <button class="tab" role="tab" id="tab-quiz" data-mode="quiz" aria-controls="view-quiz" aria-selected="false" tabindex="-1">Quiz</button>
+      <button class="tab" role="tab" id="tab-shadow" data-mode="shadow" aria-controls="view-shadow" aria-selected="false" tabindex="-1">Speak</button>
       <button class="tab" role="tab" id="tab-progress" data-mode="progress" aria-controls="view-progress" aria-selected="false" tabindex="-1">Progress</button>
     </div>
     <span class="studyonly">
       <select id="qsec" aria-label="Study section"></select>
       <button class="tog" id="tR" aria-pressed="true">Romaji</button>
       <button class="tog" id="tM" aria-pressed="true">Meaning</button>
+      <button class="tog" id="tF" aria-pressed="true" title="Hide the romaji under characters you have learned — hover or tap the meaning to peek">Fade learned</button>
+      <button class="tog" id="tP" aria-pressed="false" title="Pitch accent: a line over the high syllables, a tick where the pitch falls">Pitch</button>
+      <button class="tog" id="tD" aria-pressed="false" title="Only phrases made entirely of characters you have learned">Readable now</button>
       <span class="search"><input id="q" type="search" placeholder="Search — &ldquo;please&rdquo;, &ldquo;train&rdquo;, ku&hellip;" title="Search every phrase and kanji — press / to jump here" aria-label="Search all study items"><button id="q-clear" type="button" aria-label="Clear search" hidden>×</button></span>
       <span id="count"></span>
     </span>
@@ -75,6 +79,7 @@
       <h2>Using this</h2>
       <p>Read a phrase box by box out loud before reading it as a word. Tap 🔊 to hear it. Then live in the <b>Quiz</b> tab: single characters, phrases and kanji are all separate decks, or take everything at once. A card you haven't met is shown in full first and asked a few cards later. Type-the-romaji mode checks your answer and accepts both Hepburn and Kunrei spelling (shi/si, tsu/tu). Misses come back within minutes; hits come back in days. Ten minutes a day beats an hour on Sunday.</p>
       <p><b>All decks</b> introduces things in a sensible order on its own — all of hiragana, then katakana, then phrases and kanji — or pick a single deck to stay on it. Typed mode is the one that builds speed. Hide the romaji with the <b>Romaji</b> toggle as soon as the characters start to stick. <b>Progress</b> shows exactly where you stand per deck.</p>
+      <p><b>Pitch.</b> The <b>Pitch</b> toggle draws each word's accent: a line over the syllables said high, and a tick where the pitch falls. Flat words (<em>heiban</em>) have no tick. Only words in the dictionary are marked — whole sentences are not. Standard Tokyo pronunciation; accents shown first are the main ones. Data: <a href="https://github.com/mifunetoshiro/kanjium" rel="noopener">Kanjium</a> (accents from Uros O.'s database), <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">CC BY-SA 4.0</a>.</p>
       <p>Found a mistake? <a href="https://github.com/QuincyForbes/kana/issues" rel="noopener">Open an issue on GitHub</a>.</p>
     </div>
   </div>
@@ -87,6 +92,8 @@
         <option value="type">Type the romaji</option>
         <option value="listen">Listen &amp; type</option>
         <option value="match">Match ひらがな ↔ カタカナ</option>
+        <option value="hear">Listen &amp; pick the kana</option>
+        <option value="mixed">Mixed — a different format each time</option>
       </select></label>
       <button id="qopts-btn" type="button" class="ghostbtn" aria-expanded="false" aria-controls="qopts">Options</button>
       <button id="qsprint" type="button" class="ghostbtn accent" title="Race the clock: as many cards as you can in 60 seconds. Practice only — it never moves a card ahead of schedule.">60s sprint</button>
@@ -161,6 +168,23 @@
     </details>
   </div>
 
+  <div id="view-shadow" role="tabpanel" aria-labelledby="tab-shadow" tabindex="-1">
+    <header class="mast">
+      <p class="jp">シャドーイング</p>
+      <h1>Say it with the voice</h1>
+      <p>Listening isn't speaking. Hear a phrase, say it <b>along with</b> the voice (not after it), record yourself, then play the voice and your attempt back to back. Phrases come from characters you can already read. Nothing here is graded, and a recording stays on this device and is dropped when you move on.</p>
+    </header>
+    <p class="qwarn" id="shadow-early" hidden>You haven't learned many characters yet, so these are the shortest phrases. Once you've answered some kana in the Quiz, this view fills with phrases you can read.</p>
+    <div class="qcard shadow" id="shadow-card"></div>
+    <p class="mdcount" id="shadow-note" role="status"></p>
+    <div class="shopts">
+      <label><input type="checkbox" id="sh-slow"> slow audio</label>
+      <label><input type="checkbox" id="sh-male"> male voice</label>
+      <label><input type="checkbox" id="sh-pitch"> show pitch</label>
+      <span class="mdcount" id="shadow-count"></span>
+    </div>
+  </div>
+
   <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" tabindex="-1">
     <div class="pfirst" id="pfirst" hidden>
       <p><b>Nothing reviewed yet.</b> Everything you grade in the Quiz lands here — streak, what's due, and how each deck is coming along.</p>
@@ -176,6 +200,7 @@
     <div id="pbars"></div>
     <div class="plists">
       <div><h3>Learned</h3><ul id="pknown"></ul></div>
+      <div><h3>Your mix-ups <button id="pmixDrill" type="button" class="minibtn" hidden>drill these now</button></h3><ul id="pmix"></ul></div>
       <div><h3>Keeps tripping you <button id="plapseDrill" type="button" class="minibtn" hidden>drill these now</button><button id="plapseSave" type="button" class="minibtn" hidden>save as a deck</button></h3><ul id="plapse"></ul></div>
     </div>
   </div>
@@ -184,23 +209,26 @@
 <div class="bottomnav" role="tablist" aria-label="Trainer views">
   <button class="tab" role="tab" data-mode="study" aria-controls="view-study" aria-selected="true">Study</button>
   <button class="tab" role="tab" data-mode="quiz" aria-controls="view-quiz" aria-selected="false" tabindex="-1">Quiz</button>
+  <button class="tab" role="tab" data-mode="shadow" aria-controls="view-shadow" aria-selected="false" tabindex="-1">Speak</button>
   <button class="tab" role="tab" data-mode="progress" aria-controls="view-progress" aria-selected="false" tabindex="-1">Progress</button>
 </div>
 
-<script src="js/site.js?v=25"></script>
-<script src="js/store.js?v=25"></script>
-<script src="js/srs.js?v=25"></script>
-<script src="js/kana-data.js?v=25"></script>
-<script src="js/trainer-data.js?v=25"></script>
-<script src="js/legacy-ids.js?v=25"></script>
-<script src="js/decks.js?v=25"></script>
-<script src="js/trainer-romaji.js?v=25"></script>
-<script src="js/trainer-cards.js?v=25"></script>
-<script src="js/trainer-session.js?v=25"></script>
-<script src="js/trainer-ui.js?v=25"></script>
-<script src="js/trainer-study.js?v=25"></script>
-<script src="js/trainer-quiz.js?v=25"></script>
-<script src="js/trainer-progress.js?v=25"></script>
-<script src="js/trainer.js?v=25"></script>
+<script src="js/site.js?v=26"></script>
+<script src="js/store.js?v=26"></script>
+<script src="js/srs.js?v=26"></script>
+<script src="js/kana-data.js?v=26"></script>
+<script src="js/pitch-data.js?v=26"></script>
+<script src="js/trainer-data.js?v=26"></script>
+<script src="js/legacy-ids.js?v=26"></script>
+<script src="js/decks.js?v=26"></script>
+<script src="js/trainer-romaji.js?v=26"></script>
+<script src="js/trainer-cards.js?v=26"></script>
+<script src="js/trainer-session.js?v=26"></script>
+<script src="js/trainer-ui.js?v=26"></script>
+<script src="js/trainer-study.js?v=26"></script>
+<script src="js/trainer-quiz.js?v=26"></script>
+<script src="js/trainer-progress.js?v=26"></script>
+<script src="js/trainer-shadow.js?v=26"></script>
+<script src="js/trainer.js?v=26"></script>
 </body>
 </html>

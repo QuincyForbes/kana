@@ -4,7 +4,7 @@
    shortcuts, the sprint clock, backup/import and custom decks.             */
 const Quiz = (() => {
   const S = QuizSession, session = S.state, settings = S.settings;
-  const { counterpart, listening, matching, typedApplies } = S;
+  const { counterpart, listening, hearing, matching, typedApplies } = S;
 
   /* memory hook for the 46 base characters, from the guide. Looked up by
      glyph (BASE_LINK), not romaji — を and お share "o", ウォ and を "wo". */
@@ -117,7 +117,7 @@ const Quiz = (() => {
   function faceHTML(c, face) {
     /* hideQ hides the Japanese side, hideA the answer side. In listen mode
        everything is hidden until reveal — the audio IS the prompt. */
-    const listen = listening();
+    const listen = listening() || hearing();
     const hideQ = listen || face !== "jp";
     const hideA = listen || face === "jp";
     if (c.type === "char")
@@ -140,31 +140,11 @@ const Quiz = (() => {
 
   function controlsHTML() {
     if (!session.revealed) {
-      const replay = listening()
+      const replay = listening() || hearing()
         ? `<div class="qbtns"><button class="qb ghost" id="bReplay">🔊 play again</button></div>` : "";
-      if (matching()) {
-        const right = counterpart(session.current);
-        /* distractors: look-alike partners of this glyph first, then random */
-        const opts = [right];
-        /* answers stay in the counterpart's script; look-alike partners of
-           THIS character trap first, random fills the rest */
-        const answerScript = K2H[right] !== undefined ? "k" : "h";
-        const toAnswerScript = (g) => (answerScript === "k" ? (K2H[g] !== undefined ? g : H2K[g]) : (H2K[g] !== undefined ? g : K2H[g]));
-        TRICKY.forEach((p) => {
-          if (!p.g.includes(session.current.char) && !p.g.includes(right)) return;
-          p.g.forEach((g) => {
-            const cand = toAnswerScript(g);
-            if (cand && opts.length < 4 && !opts.includes(cand)) opts.push(cand);
-          });
-        });
-        const pool = Object.keys(answerScript === "k" ? K2H : H2K).filter((g) => g.length === right.length);
-        while (opts.length < 4) {
-          const cand = pool[Math.floor(Math.random() * pool.length)];
-          if (!opts.includes(cand)) opts.push(cand);
-        }
-        return `<div class="qchoices">${shuffle(opts).map((g) =>
-          `<button type="button" class="qc" lang="ja" data-match="${esc(g)}">${esc(g)}</button>`).join("")}</div>`;
-      }
+      if (matching() || hearing())
+        return `${replay}<div class="qchoices">${session.choices.map((g, i) =>
+          `<button type="button" class="qc" lang="ja" data-match="${esc(g)}">${esc(g)}<kbd>${i + 1}</kbd></button>`).join("")}</div>`;
       /* personalized cards have no fixed romaji — flip-grade them */
       return typedApplies() && !session.current.custom
         ? `${replay}<div class="qbtns"><input id="qtype" autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -173,8 +153,9 @@ const Quiz = (() => {
         : `${replay}<div class="qbtns"><button class="qb" id="bShow">Show answer</button></div>`;
     }
     const v = session.verdict;
+    const glyph = hearing() ? session.current.char : matching() ? counterpart(session.current) : "";
     const verdict = v
-      ? `<p class="verdict ${v.ok ? "ok" : "no"}">${v.ok ? "Correct" : "Not quite"} — <span lang="ja">${esc(matching() ? counterpart(session.current) : "")}</span>${matching() ? "" : esc(answerRom(session.current))}${v.ok ? "" : ` (you answered: ${esc(v.got)})`}</p>`
+      ? `<p class="verdict ${v.ok ? "ok" : "no"}">${v.ok ? "Correct" : "Not quite"} — ${glyph ? `<span lang="ja">${esc(glyph)}</span> ` : ""}${matching() ? "" : esc(answerRom(session.current))}${v.ok ? "" : ` (you answered: ${esc(v.got)})`}</p>`
       : "";
     const m = mnemOf(session.current);
     const mnem = m ? `<p class="qmnem">${m}</p>` : "";
@@ -201,7 +182,8 @@ const Quiz = (() => {
     </div>`;
     session.revealed ? wireRevealed(c) : wirePrompt(c);
     if (!session.revealed)
-      announce(listening() ? "Listen, then type what you hear." : session.face === "jp" ? cardJp(c) : cardGloss(c));
+      announce(listening() ? "Listen, then type what you hear." : hearing() ? "Listen, then choose the kana you hear."
+        : session.face === "jp" ? cardJp(c) : cardGloss(c));
     else {
       const v = session.verdict;
       announce((v ? (v.ok ? "Correct. " : "Not quite. ") : "") + `${cardJp(c)} — ${answerRom(c)}` + (c.mean ? `, ${c.mean}` : ""));
@@ -249,6 +231,7 @@ const Quiz = (() => {
       ${summary}
       <p>${more
         ? `Today's new cards are done, with ${unseen} still unseen in this deck. Come back later for reviews, or keep going.`
+        : settings.deck === "Your mix-ups" ? "This deck fills as you slip up in pick-the-kana questions. Nothing is waiting in it yet."
         : "Come back later for reviews, or pick another deck."}</p>
       <div class="qbtns">${more ? `<button class="qb" id="qmore">Learn ${more} more</button>` : ""}<button class="qb ghost" id="qrefill">Check again</button></div>
     </div></div>`;
@@ -269,15 +252,12 @@ const Quiz = (() => {
 
   function wirePrompt(c) {
     document.querySelectorAll("[data-match]").forEach((b) =>
-      b.addEventListener("click", () => {
-        const right = counterpart(c);
-        reveal({ ok: b.dataset.match === right, got: b.dataset.match });
-      }));
+      b.addEventListener("click", () => { S.choose(b.dataset.match); render(); }));
     const show = $("bShow");
     if (show) show.onclick = () => reveal(null);
     const rep = $("bReplay");
     if (rep) rep.onclick = () => speak(c);
-    if (listening()) speak(c);
+    if (listening() || hearing()) speak(c);
     const input = $("qtype");
     if (input) {
       input.focus();
@@ -298,8 +278,8 @@ const Quiz = (() => {
     const deckSel = $("qdeck");
     const fillDecks = () => {
     const deckGroups = [
-      ["Everything", COMPOSITE_DECKS.filter((d) => d !== "Look-alikes")],
-      ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos", "Look-alikes"]],
+      ["Everything", COMPOSITE_DECKS.filter((d) => d !== "Look-alikes" && d !== "Your mix-ups")],
+      ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos", "Look-alikes", "Your mix-ups"]],
       ["Phrases & words", DATA.map((d) => d[0])],
       ["Kanji", ["Survival kanji"]],
       ...(Custom.decks.length ? [["My decks", Custom.decks.map((d) => d.name)]] : []),
@@ -365,7 +345,8 @@ const Quiz = (() => {
       if (e.key === " " || e.key === "Enter") {
         if (keyboardFocused(t)) return;
         if (!session.revealed && session.current) { e.preventDefault(); session.intro ? learned() : reveal(null); }
-      } else if (e.key === "1" && session.revealed) grade(false);
+      } else if (/^[1-4]$/.test(e.key) && !session.revealed && !session.intro && session.choices[+e.key - 1]) { S.choose(session.choices[+e.key - 1]); render(); }
+      else if (e.key === "1" && session.revealed) grade(false);
       else if (e.key === "2" && session.revealed) grade(true);
       else if (e.key === "s" && session.current) speak(session.current);
       else if (e.key === "u") undo();
@@ -381,7 +362,7 @@ const Quiz = (() => {
     on("qslow", "change", () => Prefs.setSlow($("qslow").checked));
 
     on("qexport", "click", () => {
-      const payload = { v: 3, when: new Date().toISOString(), prog: Srs.all(), custom: Custom.decks };
+      const payload = { v: 3, when: new Date().toISOString(), prog: Srs.all(), custom: Custom.decks, confuse: Confuse.all() };
       download("kana-trainer-progress.json", JSON.stringify(payload, null, 1), "application/json");
       toast("Backup saved to your downloads");
     });
@@ -405,6 +386,7 @@ const Quiz = (() => {
             && !confirm(`Replace what's saved in this browser with the file's ${what}?\n\nExport first if you want a backup of what's here now.`)) return;
         if (decks) Custom.decks = decks; /* first: old custom ids migrate through the file's decks */
         Srs.replace(prog);
+        if (j.confuse) Confuse.replace(j.confuse);
         if (decks) { toast.afterReload(`Imported ${what}`); return Custom.commit(); } /* decks changed the card list — reloads */
         toast(`Imported ${what}`);
         if (S.sprinting()) stopSprint(false, false);
@@ -532,9 +514,9 @@ const Quiz = (() => {
   }
 
   /* focused drill on an explicit card list (e.g. the lapse list) */
-  function drillCards(cards) {
+  function drillCards(cards, opts) {
     if (S.sprinting()) stopSprint(false, false);
-    S.drill(cards);
+    S.drill(cards, opts);
   }
 
   /* ignores names that aren't decks — the hash can ask for anything */

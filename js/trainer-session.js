@@ -62,20 +62,73 @@ const Srs = (() => {
   };
 })();
 
+/* A character counts as learned once it has been answered right at least
+   once (its next review is a day or more away). Glyphs that are not cards —
+   small っ, ー, a fill-in box — never hold anything back.                   */
+const learnedChar = (g) => {
+  const id = CHAR_ID[g];
+  if (!id) return true;
+  const p = Srs.record(id);
+  return !!p && p.b >= 1;
+};
+/* a phrase or kanji card the learner can already read, kana by kana */
+const readableCard = (c) => (c.type === "phrase" ? c.kana : c.type === "kanji" ? [...c.furi] : []).every(learnedChar);
+
+/* ---------------------------- Remembered mix-ups -------------------------- */
+/* Every wrong pick in a choice question is kept as "you answered X for Y".
+   They feed the distractors (so the options trap you where you actually
+   slip), the "Your mix-ups" deck and the Progress list.                    */
+const Confuse = (() => {
+  let data = cleanConfuse(store.get(KEYS.confuse));
+  const save = () => store.set(KEYS.confuse, data);
+  const count = (a, b) => (data[a]?.[b] || 0) + (data[b]?.[a] || 0);
+  return {
+    note(right, wrong) {
+      if (!right || !wrong || right === wrong) return;
+      (data[right] ||= {})[wrong] = Math.min(999, (data[right][wrong] || 0) + 1);
+      save();
+    },
+    /* glyphs mixed up with g, most often first */
+    related(g) {
+      const seen = new Set();
+      Object.keys(data[g] || {}).forEach((w) => seen.add(w));
+      Object.entries(data).forEach(([r, ws]) => { if (g in ws) seen.add(r); });
+      return [...seen].sort((a, b) => count(g, b) - count(g, a));
+    },
+    /* unordered pairs [{a, b, n}], most mixed up first */
+    pairs() {
+      const out = new Map();
+      Object.entries(data).forEach(([r, ws]) => Object.keys(ws).forEach((w) => {
+        const [a, b] = [r, w].sort(), k = a + "|" + b;
+        if (!out.has(k)) out.set(k, { a, b, n: count(a, b) });
+      }));
+      return [...out.values()].sort((x, y) => y.n - x.n);
+    },
+    glyphs() { return new Set(Object.entries(data).flatMap(([r, ws]) => [r, ...Object.keys(ws)])); },
+    all: () => data,
+    replace(next) { data = cleanConfuse(next); save(); },
+    reset() { data = {}; save(); },
+  };
+})();
+
 /* ----------------------------- Quiz session ------------------------------ */
 /* The state machine behind the Quiz tab: which deck, what's queued, the
    card in play, grading, undo, the daily new-card allowance and the sprint.
    The view (js/trainer-quiz.js) calls in, then draws whatever state it finds. */
 const QuizSession = (() => {
   const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true, learn: true };
+  /* modes: flip · type · listen · match · hear (hear a sound, pick its kana) · mixed */
   const settings = Object.assign({}, DEFAULTS, store.get(KEYS.settings) || {});
   /* intro: the card in play is being shown, not asked (learn-then-test).
      practice: the queue is an extra-reps drill, graded via practiceRecord.
      bonusNew: new cards asked for on top of today's allowance.
-     pending: a drill is loaded and waits for the Quiz tab to open.         */
+     pending: a drill is loaded and waits for the Quiz tab to open.
+     mode: how the card in play is asked — the chosen mode, or for "mixed"
+       whichever format suits it. force: a drill's own format.
+     choices: the options of a pick-one question, fixed for the card.       */
   const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null, intro: false,
                     reviewed: 0, correct: 0, missed: [], pending: false,
-                    practice: false, bonusNew: 0 };
+                    practice: false, bonusNew: 0, mode: "flip", force: null, choices: [] };
   const introduced = new Set(); /* ids shown as an introduction this session */
   const undoStack = []; /* up to 20 grades deep */
   let sprint = null;    /* {count} while a 60s sprint runs — the view owns the clock */
@@ -86,6 +139,11 @@ const QuizSession = (() => {
     "All characters": () => CARDS.filter((c) => c.type === "char"),
     "All phrases": () => CARDS.filter((c) => c.type === "phrase"),
     "Look-alikes": () => CARDS.filter((c) => c.type === "char" && TRICKY_CHARS.has(c.char)),
+    /* the characters you have actually confused, and their other script */
+    "Your mix-ups": () => {
+      const g = Confuse.glyphs();
+      return CARDS.filter((c) => c.type === "char" && (g.has(c.char) || g.has(counterpart(c))));
+    },
   };
   /* own-property checks: a deck name can arrive from the URL hash, and
      "constructor" must not resolve to Object.prototype's                    */
@@ -102,11 +160,62 @@ const QuizSession = (() => {
 
   const counterpart = (c) => H2K[c.char] || K2H[c.char] || "";
   const pickFace = () =>
-    settings.mode === "listen" ? "jp"
+    settings.mode === "listen" || settings.mode === "hear" ? "jp"
     : settings.dir === "mix" ? (Math.random() < 0.5 ? "jp" : "en") : settings.dir;
-  const listening = () => settings.mode === "listen" && session.face === "jp";
-  const matching = () => settings.mode === "match" && session.current?.type === "char" && counterpart(session.current);
-  const typedApplies = () => (settings.mode === "type" || settings.mode === "listen") && session.face === "jp";
+  const listening = () => session.mode === "listen" && session.face === "jp";
+  const hearing = () => session.mode === "hear" && session.current?.type === "char" && session.face === "jp";
+  const matching = () => session.mode === "match" && session.current?.type === "char" && counterpart(session.current);
+  const typedApplies = () => (session.mode === "type" || session.mode === "listen") && session.face === "jp";
+
+  /* Mixed: harder ways of recalling a card as it settles in. Recognising
+     among options comes first, typing it from memory last — the retrieval
+     that is hardest at the time is the one that lasts.                     */
+  const ladder = (c) => c.type === "char" ? [counterpart(c) && "match", "hear", "type", "listen"].filter(Boolean)
+    : c.custom ? ["flip"] : ["flip", "type", "listen"];
+  function modeFor(c, face, racing = false) {
+    const m = session.force || settings.mode;
+    if (m === "hear" && c.type !== "char") return "listen"; /* nothing to pick between */
+    if (m !== "mixed") return m;
+    if (face !== "jp") return "flip";
+    if (racing) return c.type === "char" && counterpart(c) ? "match" : "type";
+    const rungs = ladder(c), level = Srs.record(c.id)?.b || 0;
+    const pool = rungs.slice(0, Math.min(rungs.length, 1 + level));
+    const fresh = pool.filter((x) => x !== session.mode); /* not the same question twice running */
+    const from = fresh.length ? fresh : pool;
+    return from[Math.floor(Math.random() * from.length)];
+  }
+
+  /* options for a pick-one question: the right glyph, then the ones you have
+     actually confused it with, then its look-alikes, then random fill       */
+  const KATA = /^[ァ-ヶー]+$/;
+  function makeChoices(c) {
+    const right = hearing() ? c.char : counterpart(c);
+    const kata = KATA.test(right), opts = [right];
+    const add = (g) => { if (g && opts.length < 4 && !opts.includes(g)) opts.push(g); };
+    const inScript = (g) => (kata ? (K2H[g] !== undefined ? g : H2K[g]) : (H2K[g] !== undefined ? g : K2H[g]));
+    Confuse.related(right).forEach(add);
+    TRICKY.forEach((p) => {
+      if (p.g.includes(c.char) || p.g.includes(right)) p.g.forEach((g) => add(inScript(g)));
+    });
+    const pool = CARDS.filter((x) => x.type === "char" && x.char.length === right.length && KATA.test(x.char) === kata)
+      .map((x) => x.char);
+    for (let i = 0; opts.length < 4 && i < 200; i++) add(pool[Math.floor(Math.random() * pool.length)]);
+    return shuffle(opts);
+  }
+  /* settle how the card in play is asked; call whenever it or its face changes */
+  function arrange() {
+    const c = session.current;
+    session.mode = c ? modeFor(c, session.face, !!sprint) : settings.mode;
+    session.choices = c && (matching() || hearing()) ? makeChoices(c) : [];
+  }
+  /* the learner picked an option: right, or one more mix-up to remember */
+  function choose(glyph) {
+    const c = session.current;
+    if (!c || session.revealed || !session.choices.includes(glyph)) return;
+    const right = hearing() ? c.char : counterpart(c), ok = glyph === right;
+    if (!ok) Confuse.note(right, glyph);
+    reveal({ ok, got: glyph });
+  }
 
   function saveSettings(patch) {
     Object.assign(settings, patch);
@@ -122,6 +231,7 @@ const QuizSession = (() => {
     /* new cards arrive in pedagogical order (chart/deck order), not shuffled */
     const fresh = cards.filter((c) => !Srs.record(c.id)).slice(0, budget);
     session.practice = false;
+    session.force = null;
     session.queue = [...due];
     fresh.forEach((c, i) =>
       session.queue.splice(Math.min(session.queue.length, (i + 1) * CONFIG.interleaveEvery), 0, c));
@@ -133,6 +243,7 @@ const QuizSession = (() => {
     /* a finished drill flows straight back into the scheduled queue */
     if (!session.current && session.practice) { buildQueue(); session.current = session.queue.shift() || null; }
     session.face = pickFace();
+    arrange();
     session.revealed = false;
     session.verdict = null;
     /* Learn, then test: a card never seen before is shown in full first and
@@ -176,6 +287,7 @@ const QuizSession = (() => {
     while (cards.length > 1 && c === session.current);
     session.current = c;
     session.face = "jp";
+    arrange();
     session.revealed = false;
     session.verdict = null;
     session.intro = false;
@@ -241,6 +353,7 @@ const QuizSession = (() => {
     session.queue = u.queue;
     session.current = u.card;
     session.face = pickFace();
+    arrange();
     session.revealed = false;
     session.verdict = null;
     session.intro = false;
@@ -279,10 +392,11 @@ const QuizSession = (() => {
   }
 
   /* focused drill on an explicit card list (e.g. the lapse list) */
-  function drill(cards) {
+  function drill(cards, { mode = null } = {}) {
     sprint = null;
     session.queue = [...cards];
     session.practice = true;
+    session.force = mode;
     session.pending = true;
   }
 
@@ -292,6 +406,7 @@ const QuizSession = (() => {
     if (!isDeck(name)) return false;
     saveSettings({ deck: name });
     session.current = null; /* the card on screen belongs to the old deck */
+    session.force = null;
     session.pending = false;
     return true;
   }
@@ -320,15 +435,16 @@ const QuizSession = (() => {
   /* forget everything learned */
   function wipe() {
     Srs.reset();
+    Confuse.reset();
     store.set(KEYS.newDay, null);
     restart();
   }
 
   return {
     settings, state: session,
-    isDeck, deckCards, counterpart, listening, matching, typedApplies,
+    isDeck, deckCards, counterpart, listening, hearing, matching, typedApplies, choose,
     saveSettings, buildQueue, next, reveal, learned, knowIt,
-    repick() { session.face = pickFace(); },
+    repick() { session.face = pickFace(); arrange(); },
     sprinting: () => !!sprint, sprintCount: () => (sprint ? sprint.count : 0),
     sprintCards, nextSprintCard, startSprint, endSprint,
     grade, undo, stats, missed, unseenCount, newToday, learnMore,

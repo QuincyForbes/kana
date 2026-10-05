@@ -180,4 +180,68 @@ const cur = (S) => S.state.current && S.state.current.id;
   is(CARDS.filter((c) => c.slot).map((c) => c.id), ['p:you-name', 'p:you-country', 'p:you-job'], 'intro slots keep fixed ids');
 }
 
+/* ---- pick-the-kana questions: options, remembered mix-ups ---- */
+{
+  const { QuizSession: S, Confuse, Srs } = app({ mode: 'hear', learn: false, newn: 5 });
+  S.resume();
+  const st = S.state;
+  is([st.mode, S.hearing(), st.choices.length, st.choices.includes(st.current.char)], ['hear', true, 4, true],
+     'hear mode: four options, one of them the character heard');
+  is(new Set(st.choices).size, 4, '…all different');
+  is(st.choices.every((g) => /^[ぁ-ゟ]+$/.test(g) && g.length === st.current.char.length), true, '…all hiragana of the same length');
+  const right = st.current.char, wrong = st.choices.find((g) => g !== right);
+  S.choose(wrong);
+  is([st.revealed, st.verdict.ok, Confuse.related(right)], [true, false, [wrong]], 'a wrong pick is shown as a miss and remembered');
+  S.choose(right);
+  is(st.verdict.ok, false, 'a second pick cannot overwrite the answer');
+  S.grade(false);
+  /* the mix-up now shows up among the options for that character */
+  Confuse.note(right, wrong);
+  const again = app({ mode: 'hear', learn: false }, { [KEYS.confuse]: { [right]: { [wrong]: 3 } } });
+  again.Srs.replace({}); again.QuizSession.state.queue = [again.CARDS.find((c) => c.char === right)];
+  again.QuizSession.next();
+  is(again.QuizSession.state.choices.includes(wrong), true, 'a character you have mixed up is offered as an option next time');
+}
+{
+  const { QuizSession: S, Confuse, cleanConfuse } = app({ deck: 'Your mix-ups' });
+  is(S.deckCards().length, 0, 'the mix-ups deck is empty until something is mixed up');
+  Confuse.note('シ', 'ツ'); Confuse.note('ツ', 'シ'); Confuse.note('め', 'ぬ');
+  is(Confuse.pairs().map((p) => [p.a + p.b, p.n]), [['シツ', 2], ['ぬめ', 1]], 'pairs are merged both ways and ranked');
+  is(S.deckCards().map((c) => c.char).sort(), ['し', 'つ', 'シ', 'ツ', 'ぬ', 'め', 'ヌ', 'メ'].sort(), 'the mix-ups deck holds both scripts of every glyph involved');
+  is(cleanConfuse({ a: { b: 2, a: 5, c: -1, d: 'x' }, long12345: { a: 1 }, z: [] }), { a: { b: 2 } }, 'stored mix-ups are cleaned like progress');
+}
+
+/* ---- mixed: the format follows the card ---- */
+{
+  const { QuizSession: S, Srs, CARDS } = app({ mode: 'mixed', learn: false, newn: 20 });
+  S.resume();
+  is(S.state.mode, 'match', 'mixed: a card with no history is asked by recognition first');
+  const seen = new Set();
+  for (let i = 0; i < 80; i++) { Srs.replace({ 'hg-あ': { b: 5, d: past, s: 1, l: 0 } }); S.state.current = CARDS.find((c) => c.id === 'hg-あ'); S.repick(); seen.add(S.state.mode); }
+  is([...seen].sort(), ['hear', 'listen', 'match', 'type'], 'mixed: a well-known character is asked in every format');
+  const ph = CARDS.find((c) => c.type === 'phrase' && !c.custom);
+  S.state.current = ph; S.repick();
+  is(['flip', 'type', 'listen'].includes(S.state.mode) && !S.matching() && !S.hearing(), true, 'mixed: a phrase is never asked by picking a kana');
+}
+{
+  const { QuizSession: S, CARDS, Srs } = app({ mode: 'hear' });
+  S.state.current = CARDS.find((c) => c.type === 'phrase'); S.repick();
+  is([S.state.mode, S.listening(), S.hearing()], ['listen', true, false], 'hear mode on a phrase falls back to listen-and-type');
+  Srs.replace({}); S.drill(CARDS.filter((c) => c.char === 'あ' || c.char === 'ア'), { mode: 'match' }); S.resume();
+  is([S.state.mode, S.matching() ? 1 : 0, S.state.choices.length], ['match', 1, 4], 'a drill can force its own format');
+  S.setDeck('Hiragana');
+  is(S.state.force, null, 'and it lets go when the deck changes');
+}
+
+/* ---- what the learner can already read ---- */
+{
+  const { learnedChar, readableCard, Srs, CARDS } = app();
+  const ph = CARDS.find((c) => c.type === 'phrase' && c.kana.join('') === 'はい');
+  is([learnedChar('っ'), learnedChar('は'), readableCard(ph)], [true, false, false], 'a character with no history is not yet learned');
+  Srs.replace({ 'hg-は': { b: 1, d: far, s: 1, l: 0 }, 'hg-い': { b: 0, d: far, s: 1, l: 1 } });
+  is(readableCard(ph), false, 'a miss on the first try does not count as learned');
+  Srs.replace({ 'hg-は': { b: 1, d: far, s: 1, l: 0 }, 'hg-い': { b: 2, d: far, s: 1, l: 0 } });
+  is(readableCard(ph), true, 'a phrase is readable once every character in it has been answered');
+}
+
 done();

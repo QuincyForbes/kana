@@ -10,7 +10,7 @@ import { loadApp, checker } from './load-app.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(join(root, f), 'utf8');
-const { DATA, KANJI, CARDS, kanaToRomaji, spokenRom } = loadApp();
+const { DATA, KANJI, CARDS, kanaToRomaji, spokenRom, PITCH } = loadApp();
 const { GOJU, DAKU, YOON, EXTRA, KANA_INFO, TRICKY } =
   new Function(read('js/kana-data.js') + '; return { GOJU, DAKU, YOON, EXTRA, KANA_INFO, TRICKY };')();
 const { WORDS, PAIRS } = new Function(read('js/guide-words.js') + '; return { WORDS, PAIRS };')();
@@ -66,6 +66,18 @@ const listed = new Set(JSON.parse(read('tools/texts.json')));
 is([[...want].filter((t) => !listed.has(t)), [...listed].filter((t) => !want.has(t))], [[], []], 'tools/texts.json is exactly what the app speaks');
 for (const dir of ['audio/ja', 'audio/ja-m'])
   none([...want].filter((t) => { const f = join(root, dir, t + '.mp3'); return !existsSync(f) || statSync(f).size < 500; }), `${dir} has a clip for every text`);
+
+/* ---- pitch accent: only real cards, and an accent that fits the word ---- */
+const morae = (s) => [...s].filter((ch) => !/[ゃゅょャュョぁぃぅぇぉァィゥェォ]/.test(ch)).length;
+const byId = new Map(CARDS.map((c) => [c.id, c]));
+none(Object.keys(PITCH).filter((id) => !['phrase', 'kanji'].includes(byId.get(id)?.type) || byId.get(id).custom), 'every pitch entry belongs to a built-in phrase or kanji card');
+none(Object.entries(PITCH).filter(([id, a]) => {
+  const c = byId.get(id), n = c.type === 'phrase' ? c.kana.length : morae(c.furi);
+  return !a.length || a.some((x) => !Number.isInteger(x) || x < 0 || x > n);
+}).map(([id]) => id), 'every accent falls within its word (0 = flat, else a mora of it)');
+none(Object.keys(PITCH).filter((id) => byId.get(id).type === 'phrase' && byId.get(id).kana.length !== morae(byId.get(id).kana.join(''))), 'a phrase with a pitch has one box per mora');
+is(Object.keys(PITCH).length > 80, true, 'the accent list covers the common words');
+is([PITCH['p:おはよう'], PITCH['p:ありがとう'], PITCH['k:水']], [[0], [2], [0]], 'spot checks against the dictionary: おはよう flat, ありがとう falls after り, 水 flat');
 
 /* ---- cards ---- */
 is(CARDS.length, 2 * cells.length + EXTRA.length + phrases.length + KANJI.length, 'one card per character, phrase and kanji');

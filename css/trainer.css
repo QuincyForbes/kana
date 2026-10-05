@@ -67,13 +67,14 @@ body:not(.mode-study) .studyonly{display:none}
 #q-clear:hover{color:var(--ink);background:var(--unseen)}
 #count{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
 /* search mode: the input takes the row, other controls step aside */
-body.searching #qsec,body.searching #tR,body.searching #tM{display:none}
+body.searching #qsec,body.searching #tR,body.searching #tM,body.searching #tF,body.searching #tD,body.searching #tP{display:none}
 
 /* ---------- panels ---------- */
-#view-study:focus,#view-quiz:focus,#view-progress:focus{outline:0} /* focused by script on a view change, not a control */
-#view-study,#view-quiz,#view-progress{display:none}
+#view-study:focus,#view-quiz:focus,#view-shadow:focus,#view-progress:focus{outline:0} /* focused by script on a view change, not a control */
+#view-study,#view-quiz,#view-shadow,#view-progress{display:none}
 body.mode-study #view-study{display:block}
 body.mode-quiz #view-quiz{display:block;padding-top:26px}
+body.mode-shadow #view-shadow{display:block;padding-top:26px}
 body.mode-progress #view-progress{display:block;padding-top:30px}
 
 /* ---------- study ---------- */
@@ -123,6 +124,16 @@ section{margin-top:44px}
   height:var(--cell);display:flex;align-items:center;justify-content:center;position:relative;
 }
 .c .k::before{content:"";position:absolute;top:0;left:50%;width:1px;height:7px;background:var(--grid)}
+/* pitch accent: a line over the high morae, a tick where the pitch falls */
+body.pitch .row[data-pitch] .cells{padding-top:9px}
+.c{position:relative}
+body.pitch .c.hi::before{content:"";position:absolute;left:-1px;right:-1px;top:-8px;height:3px;background:var(--shu)}
+body.pitch .c.drop::after{content:"";position:absolute;right:-2px;top:-8px;width:3px;height:15px;background:var(--shu)}
+.pt{display:none}
+body.pitch .pt{display:inline-block;font:400 11px var(--mono);color:var(--shu);margin-top:6px}
+.pk{position:relative;display:inline-block;padding:0 .04em}
+.pk.hi::before{content:"";position:absolute;left:0;right:0;top:-.12em;height:3px;background:var(--shu)}
+.pk.drop::after{content:"";position:absolute;right:-1px;top:-.12em;width:3px;height:.42em;background:var(--shu)}
 .c .r{font-family:var(--mono);font-size:11px;text-align:center;color:var(--muted);border-top:1px dashed var(--grid);padding:5px 1px;min-height:25px}
 .c.p{border-color:var(--shu);position:relative;z-index:1}
 .c.p .k,.c.p .r{color:var(--shu)}
@@ -135,6 +146,12 @@ a.c{text-decoration:none;color:inherit}
 a.c:hover{border-color:var(--rule);position:relative;z-index:2}
 .meaning{margin:8px 0 0;font-size:14.5px}
 body.no-r .c .r{display:none}
+/* fade: a character you have learned stops spelling itself out; hover it,
+   or tap the meaning, to peek */
+body.fade-r .c.kn .r{opacity:0;transition:opacity .15s}
+body.fade-r .c.kn:hover .r,body.fade-r .c.kn:focus-visible .r,body.fade-r .row.peek .c .r{opacity:1}
+.meaning{cursor:default}
+body.fade-r .row[data-ids]:not([data-ids=""]) .meaning{cursor:pointer}
 body.no-m .meaning{visibility:hidden}
 .spk{
   flex:0 0 auto;width:36px;height:36px;margin-top:calc(var(--cell)/2 - 18px);
@@ -286,7 +303,17 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
 .qchoices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:380px;margin:20px auto 0}
 .qchoices .qc{font-family:var(--mincho);font-size:30px;padding:14px 0;background:var(--card);
   border:1px solid var(--grid);border-radius:2px;color:var(--ink);cursor:pointer}
+.qchoices .qc{position:relative}
+.qchoices .qc kbd{position:absolute;top:3px;left:5px;font:400 9.5px var(--mono);color:var(--muted);background:none;border:0;padding:0}
 .qchoices .qc:hover{border-color:var(--rule)}
+/* Speak: shadowing */
+.qcard.shadow{text-align:center}
+.qcard.shadow .qkana{font-size:44px;letter-spacing:.06em;margin:6px 0 2px}
+.qb.rec{background:var(--shu);border-color:var(--shu);color:var(--on-shu)}
+.qb kbd{font:400 10px var(--mono);margin-left:6px;opacity:.7;background:none;border:0;padding:0}
+.shopts{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.shopts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.shopts input{accent-color:var(--rule);width:15px;height:15px;margin:0}
 .qwarn{font-size:12.5px;color:var(--muted);margin-top:0;margin-bottom:10px}
 .qwarn b{color:var(--shu);font-weight:500}
 
@@ -382,6 +409,7 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
   .bottomnav .tab[aria-selected="true"]{background:transparent;color:var(--rule);box-shadow:inset 0 3px 0 var(--rule)}
   .bottomnav .tab .badge{top:5px;right:calc(50% - 34px)}
   body.mode-quiz #view-quiz{padding-top:14px}
+  body.mode-shadow #view-shadow{padding-top:14px}
   body.mode-progress #view-progress{padding-top:18px}
 
   /* study tools: section picker and toggles on one row, search beneath */
@@ -431,7 +459,7 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
 
 @media print{
   :root{--paper:#fff;--cell:54px}
-  .bar,nav.idx,#view-quiz,#view-progress,.ract,.addbtn,.playall,.bottomnav,.hello,.secnav{display:none!important}
+  .bar,nav.idx,#view-quiz,#view-shadow,#view-progress,.ract,.addbtn,.playall,.bottomnav,.hello,.secnav{display:none!important}
   #view-study{display:block!important}
   body{font-size:12px}
   .wrap{max-width:none;padding:0}

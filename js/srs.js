@@ -146,6 +146,21 @@ function cleanProg(raw) {
   return out;
 }
 
+/* Mix-ups the learner has made: {right glyph: {wrong glyph: count}}. Same
+   rules as cleanProg — keep only what is well-formed.                      */
+function cleanConfuse(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [right, wrongs] of Object.entries(raw)) {
+    if (right.length > 4 || !wrongs || typeof wrongs !== "object" || Array.isArray(wrongs)) continue;
+    for (const [wrong, n] of Object.entries(wrongs)) {
+      if (wrong.length > 4 || wrong === right || !Number.isFinite(n) || n < 1) continue;
+      (out[right] ||= {})[wrong] = Math.min(999, Math.round(n));
+    }
+  }
+  return out;
+}
+
 /* Rename ids through a legacy → current map (js/legacy-ids.js plus the
    per-deck custom ids). Unmapped ids pass through; a record already stored
    under the current id wins. Returns [records, changed].                   */

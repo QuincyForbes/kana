@@ -4,7 +4,7 @@
 import { loadApp, checker } from './load-app.mjs';
 
 const { CONFIG, FSRS, levelOf, numToRomaji, numNorm, nextRecord, practiceRecord, cleanProg, migrateIds, streakOf, ymd,
-        customIds, cleanDecks, kanaToRomaji, LEGACY_IDS } = loadApp();
+        customIds, cleanDecks, kanaToRomaji, LEGACY_IDS, pitchPattern, pitchLabel } = loadApp();
 const { is, done } = checker();
 
 /* number readings, including the irregulars */
@@ -144,5 +144,11 @@ is(kanaToRomaji('ざっし'), 'zasshi', 'small tsu before digraph');
 is(kanaToRomaji('コーヒー'), 'koohii', 'long-vowel bar');
 is(kanaToRomaji('ニュース'), 'nyuusu', 'katakana combo + bar');
 is(kanaToRomaji('走る'), null, 'kanji returns null (flip-grade fallback)');
+
+/* pitch contours: low-high-high.. then low after the fall; heiban never falls */
+const shape = (a, n) => pitchPattern(a, n).map((m) => (m.hi ? 'H' : 'L') + (m.drop ? '↓' : '')).join('');
+is([shape(0, 4), shape(1, 4), shape(2, 4), shape(3, 4), shape(4, 4)], ['LHHH', 'H↓LLL', 'LH↓LL', 'LHH↓L', 'LHHH↓'], 'accent number to high/low pattern');
+is([shape(0, 1), shape(1, 1), shape(1, 2)], ['L', 'H↓', 'H↓L'], 'one- and two-mora words');
+is([pitchLabel(0), pitchLabel(1), pitchLabel(3)], ['flat — no fall', 'falls after the first mora', 'falls after mora 3'], 'labels');
 
 done();

@@ -80,6 +80,19 @@ const Progress = (() => {
       ? lapsed.map((c) => li(c, ` · missed ×${Srs.record(c.id).l}`)).join("")
       : `<li class="pempty">No repeat offenders. Cards land here after three misses.</li>`;
 
+    /* the pairs you actually confuse, from the pick-the-kana questions */
+    const pairs = Confuse.pairs().slice(0, 8);
+    $("pmix").innerHTML = pairs.length
+      ? pairs.map((p) => `<li><span class="jp2" lang="ja">${esc(p.a)} ↔ ${esc(p.b)}</span><span class="mn">mixed up ×${p.n}</span></li>`).join("")
+      : `<li class="pempty">None recorded yet. Wrong picks in <b>Match</b>, <b>Listen &amp; pick</b> and <b>Mixed</b> questions land here.</li>`;
+    const mix = $("pmixDrill");
+    mix.hidden = !pairs.length;
+    mix.onclick = () => {
+      const g = Confuse.glyphs();
+      const cards = CARDS.filter((c) => c.type === "char" && Srs.record(c.id) && (g.has(c.char) || g.has(H2K[c.char] || K2H[c.char] || "")));
+      if (cards.length) { Quiz.drillCards(shuffle(cards), { mode: "match" }); setMode("quiz"); }
+    };
+
     /* keep the troublemakers as a deck of their own to come back to */
     const keep = $("plapseSave");
     keep.hidden = !lapsed.length;

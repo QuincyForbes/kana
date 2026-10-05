@@ -12,6 +12,8 @@ const KEYS = {
   newDay: "kanaTrainerNewDay.v1",       /* new cards introduced today {day, n}       */
   custom: "kanaTrainerCustom.v1",       /* custom CSV decks                          */
   you: "kanaTrainerYou.v1",             /* name / country / job for the intro deck   */
+  confuse: "kanaTrainerConfuse.v1",     /* glyphs the learner mixes up {right: {wrong: n}} */
+  study: "kanaTrainerStudy.v1",         /* Study view: {fade, readable}              */
   sprint: "kanaTrainerSprint.v1",       /* best 60s sprint per deck                  */
   studySec: "kanaTrainerStudySec.v1",   /* last study section                        */
   seenSec: "kanaTrainerSeenSec.v1",     /* study sections already visited            */
