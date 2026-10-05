@@ -1,29 +1,14 @@
 // Tests for the trainer's answer-checking pipeline (romaji aliases, long
 // vowels, particles, modifiers, kana/IME input).
 //   node tools/test-romaji.mjs
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { loadApp, checker } from './load-app.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = readFileSync(join(root, 'js/trainer.js'), 'utf8');
-
-// Slice the pure Romaji section out of the app script (no DOM needed).
-const start = src.indexOf('function spokenRom');
-const end = src.indexOf('/* ---------------------------- Study view');
-if (start < 0 || end < 0) { console.error('markers not found'); process.exit(1); }
-const { checkTyped, spokenRom, answerRom, cardJp, cardGloss } = new Function(
-  src.slice(start, end) + '; return { checkTyped, spokenRom, answerRom, cardJp, cardGloss };')();
+const { checkTyped, spokenRom, answerRom, cardJp, cardGloss } = loadApp();
+const { is, done } = checker();
 
 const phrase = (kana, rom) => ({ type: 'phrase', kana, rom });
 const char = (c, rom) => ({ type: 'char', char: c, rom });
 const kanji = (k, furi, rom) => ({ type: 'kanji', kanji: k, furi, rom });
-
-let failed = 0;
-const is = (actual, expected, label) => {
-  if (actual !== expected) { failed++; console.error(`✗ ${label}: got ${JSON.stringify(actual)}, wanted ${JSON.stringify(expected)}`); }
-  else console.log(`✓ ${label}`);
-};
 
 /* spokenRom: particles, small tsu, long-vowel bar */
 is(spokenRom(phrase(['こ','ん','に','ち','は'], ['ko','n','ni','chi','*wa'])), 'konnichiwa', 'particle は → wa');
@@ -83,5 +68,4 @@ is(cardGloss(char('し', 'shi')), 'shi', 'cardGloss char');
 is(answerRom(char('し', 'shi')), 'shi', 'answerRom char');
 is(answerRom(konnichiwa), 'konnichiwa', 'answerRom phrase');
 
-if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
-console.log('\nall tests passed');
+done();

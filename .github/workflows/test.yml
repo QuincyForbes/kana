@@ -16,6 +16,8 @@ jobs:
         run: node tools/test-romaji.mjs
       - name: Number converter + SRS tests
         run: node tools/test-trainer.mjs
+      - name: Quiz session engine tests
+        run: node tools/test-session.mjs
       - name: Cache-bust versions consistent across pages
         run: |
           v=$(grep -o '?v=[0-9]*' guide.html | sort -u)

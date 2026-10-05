@@ -5,25 +5,23 @@ const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 let audioWarned = false;
 
 /* global audio prefs: slow (0.75× files, slower TTS) and voice (f = Nanami,
-   m = Keita). The voice key is shared with the trainer. */
-const AUDIO_KEY = 'kanaGuideAudio.v1', VOICE_KEY = 'kanaVoice.v1';
-let slowAudio = false;
-try{ slowAudio = !!(JSON.parse(localStorage.getItem(AUDIO_KEY)) || {}).slow; }catch{}
-const voicePref = () => { try{ return localStorage.getItem(VOICE_KEY) === 'm' ? 'm' : 'f'; }catch{ return 'f'; } };
-const voiceDirs = () => voicePref() === 'm' ? ['audio/ja-m/', 'audio/ja/'] : ['audio/ja/', 'audio/ja-m/'];
+   m = Keita), shared with the trainer through Prefs (js/store.js). */
+let slowAudio = Prefs.slow();
+const voicePref = Prefs.voice;
+const voiceDirs = Prefs.voiceDirs;
 
 const slowBtn = document.getElementById('slow-audio');
 slowBtn.setAttribute('aria-pressed', String(slowAudio));
 slowBtn.addEventListener('click', ()=>{
   slowAudio = !slowAudio;
   slowBtn.setAttribute('aria-pressed', String(slowAudio));
-  try{ localStorage.setItem(AUDIO_KEY, JSON.stringify({slow: slowAudio})); }catch{}
+  Prefs.setSlow(slowAudio);
 });
 const voiceBtn = document.getElementById('voice-audio');
 voiceBtn.setAttribute('aria-pressed', String(voicePref() === 'm'));
 voiceBtn.addEventListener('click', ()=>{
   const m = voicePref() !== 'm';
-  try{ localStorage.setItem(VOICE_KEY, m ? 'm' : 'f'); }catch{}
+  Prefs.setVoice(m ? 'm' : 'f');
   voiceBtn.setAttribute('aria-pressed', String(m));
 });
 
@@ -127,8 +125,7 @@ let mode = 'both', current = flat[0];
 /* ---- chart ---- */
 const grid = document.getElementById('grid');
 function buildGrid(){
-  let prog = {};
-  try{ prog = JSON.parse(localStorage.getItem(CONFIG.progressKey)) || {}; }catch{}
+  const prog = cleanProg(store.get(KEYS.progress)) || {};
   const known = r => r && r.b >= CONFIG.knownBox;
   const stateOf = c => {
     const h = prog['hg-'+c.h], k = prog['kt-'+c.k];
@@ -394,14 +391,13 @@ if(Pairs.els.play){
 
 /* ---- panels: one section at a time instead of a 9,000px scroll ---- */
 const PANELS = ['chart','tricky','rules','grammar','pron','drill-sec','plan'];
-const PANEL_KEY = 'kanaGuidePanel.v1';
 let panel = 'chart';
-try{ const s = localStorage.getItem(PANEL_KEY); if(PANELS.includes(s)) panel = s; }catch{}
+{ const s = store.getRaw(KEYS.guidePanel); if(PANELS.includes(s)) panel = s; }
 
 function setPanel(id, updateHash = true){
   if(!PANELS.includes(id)) return;
   panel = id;
-  try{ localStorage.setItem(PANEL_KEY, id); }catch{}
+  store.setRaw(KEYS.guidePanel, id);
   PANELS.forEach(p => { document.getElementById(p).hidden = p !== id; });
   document.body.dataset.panel = id;
   document.querySelectorAll('.jumpnav a[href^="#"]').forEach(a => {

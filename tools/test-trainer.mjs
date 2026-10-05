@@ -1,37 +1,11 @@
 // Tests for the trainer's number converter, the SRS scheduling step, and the
 // storage helpers (record validation, id migration, custom-deck ids).
 //   node tools/test-trainer.mjs
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { loadApp, checker } from './load-app.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = readFileSync(join(root, 'js/trainer.js'), 'utf8');
-const srs = readFileSync(join(root, 'js/srs.js'), 'utf8');
-const kanaData = readFileSync(join(root, 'js/kana-data.js'), 'utf8');
-const { kanaToRomaji } = new Function(kanaData + '; return { kanaToRomaji };')();
-
-const slice = (from, to) => {
-  const a = src.indexOf(from), b = src.indexOf(to);
-  if (a < 0 || b < 0 || b <= a) throw new Error(`markers not found: ${from}`);
-  return src.slice(a, b);
-};
-const helpers = slice('const numDigits =', '/* ---------------------------- Study view');
-/* srs.js is DOM-free apart from SrsBridge's localStorage use, which is never
-   invoked here — evaluate it whole. */
 const { CONFIG, numToRomaji, numNorm, nextRecord, practiceRecord, cleanProg, migrateIds, streakOf, ymd,
-        customIds, cleanDecks } = new Function(
-  srs + helpers + '; return { CONFIG, numToRomaji, numNorm, nextRecord, practiceRecord, cleanProg,'
-  + ' migrateIds, streakOf, ymd, customIds, cleanDecks };')();
-const { LEGACY_IDS } = new Function(
-  readFileSync(join(root, 'js/legacy-ids.js'), 'utf8') + '; return { LEGACY_IDS };')();
-
-let failed = 0;
-const is = (actual, expected, label) => {
-  const a = JSON.stringify(actual), e = JSON.stringify(expected);
-  if (a !== e) { failed++; console.error(`✗ ${label}: got ${a}, wanted ${e}`); }
-  else console.log(`✓ ${label}`);
-};
+        customIds, cleanDecks, kanaToRomaji, LEGACY_IDS } = loadApp();
+const { is, done } = checker();
 
 /* number readings, including the irregulars */
 is(numToRomaji(1), 'ichi', '1');
@@ -142,5 +116,4 @@ is(kanaToRomaji('コーヒー'), 'koohii', 'long-vowel bar');
 is(kanaToRomaji('ニュース'), 'nyuusu', 'katakana combo + bar');
 is(kanaToRomaji('走る'), null, 'kanji returns null (flip-grade fallback)');
 
-if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
-console.log('\nall tests passed');
+done();

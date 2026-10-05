@@ -14,9 +14,6 @@ const CONFIG = {
   interleaveEvery: 3,       /* new cards are spliced in every N due cards   */
   easeStart: 2.5, easeMin: 1.3, easeMax: 2.8,
   easeGain: 0.03, easeLoss: 0.2,
-  progressKey: "kanaTrainerProgress.v1",
-  settingsKey: "kanaTrainerSettings.v1",
-  daysKey: "kanaTrainerDays.v1",
 };
 
 const ymd = (d = new Date()) =>

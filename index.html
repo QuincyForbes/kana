@@ -98,12 +98,13 @@ a:focus-visible{outline:2px solid var(--shu);outline-offset:3px}
   </main>
 </div>
 <script src="js/site.js?v=22"></script>
+<script src="js/store.js?v=22"></script>
 <script src="js/srs.js?v=22"></script>
 <script>
-/* your progress at a glance (same-browser localStorage as the trainer) */
+/* your progress at a glance (the same stored record the trainer writes) */
 try {
-  const prog = cleanProg(JSON.parse(localStorage.getItem(CONFIG.progressKey) || "{}")) || {};
-  const days = JSON.parse(localStorage.getItem(CONFIG.daysKey) || "{}") || {};
+  const prog = cleanProg(store.get(KEYS.progress)) || {};
+  const days = store.get(KEYS.days) || {};
   const recs = Object.values(prog);
   if (recs.length) {
     const now = Date.now();
