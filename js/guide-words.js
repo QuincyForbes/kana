@@ -48,3 +48,16 @@ const WORDS = {
   wa: [["わたし","watashi","I, me"],["わに","wani","crocodile"]],
   n:  [["みかん","mikan","mandarin"],["うどん","udon","udon noodles"]],
 };
+
+/* Minimal pairs for the guide's "hear the difference" drill — length is
+   the only difference: [[kana, romaji, meaning], [kana, romaji, meaning]] */
+const PAIRS = [
+  [['きて','kite','come'],['きって','kitte','stamp']],
+  [['おばさん','obasan','aunt'],['おばあさん','obaasan','grandmother']],
+  [['おじさん','ojisan','uncle'],['おじいさん','ojiisan','grandfather']],
+  [['ここ','koko','here'],['こうこう','koukou','high school']],
+  [['さか','saka','slope'],['さっか','sakka','writer']],
+  [['かた','kata','shoulder'],['かった','katta','bought']],
+  [['くろ','kuro','black'],['くろう','kurou','hardship']],
+  [['とる','toru','to take'],['とおる','tooru','to pass through']],
+];

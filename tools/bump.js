@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
-const files = ['guide.html', 'trainer.html', 'mnemonics.html'];
+const files = ['index.html', 'guide.html', 'trainer.html', 'mnemonics.html', '404.html'];
 
 const current = fs.readFileSync(path.join(root, 'guide.html'), 'utf8').match(/\?v=(\d+)/);
 if (!current) { console.error('no ?v=N found in guide.html'); process.exit(1); }

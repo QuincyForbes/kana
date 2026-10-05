@@ -12,8 +12,8 @@ const src = readFileSync(join(root, 'js/trainer.js'), 'utf8');
 const start = src.indexOf('function spokenRom');
 const end = src.indexOf('/* ---------------------------- Study view');
 if (start < 0 || end < 0) { console.error('markers not found'); process.exit(1); }
-const { checkTyped, spokenRom, answerRom } = new Function(
-  src.slice(start, end) + '; return { checkTyped, spokenRom, answerRom };')();
+const { checkTyped, spokenRom, answerRom, cardJp, cardGloss } = new Function(
+  src.slice(start, end) + '; return { checkTyped, spokenRom, answerRom, cardJp, cardGloss };')();
 
 const phrase = (kana, rom) => ({ type: 'phrase', kana, rom });
 const char = (c, rom) => ({ type: 'char', char: c, rom });
@@ -61,6 +61,23 @@ const deguchi = kanji('出口', 'でぐち', 'deguchi');
 is(checkTyped('deguchi', deguchi), true, 'kanji romaji');
 is(checkTyped('でぐち', deguchi), true, 'kanji furigana');
 is(checkTyped('出口', deguchi), true, 'kanji itself');
+
+/* alternate spellings on a card */
+const wo = { ...char('を', 'o'), alt: ['wo'] }, n = { ...char('ん', 'n'), alt: ['nn'] };
+is(checkTyped('o', wo), true, 'を accepts o');
+is(checkTyped('wo', wo), true, 'を accepts wo');
+is(checkTyped('wa', wo), false, 'を still rejects a wrong answer');
+is(checkTyped('n', n), true, 'ん accepts n');
+is(checkTyped('nn', n), true, 'ん accepts IME-style nn');
+is(checkTyped('wo', char('お', 'o')), false, 'お does not inherit the alternate spelling of を');
+
+/* every card type has a Japanese side and a gloss (summary + progress lists) */
+const custom = { type: 'custom', front: '日本', reading: 'にほん', mean: 'Japan' };
+is(cardJp(custom), '日本', 'cardJp custom');
+is(cardGloss(custom), 'Japan', 'cardGloss custom');
+is(cardJp(konnichiwa), 'こんにちは', 'cardJp phrase');
+is(cardJp(deguchi), '出口', 'cardJp kanji');
+is(cardGloss(char('し', 'shi')), 'shi', 'cardGloss char');
 
 /* answerRom passthrough */
 is(answerRom(char('し', 'shi')), 'shi', 'answerRom char');

@@ -6,25 +6,29 @@
 <title>Hiragana &amp; katakana mnemonic sheet — printable</title>
 <meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="Printable hiragana and katakana mnemonic sheet: all 92 characters with a memory hook for each.">
+<script src="js/theme.js?v=22"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eな%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F2F3EE; --rule:#AFC0B2; --ink:#1B221E; --ink-soft:#5D675F;
-  --hira:#2E7D4F; --kata:#2F5FBE; --shu:#BE3A22;
+  --paper:#F2F3EE; --cell:#FCFCF9; --rule:#AFC0B2; --rule-faint:#DDE4DD; --ink:#1B221E; --ink-soft:#5D675F;
+  --hira:#2E7D4F; --kata:#2F5FBE; --shu:#BE3A22; --hl:rgba(191,214,196,.55);
   --display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
   --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
-.wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px}
-header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:8px}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 60px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding:26px 0 12px;margin-bottom:8px}
 h1{font-family:var(--display);font-weight:900;font-size:26px;margin:0}
 header .sub{color:var(--ink-soft);font-size:13px}
 header a{color:var(--hira);font-size:13px}
-.printbtn{border:1px solid var(--ink);background:#fff;font-family:var(--body);font-size:13px;padding:7px 14px;cursor:pointer}
+.printbtn{margin-left:auto;border:1px solid var(--ink);background:var(--cell);color:var(--ink);font-family:var(--body);font-size:13px;padding:8px 16px;cursor:pointer}
+.printbtn:hover{background:var(--ink);color:var(--paper)}
+.printbtn:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
 .legend{font-size:12.5px;color:var(--ink-soft);margin:10px 0 18px}
 .legend b.h,header .sub b.h{color:var(--hira)} .legend b.k,header .sub b.k{color:var(--kata)}
 
@@ -33,24 +37,38 @@ thead th{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:va
   text-align:left;padding:6px 8px;border-bottom:1px solid var(--ink)}
 tbody th.rowgroup{font-family:var(--display);font-size:13px;color:var(--shu);text-align:left;
   padding:14px 8px 4px;border-bottom:1px solid var(--rule);letter-spacing:.08em}
-td{padding:7px 8px;border-bottom:1px solid #DDE4DD;vertical-align:middle}
+td{padding:7px 8px;border-bottom:1px solid var(--rule-faint);vertical-align:middle}
 td.g{font-family:var(--body);font-size:26px;line-height:1;white-space:nowrap;width:1%}
 td.g .h{color:var(--hira)} td.g .k{color:var(--kata)}
 td.r{font-family:var(--display);font-weight:600;font-size:16px;width:1%;padding-right:14px}
 td.r small{display:block;font-family:var(--body);font-weight:400;font-size:10.5px;color:var(--ink-soft);max-width:20ch}
 td.m{font-size:13px;width:38%}
-td.m strong{font-weight:500;box-shadow:inset 0 -6px 0 rgba(191,214,196,.55)}
+td.m strong{font-weight:500;box-shadow:inset 0 -6px 0 var(--hl)}
 tr{break-inside:avoid}
 
-@media (prefers-color-scheme: dark){
-  :root{--paper:#141814;--rule:#3C4A40;--ink:#E7ECE7;--ink-soft:#A4B1A6;
-    --hira:#7FD3A0;--kata:#8FB9F7;--shu:#E37A62}
-  td{border-bottom-color:#2A332C}
-  .printbtn{background:#1C221D;color:var(--ink);border-color:var(--rule)}
-  td.m strong{box-shadow:inset 0 -6px 0 rgba(63,107,84,.55)}
+:root[data-theme="dark"]{
+  --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#2A332C; --ink:#E7ECE7; --ink-soft:#A4B1A6;
+  --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62; --hl:rgba(63,107,84,.55);
+}
+
+/* phones: five columns do not fit — each sound becomes a small card with
+   its two hooks stacked beneath, green rule for hiragana, blue for katakana */
+@media screen and (max-width:640px){
+  thead{display:none}
+  table,tbody{display:block}
+  tr{display:grid;grid-template-columns:auto auto 1fr;gap:4px 14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule-faint)}
+  tr:has(th.rowgroup){display:block;padding:0;border-bottom:1px solid var(--rule)}
+  tbody th.rowgroup{display:block;border:0;padding:16px 0 6px}
+  td{display:block;border:0;padding:0}
+  td.g,td.r{width:auto}
+  td.r small{max-width:none}
+  td.m{grid-column:1/-1;width:auto;font-size:14px;padding-left:10px;border-left:3px solid var(--hira)}
+  td.m+td.m{border-left-color:var(--kata)}
 }
 
 @media print{
+  :root,:root[data-theme="dark"]{--paper:#fff;--cell:#fff;--rule:#AFC0B2;--rule-faint:#DDE4DD;--ink:#1B221E;--ink-soft:#5D675F;
+    --hira:#2E7D4F;--kata:#2F5FBE;--shu:#BE3A22}
   body{background:#fff;font-size:12px}
   .wrap{max-width:none;padding:0}
   .printbtn,header a{display:none}
@@ -63,14 +81,15 @@ tr{break-inside:avoid}
   @page{margin:12mm}
 }
 </style>
+<link rel="stylesheet" href="css/site.css?v=22">
 </head>
 <body>
 <div class="wrap">
+<div class="sitebar" id="sitebar"></div>
 <header>
   <h1>Hiragana &amp; katakana mnemonics</h1>
   <span class="sub">46 sounds · <b class="h">hiragana</b> + <b class="k">katakana</b> · one picture each</span>
-  <span id="sitenav-slot"></span>
-  <button class="printbtn" onclick="window.print()">Print</button>
+  <button class="printbtn" type="button" onclick="window.print()">Print</button>
 </header>
 <p class="legend"><b class="h">Green</b> is hiragana, <b class="k">blue</b> is katakana. The highlighted word is the picture to hang the shape on — read the row, close your eyes, redraw the shape from the picture.</p>
 <table id="sheet">
@@ -78,9 +97,9 @@ tr{break-inside:avoid}
   <tbody></tbody>
 </table>
 </div>
-<script src="js/site.js?v=21"></script>
-<script src="js/kana-data.js?v=21"></script>
-<script src="js/guide-data.js?v=21"></script>
+<script src="js/site.js?v=22"></script>
+<script src="js/kana-data.js?v=22"></script>
+<script src="js/guide-data.js?v=22"></script>
 <script>
 const NAMES = {'—':'Vowels','K':'K row','S':'S row','T':'T row','N':'N row','H':'H row',
                'M':'M row','Y':'Y row','R':'R row','W':'W row'};

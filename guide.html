@@ -4,22 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>かな — hiragana &amp; katakana, one square at a time</title>
-<meta name="description" content="Interactive hiragana &amp; katakana guide: chart with mnemonics and audio, look-alike pairs, modifier rules, pronunciation, and a typing drill.">
+<meta name="description" content="Interactive hiragana &amp; katakana guide: chart with mnemonics, stroke order and audio, look-alike pairs, modifier rules, grammar and pronunciation.">
 <meta property="og:title" content="かな — every sound in Japanese">
 <meta property="og:description" content="Interactive kana guide with mnemonics, neural-TTS audio, and drills.">
 <meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
 <meta name="twitter:card" content="summary_large_image">
+<script src="js/theme.js?v=22"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eあ%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/guide.css?v=21">
+<link rel="stylesheet" href="css/guide.css?v=22">
+<link rel="stylesheet" href="css/site.css?v=22">
 </head>
 <body>
 <a class="skip" href="#chart">Skip to the chart</a>
 <div class="wrap">
 
-<nav class="jumpnav" aria-label="Sections">
+<div class="sitebar" id="sitebar"></div>
+
+<nav class="jumpnav" aria-label="Guide sections">
   <a href="#chart">Chart</a>
   <a href="#tricky">Look-alikes</a>
   <a href="#rules">Modifiers</a>
@@ -27,8 +31,6 @@
   <a href="#pron">Pronunciation</a>
   <a href="#drill-sec">Drill</a>
   <a href="#plan">Plan</a>
-  <a href="mnemonics.html">Print sheet</a>
-  <span id="sitenav-slot"></span>
 </nav>
 
 <header>
@@ -41,7 +43,7 @@
   <div class="bar">
     <h2>The chart</h2>
     <span class="count">Vowels across · consonants down</span>
-    <div class="toggle" role="group" aria-label="Which script to show" style="margin-left:auto">
+    <div class="toggle" role="group" aria-label="Which script to show">
       <button data-mode="both" aria-pressed="true">Both</button>
       <button data-mode="hira" aria-pressed="false">ひらがな</button>
       <button data-mode="kata" aria-pressed="false">カタカナ</button>
@@ -360,13 +362,13 @@
 
 </div>
 
-<script src="js/site.js?v=21"></script>
-<script src="js/srs.js?v=21"></script>
-<script src="js/kana-data.js?v=21"></script>
-<script src="js/guide-data.js?v=21"></script>
-<script src="js/guide-shapes.js?v=21"></script>
-<script src="js/strokes.js?v=21"></script>
-<script src="js/guide-words.js?v=21"></script>
-<script src="js/guide.js?v=21"></script>
+<script src="js/site.js?v=22"></script>
+<script src="js/srs.js?v=22"></script>
+<script src="js/kana-data.js?v=22"></script>
+<script src="js/guide-data.js?v=22"></script>
+<script src="js/guide-shapes.js?v=22"></script>
+<script src="js/strokes.js?v=22"></script>
+<script src="js/guide-words.js?v=22"></script>
+<script src="js/guide.js?v=22"></script>
 </body>
 </html>

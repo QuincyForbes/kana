@@ -1,0 +1,67 @@
+/* Shared chrome — the site header, theme toggle, toasts and a few a11y
+   helpers, loaded by every page. Colours ride each page's own palette (the
+   guide and the trainer name their variables differently), resolved here
+   once so nothing below cares which page it is on.                         */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+
+.sitebar,.toasts{
+  --sb-ink:var(--ink,#1B221E);
+  --sb-soft:var(--ink-soft,var(--muted,#5D675F));
+  --sb-line:var(--rule-faint,var(--grid,#D6DFD7));
+  --sb-accent:var(--hira,var(--rule,#2E7D4F));
+  --sb-surface:var(--cell,var(--card,#FCFCF9));
+  --sb-paper:var(--paper,#F2F3EE);
+}
+
+/* ---------- site header ---------- */
+.sitebar{display:flex;align-items:center;gap:6px;min-height:54px;padding:8px 0;border-bottom:1px solid var(--sb-line)}
+.sitebar .brand{
+  margin-right:auto;padding:6px 8px 6px 0;text-decoration:none;color:var(--sb-ink);
+  font-family:var(--display,var(--mincho,'Hiragino Mincho ProN','Yu Mincho',Georgia,serif));
+  font-weight:700;font-size:21px;line-height:1;letter-spacing:.14em;white-space:nowrap;
+}
+.sitebar .brand span{color:var(--sb-accent)}
+.sitebar nav{display:flex;gap:2px;align-items:center}
+.sitebar nav a{
+  font-size:12px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;white-space:nowrap;
+  padding:9px 11px;border-radius:3px;color:var(--sb-soft);
+  transition:color .12s ease,background .12s ease;
+}
+.sitebar nav a:hover{color:var(--sb-ink);background:var(--sb-line)}
+.sitebar nav a[aria-current="page"]{color:var(--sb-ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--sb-accent);border-radius:3px 3px 0 0}
+.themebtn{
+  appearance:none;flex:none;width:38px;height:38px;margin-left:4px;padding:0;display:grid;place-items:center;
+  border:1px solid var(--sb-line);border-radius:50%;background:var(--sb-surface);color:var(--sb-soft);cursor:pointer;
+  transition:color .12s ease,border-color .12s ease,transform .08s ease;
+}
+.themebtn:hover{color:var(--sb-ink);border-color:var(--sb-soft)}
+.themebtn svg{width:18px;height:18px;display:block}
+/* show the icon of the theme the button switches TO */
+.themebtn .sun{display:none}
+:root[data-theme="dark"] .themebtn .sun{display:block}
+:root[data-theme="dark"] .themebtn .moon{display:none}
+.sitebar a:focus-visible,.themebtn:focus-visible{outline:2px solid var(--shu,#BE3A22);outline-offset:2px}
+@media (max-width:420px){
+  .sitebar nav a{padding:9px 8px;letter-spacing:.06em}
+  .sitebar .brand{font-size:19px}
+}
+@media print{.sitebar,.toasts{display:none!important}}
+
+/* ---------- toasts: quiet confirmation that something happened ---------- */
+.toasts{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:200;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.toast{
+  background:var(--sb-ink);color:var(--sb-paper);font-size:13.5px;line-height:1.35;padding:10px 16px;border-radius:4px;
+  box-shadow:0 8px 26px rgba(10,16,12,.28);animation:toastIn .18s ease;text-align:center;
+}
+.toast.out{opacity:0;transition:opacity .25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* pages with a fixed bottom tab bar lift the toasts clear of it */
+@media (max-width:720px){body.has-bottomnav .toasts{bottom:calc(74px + env(safe-area-inset-bottom))}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+
+/* ---------- helpers ---------- */
+/* the hidden attribute always wins, whatever display a class sets */
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}

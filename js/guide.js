@@ -353,16 +353,8 @@ document.getElementById('tricky-cards').innerHTML = TRICKY.map(t=>`
   </div>`).join('');
 
 /* ---- minimal-pair listening drill: length is the only difference ---- */
-const PAIRS = [
-  [['きて','kite','come'],['きって','kitte','stamp']],
-  [['おばさん','obasan','aunt'],['おばあさん','obaasan','grandmother']],
-  [['おじさん','ojisan','uncle'],['おじいさん','ojiisan','grandfather']],
-  [['ここ','koko','here'],['こうこう','koukou','high school']],
-  [['さか','saka','slope'],['さっか','sakka','writer']],
-  [['かた','kata','shoulder'],['かった','katta','bought']],
-  [['くろ','kuro','black'],['くろう','kurou','hardship']],
-  [['とる','toru','to take'],['とおる','tooru','to pass through']],
-];
+/* PAIRS (the word list) lives in js/guide-words.js so tools/gen_texts.js
+   picks the words up for audio generation. */
 const Pairs = {
   pair: null, answer: null, right: 0, seen: 0,
   els: { choices: document.getElementById('pair-choices'),
@@ -385,7 +377,7 @@ const Pairs = {
       ? `<span class="ok">正解 — it was <b lang="ja">${this.answer[0]}</b> (${this.answer[1]})</span>`
       : `<span class="no">It was <b lang="ja">${this.answer[0]}</b> (${this.answer[1]}) — listen for the extra beat</span>`;
     this.els.score.textContent = `${this.right} / ${this.seen}`;
-    const p = this.pair; this.pair = null;
+    this.pair = null;
     setTimeout(()=>this.next(), ok ? 1100 : 2400);
   },
 };
@@ -414,7 +406,10 @@ function setPanel(id, updateHash = true){
   document.body.dataset.panel = id;
   document.querySelectorAll('.jumpnav a[href^="#"]').forEach(a => {
     const t = a.getAttribute('href').slice(1);
-    if(PANELS.includes(t)) a.setAttribute('aria-current', String(t === id));
+    if(!PANELS.includes(t)) return;
+    a.setAttribute('aria-current', String(t === id));
+    /* on phones the strip scrolls sideways — bring the active chip into view */
+    if(t === id && a.scrollIntoView) a.scrollIntoView({block: 'nearest', inline: 'center'});
   });
   if(updateHash) history.replaceState(null, '', '#' + id);
   window.scrollTo({top: 0, behavior: 'instant'});

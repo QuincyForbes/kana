@@ -1,3 +1,6 @@
+/* Kana Guide. Palette lives in the two :root blocks; the dark one is switched
+   on by js/theme.js setting <html data-theme="dark">. Shared chrome (site
+   header, theme toggle) is css/site.css.                                    */
 :root{
   --paper:#F2F3EE;
   --cell:#FCFCF9;
@@ -12,6 +15,15 @@
   --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
   --kana:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',sans-serif;
   --hl:rgba(191,214,196,.55);
+  --hover:#EFF3EF; --warn-bg:#FBEDE9;
+  --learn-tint:rgba(217,164,65,.14); --known-tint:rgba(46,125,79,.15);
+}
+:root[data-theme="dark"]{
+  --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#222922;
+  --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62;
+  --hl:rgba(63,107,84,.55);
+  --hover:#232B25; --warn-bg:#3A211C;
+  --learn-tint:rgba(217,164,65,.2); --known-tint:rgba(127,211,160,.2);
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -29,7 +41,7 @@ a{color:var(--hira)}
 header{padding:56px 0 28px;border-bottom:2px solid var(--ink)}
 .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 14px}
 h1{font-family:var(--display);font-weight:900;font-size:clamp(38px,7vw,68px);line-height:.98;margin:0 0 14px;letter-spacing:-.01em}
-h1 .jp{display:block;font-size:.62em;letter-spacing:.34em;color:var(--hira);font-weight:600}
+h1 .jp{display:block;font-size:.62em;line-height:1.25;margin-top:.22em;letter-spacing:.34em;color:var(--hira);font-weight:600}
 .lede{max-width:52ch;margin:0;color:var(--ink-soft);font-size:16px}
 .lede b{color:var(--ink);font-weight:500}
 
@@ -67,6 +79,7 @@ h2{font-family:var(--display);font-weight:600;font-size:clamp(22px,3.4vw,30px);m
 .mnem strong{font-weight:500;box-shadow:inset 0 -7px 0 var(--hl)}
 
 /* ---------- toggles ---------- */
+.bar .toggle{margin-left:auto}
 .toggle{display:inline-flex;border:1px solid var(--ink);background:var(--cell)}
 .toggle button{appearance:none;border:0;background:none;font-family:var(--body);font-size:13px;letter-spacing:.06em;
   padding:8px 16px;cursor:pointer;color:var(--ink-soft);border-right:1px solid var(--rule)}
@@ -109,29 +122,6 @@ table.mini td{border-bottom:1px solid var(--rule-faint);padding:5px 4px}
 table.mini td:first-child{font-family:var(--kana);font-size:17px;width:38%}
 table.mini tr:last-child td{border-bottom:0}
 
-/* ---------- drill ---------- */
-.drill{background:var(--ink);color:var(--paper);padding:28px 24px;margin-top:16px}
-.drill .bigcell{background:#252d28;border-color:#3c4841;max-width:180px;margin:0 auto}
-.drill .bigcell::before{border-left-color:#3c4841}
-.drill .bigcell::after{border-top-color:#3c4841}
-.drill .bigcell span{color:var(--paper)}
-.drill-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-.drill-head h2{color:var(--paper);margin:0}
-.drill .toggle{border-color:#4c574f;background:#252d28}
-.drill .toggle button{color:#9aa79f;border-right-color:#3c4841}
-.drill .toggle button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
-.answer{display:flex;gap:8px;justify-content:center;margin:18px auto 0;max-width:340px}
-.answer input{flex:1;min-width:0;background:#252d28;border:1px solid #4c574f;color:var(--paper);
-  font-family:var(--body);font-size:17px;padding:11px 13px;text-align:center;letter-spacing:.08em}
-.answer input:focus{outline:none;border-color:var(--paper)}
-.answer button{background:var(--paper);color:var(--ink);border:0;font-family:var(--body);font-size:14px;padding:0 18px;cursor:pointer}
-.verdict{text-align:center;min-height:52px;margin:14px 0 0;font-size:15px}
-.verdict .ok{color:#8FCBA6}
-.verdict .no{color:#F0866F}
-.verdict small{display:block;color:#9aa79f;font-size:13.5px;margin-top:4px}
-.score{display:flex;gap:26px;justify-content:center;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9aa79f;margin-top:20px}
-.score b{display:block;font-family:var(--display);font-size:26px;color:var(--paper);letter-spacing:0;margin-top:2px}
-
 /* ---------- plan ---------- */
 ol.plan{list-style:none;counter-reset:s;padding:0;margin:0;max-width:64ch}
 ol.plan li{counter-increment:s;position:relative;padding:12px 0 12px 46px;border-bottom:1px solid var(--rule-faint);font-size:15.5px}
@@ -158,7 +148,7 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);font-si
 .beat.long{border-color:var(--shu);color:var(--shu)}
 .contrast{border-top:1px solid var(--rule-faint);padding-top:10px;margin-top:10px;font-size:14.5px;color:var(--ink-soft)}
 .contrast b{color:var(--ink);font-weight:500}
-.warn{background:#FBEDE9;border-left:3px solid var(--shu);padding:11px 14px;margin:0 0 16px;font-size:14px}
+.warn{background:var(--warn-bg);border-left:3px solid var(--shu);padding:11px 14px;margin:0 0 16px;font-size:14px}
 .speak{appearance:none;border:1px solid var(--ink);background:var(--cell);color:var(--ink);
   width:44px;height:44px;border-radius:50%;cursor:pointer;display:inline-grid;place-items:center;
   padding:0;flex:none;transition:background .12s ease,transform .12s ease}
@@ -168,17 +158,10 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);font-si
 .speak:focus-visible{outline:2px solid var(--shu);outline-offset:3px}
 .romaji-row{display:flex;align-items:center;gap:14px;margin-bottom:4px}
 .romaji-row .romaji-big{margin:0}
-.audio-note{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 20px}
 table.mini tr{cursor:pointer}
-table.mini tr:hover td{background:#EFF3EF}
+table.mini tr:hover td{background:var(--hover)}
 table.mini td.play{width:24px;text-align:right;color:var(--rule);font-size:12px}
 table.mini tr:hover td.play{color:var(--shu)}
-.drill .speak{background:#252d28;border-color:#4c574f;color:var(--paper)}
-.drill .speak:hover{background:var(--paper);color:var(--ink)}
-.drill .speak.on{background:var(--shu);border-color:var(--shu);color:#fff}
-.drill-cell{position:relative;max-width:180px;margin:0 auto}
-.drill-cell .replay{position:absolute;right:-8px;bottom:-8px}
-.hidden-glyph{opacity:.12}
 @media (max-width:620px){
   .detail{grid-template-columns:1fr}
   .bigcell{max-width:190px}
@@ -199,13 +182,15 @@ table.mini tr:hover td.play{color:var(--shu)}
   color:var(--ink-soft);padding:10px 0;border-bottom:2px solid transparent;white-space:nowrap;
 }
 .jumpnav a:hover,.jumpnav a:focus-visible{color:var(--ink);border-bottom-color:var(--shu)}
-.jumpnav .home{margin-left:auto;color:var(--hira)}
 html{scroll-behavior:smooth;scroll-padding-top:48px}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 /* ---------- slow audio toggle ---------- */
 .slowbtn{border:1px solid var(--rule);background:var(--cell);color:var(--ink-soft);font-family:var(--body);
   font-size:12px;letter-spacing:.06em;padding:8px 12px;cursor:pointer}
+.slowbtn:hover{border-color:var(--ink-soft);color:var(--ink)}
+.slowbtn:focus-visible,.pairplay:focus-visible,.pairbtns button:focus-visible,.gex:focus-visible,.words .word:focus-visible,
+.strokebtns button:focus-visible,.tracebtns button:focus-visible,.modal-nav:focus-visible,.modal-x:focus-visible,a:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
 .slowbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 /* ---------- example words ---------- */
@@ -217,26 +202,6 @@ html{scroll-behavior:smooth;scroll-padding-top:48px}
 .words .word em{font-style:normal;color:var(--ink-soft);font-size:12px}
 .words .word:hover,.words .word.on{border-color:var(--ink)}
 
-/* ---------- drill: match choices + sprint ---------- */
-.choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:340px;margin:18px auto 0}
-.choices button{font-family:var(--kana);font-size:30px;padding:12px 0;background:#252d28;border:1px solid #4c574f;
-  color:var(--paper);cursor:pointer}
-.choices button:hover{border-color:var(--paper)}
-.sprintbtn{border:1px solid #4c574f;background:#252d28;color:#9aa79f;font-family:var(--body);
-  font-size:12px;letter-spacing:.08em;padding:8px 14px;cursor:pointer}
-.sprintbtn:hover{color:var(--paper);border-color:var(--paper)}
-#sprint-box b{color:#F0866F}
-@media (max-width:620px){.choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-/* ---------- dark mode ---------- */
-@media (prefers-color-scheme: dark){
-  :root{
-    --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#222922;
-    --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62;
-    --hl:rgba(63,107,84,.55);
-  }
-}
-
 /* ---------- record & compare ---------- */
 .speak.mic{color:var(--shu);font-size:13px}
 .speak.rec{background:var(--shu);border-color:var(--shu);color:#fff;animation:recpulse 1.1s ease-in-out infinite}
@@ -247,27 +212,28 @@ button[data-rec-play]{width:auto;padding:0 12px;font-size:11.5px;letter-spacing:
 /* ---------- mobile: scrollable nav + touch-sized drill ---------- */
 @media (max-width:720px){
   .jumpnav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:20px;
-    scrollbar-width:none}
+    scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
+  .jumpnav a:last-child{margin-right:26px}
   .jumpnav::-webkit-scrollbar{display:none}
   .jumpnav a{flex:0 0 auto}
-  .jumpnav .home{margin-left:12px}
 
-  .answer input{font-size:16px;padding:13px}
-  .answer button{padding:0 22px;font-size:15px}
-  .choices button{padding:18px 0;font-size:34px}
   .toggle button{padding:10px 13px}
-  .sprintbtn,.slowbtn{padding:10px 13px}
+  /* chart toolbar: script switch on its own row, audio toggles share the next */
+  #chart .bar .count{display:none}
+  #chart .bar .toggle{margin-left:0;flex:1 1 100%;display:flex}
+  #chart .bar .toggle button{flex:1}
+  #chart .bar .slowbtn{flex:1}
+  header{padding:30px 0 22px}
+  .slowbtn{padding:10px 13px}
   .speak{width:44px;height:44px}
   .words .word{padding:9px 13px}
 }
 
 /* ---------- drawn mnemonic shapes ---------- */
-.mnem .mnemrow{display:flex;gap:14px;align-items:center}
-.mnem .mnemrow p{margin:2px 0 0}
 .mnem .shape{width:92px;height:92px;flex:0 0 auto;background:var(--cell);border:1px solid var(--rule)}
 @media (max-width:620px){.mnem .shape{width:80px;height:80px}}
-
-[hidden]{display:none!important}
 
 /* ---------- a11y: skip link, chart note ---------- */
 .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:10px 16px;z-index:100}
@@ -299,7 +265,6 @@ button[data-rec-play]{width:auto;padding:0 12px;font-size:11.5px;letter-spacing:
 @media (max-width:620px){.pairbtns{grid-template-columns:1fr}}
 
 /* ---------- stroke order + tracing ---------- */
-.strokerow{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .strokebox dt{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
 .strokes{width:108px;height:108px;background:var(--cell);border:1px solid var(--rule);display:block}
 .strokebtns{display:flex;gap:6px;margin-top:6px}
@@ -331,7 +296,6 @@ section[hidden]{display:none}
   transition:color .12s ease,border-color .12s ease,background .12s ease}
 .jumpnav a:hover,.jumpnav a:focus{border-color:var(--rule);color:var(--ink);border-bottom-color:var(--rule)}
 .jumpnav a[aria-current="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.jumpnav .home:hover{border-color:transparent}
 
 /* the hero belongs to the Chart panel; other panels start at their own bar */
 body:not([data-panel="chart"]) header{display:none}
@@ -372,8 +336,9 @@ button:active{transform:scale(.97)}
 }
 
 /* ---------- quick wins: chart knowledge heat, modal nav, after-kana ---------- */
-.k-cell.st-learn{background:rgba(217,164,65,.14)}
-.k-cell.st-known{background:rgba(46,125,79,.15)}
+/* not on the selected cell — its dark fill has to stay readable */
+.k-cell.st-learn:not([aria-current="true"]){background:var(--learn-tint)}
+.k-cell.st-known:not([aria-current="true"]){background:var(--known-tint)}
 .gridnote .sw{display:inline-block;width:10px;height:10px;border:1px solid var(--rule);vertical-align:-1px}
 .gridnote .sw.learn{background:rgba(217,164,65,.4)}
 .gridnote .sw.known{background:rgba(46,125,79,.4)}

@@ -6,8 +6,9 @@
    Data tables (DATA, KANJI, GOJU, DAKU, YOON, EXTRA) are defined above.
    ========================================================================= */
 
-/* Config (CONFIG), ymd and nextRecord live in js/srs.js, shared with the
-   guide so both drills feed one progress record.                            */
+/* Config (CONFIG), ymd and the record helpers (nextRecord, practiceRecord,
+   cleanProg, migrateIds) live in js/srs.js, shared with the guide and the
+   landing page so every view reads one progress record.                     */
 
 /* ------------------------------ Utils ----------------------------------- */
 const $ = (id) => document.getElementById(id);
@@ -21,6 +22,18 @@ const shuffle = (a) => {
   return a;
 };
 const on = (id, ev, fn) => $(id).addEventListener(ev, fn);
+const download = (name, text, type) => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+/* quiet confirmations, from js/site.js */
+const toast = (msg) => window.kanaToast?.(msg);
+toast.afterReload = (msg) => window.kanaToast?.afterReload(msg);
+/* a hand-edited hash can hold a bare % — never let that take the page down */
+const safeDecode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
 
 /* ------------------------------ Storage --------------------------------- */
 /* localStorage when available, silent in-memory fallback otherwise.        */
@@ -52,6 +65,17 @@ const voiceDirs = () => {
   try { m = localStorage.getItem(VOICE_KEY) === "m"; } catch {}
   return m ? ["audio/ja-m/", "audio/ja/"] : ["audio/ja/", "audio/ja-m/"];
 };
+/* play the clip for `text` from the first voice dir that has it; resolves
+   to the playing Audio, or null when neither file plays                    */
+function playClip(text) {
+  const from = (dir) => {
+    const a = new Audio(dir + encodeURIComponent(text) + ".mp3");
+    a.playbackRate = slowPref() ? 0.75 : 1;
+    return a.play().then(() => a);
+  };
+  const [pref, alt] = voiceDirs();
+  return from(pref).catch(() => from(alt)).catch(() => null);
+}
 const Speech = (() => {
   const supported = "speechSynthesis" in window;
   let voice = null;
@@ -60,48 +84,62 @@ const Speech = (() => {
     voice = ja.find((v) => /Nanami|Kyoko|Google 日本語|Otoya/i.test(v.name)) || ja[0] || null;
   };
   if (supported) { pick(); speechSynthesis.onvoiceschanged = pick; }
-  let playing = null;
-  const tts = (text) => {
-    if (!supported) return;
+  let playing = null, turn = 0;
+  const tts = (text) => new Promise((res) => {
+    if (!supported) return res();
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "ja-JP";
       if (voice) u.voice = voice;
       u.rate = slowPref() ? 0.6 : 0.85;
+      u.onend = u.onerror = res;
       speechSynthesis.speak(u);
-    } catch {}
-  };
-  return {
-    say(text) {
-      if (!text) return;
-      try { playing?.pause(); } catch {}
-      const [pref, alt] = voiceDirs();
-      const a = new Audio(pref + encodeURIComponent(text) + ".mp3");
-      a.playbackRate = slowPref() ? 0.75 : 1;
+    } catch { res(); }
+  });
+  function stop() {
+    turn++;
+    try { playing?.pause(); } catch {}
+    playing = null;
+    try { if (supported) speechSynthesis.cancel(); } catch {}
+  }
+  /* speak one text, cutting off whatever was playing. clip: false goes
+     straight to browser TTS (text no recorded clip exists for). The promise
+     settles when it finishes or is cut off — a paused clip never fires
+     "ended", so "pause" resolves it too.                                   */
+  function say(text, clip = true) {
+    if (!text) return Promise.resolve();
+    stop();
+    const mine = turn;
+    return (clip ? playClip(text) : Promise.resolve(null)).then((a) => {
+      if (mine !== turn) { try { a?.pause(); } catch {} return; }
+      if (!a) return tts(text);
       playing = a;
-      a.play().catch(() => {
-        const b = new Audio(alt + encodeURIComponent(text) + ".mp3");
-        b.playbackRate = slowPref() ? 0.75 : 1;
-        playing = b;
-        b.play().catch(() => tts(text));
-      });
-    },
-  };
+      return new Promise((res) => { a.onended = a.onpause = a.onerror = res; });
+    });
+  }
+  return { say, stop };
 })();
 
 /* ------------------------------ Cards ----------------------------------- */
 /* Card shapes:
-     char   {id, deck, char, rom, say}
-     phrase {id, deck, kana[], rom[], mean}       rom: "*x" = particle, "~" = modifier
-     kanji  {id, deck, kanji, furi, rom, mean, where}                        */
+     char   {id, deck, char, rom, say, alt?}      alt: other accepted spellings
+     phrase {id, deck, kana[], rom[], mean, slot?} rom: "*x" = particle, "~" = modifier
+     kanji  {id, deck, kanji, furi, rom, mean, where}
+   Ids are built from content, never position — hg-あ, p:こんにちは, k:出口 —
+   so adding or reordering rows in the data files can't move anyone's
+   progress onto a different card. (Positional ids from before v22 are
+   carried across by migrateIds + js/legacy-ids.js.)                        */
 const CARDS = [];
 
 (function buildCharCards() {
+  /* を is "o" when spoken but "wo" on most charts and every keyboard; ん is
+     typed "nn" in an IME — accept both rather than mark a right answer wrong */
+  const ALT = { "を": ["wo"], "ん": ["nn"] };
   const push = (h, k, r) => {
-    CARDS.push({ id: "hg-" + h, deck: h.length > 1 ? "Hiragana combos" : "Hiragana", char: h, rom: r, say: h, type: "char" });
+    CARDS.push({ id: "hg-" + h, deck: h.length > 1 ? "Hiragana combos" : "Hiragana", char: h, rom: r, say: h, alt: ALT[h], type: "char" });
     /* speak the hiragana twin — TTS reads a lone ヲ/ヅ badly */
-    CARDS.push({ id: "kt-" + k, deck: k.length > 1 ? "Katakana combos" : "Katakana", char: k, rom: r, say: h, type: "char" });
+    CARDS.push({ id: "kt-" + k, deck: k.length > 1 ? "Katakana combos" : "Katakana", char: k, rom: r, say: h, alt: ALT[h], type: "char" });
   };
   for (const rows of [GOJU, DAKU, YOON])
     for (const [, cells] of rows)
@@ -110,32 +148,34 @@ const CARDS = [];
     CARDS.push({ id: "kx-" + k, deck: "Katakana combos", char: k, rom: r, say: k, type: "char" });
 })();
 
-DATA.forEach(([deck, , rows], si) =>
-  rows.forEach(([kana, rom, mean], ri) =>
-    CARDS.push({ id: `s${si}r${ri}`, deck, kana, rom, mean, type: "phrase" })));
+/* a 4th field on a DATA row names a personalization slot (see below) */
+DATA.forEach(([deck, , rows]) =>
+  rows.forEach(([kana, rom, mean, slot]) =>
+    CARDS.push({ id: slot ? "p:you-" + slot : "p:" + kana.join(""), deck, kana, rom, mean, slot, type: "phrase" })));
 
-KANJI.forEach(([kanji, furi, rom, mean, where], i) =>
-  CARDS.push({ id: "k" + i, deck: "Survival kanji", kanji, furi, rom, mean, where, type: "kanji" }));
+KANJI.forEach(([kanji, furi, rom, mean, where]) =>
+  CARDS.push({ id: "k:" + kanji, deck: "Survival kanji", kanji, furi, rom, mean, where, type: "kanji" }));
 
 /* ---- personalization: the intro deck fills in YOUR details --------------
    Custom boxes can't be romaji-checked, so those cards flip-grade only.   */
 const YOU_KEY = "kanaTrainerYou.v1";
 const YOU = store.get(YOU_KEY) || {};
 (function personalizeIntro() {
-  const fill = (id, pre, post, preR, postR, val, mean) => {
-    const c = CARDS.find((x) => x.id === id);
+  const fill = (slot, pre, post, preR, postR, val, mean) => {
+    const c = CARDS.find((x) => x.slot === slot);
     if (!c) return;
     c.kana = [...pre, val || "○○", ...post];
     c.rom = [...preR, "", ...postR];
     c.mean = mean;
     c.custom = true;
   };
-  fill("s3r0", ["わ", "た", "し", "は"], ["で", "す"], ["wa", "ta", "shi", "*wa"], ["de", "su"],
+  const an = (s) => (/^[aeiou]/i.test(s) ? "an" : "a");
+  fill("name", ["わ", "た", "し", "は"], ["で", "す"], ["wa", "ta", "shi", "*wa"], ["de", "su"],
     YOU.name, YOU.name ? `I'm ${YOU.name}` : "I'm ___ — fill in your details in the form above");
-  fill("s3r1", [], ["か", "ら", "き", "ま", "し", "た"], [], ["ka", "ra", "ki", "ma", "shi", "ta"],
+  fill("country", [], ["か", "ら", "き", "ま", "し", "た"], [], ["ka", "ra", "ki", "ma", "shi", "ta"],
     YOU.country, YOU.country ? `I'm from ${YOU.country}` : "I'm from ___");
-  fill("s3r2", [], ["で", "す"], [], ["de", "su"],
-    YOU.job, YOU.job ? `I'm an ${YOU.job}` : "I'm a ___ (occupation)");
+  fill("job", [], ["で", "す"], [], ["de", "su"],
+    YOU.job, YOU.job ? `I'm ${an(YOU.job)} ${YOU.job}` : "I'm a ___ (occupation)");
 })();
 
 /* base-46 lookup for cross-links into the guide's chart detail */
@@ -147,19 +187,25 @@ const DECK_ORDER = [
   "Hiragana", "Katakana", "Hiragana combos", "Katakana combos",
   ...DATA.map((d) => d[0]), "Survival kanji",
 ];
+/* virtual decks the quiz builds from the others */
+const COMPOSITE_DECKS = ["All decks", "All characters", "All phrases", "Look-alikes"];
+/* names a custom deck can't take */
+const RESERVED_DECKS = [...COMPOSITE_DECKS, ...DECK_ORDER];
 
 /* ---- custom CSV decks (Anki-style, stored in this browser) ---------------
-   Card ids are deck-name + line index, so re-importing a deck under the
-   same name keeps prior SRS records for unchanged lines.                   */
+   Card ids are deck name + front text (customIds), so editing a deck or
+   re-importing it under the same name keeps the SRS record of every line
+   whose front is unchanged.                                                */
 const CUSTOM_KEY = "kanaTrainerCustom.v1";
 const Custom = {
-  decks: store.get(CUSTOM_KEY) || [],
+  decks: cleanDecks(store.get(CUSTOM_KEY), RESERVED_DECKS),
   commit() { store.set(CUSTOM_KEY, this.decks); location.reload(); },
   cardsOf(d) {
+    const ids = customIds(d);
     return d.cards.map((c, i) => {
       /* a kana reading (or kana front) yields romaji, enabling typed answers */
       const rom = kanaToRomaji(c.r || c.f);
-      return { id: `u:${d.name}:${i}`, deck: d.name, type: "custom",
+      return { id: ids[i], deck: d.name, type: "custom",
         front: c.f, reading: c.r || "", mean: c.m, rom: rom || "", custom: !rom };
     });
   },
@@ -201,6 +247,12 @@ function spokenRom(c) {
 }
 const answerRom = (c) => (c.type === "phrase" ? spokenRom(c) : c.type === "custom" ? (c.rom || c.reading || c.front) : c.rom);
 const speechText = (c) => (c.type === "phrase" ? c.kana.join("") : c.type === "kanji" ? c.furi : c.type === "custom" ? (c.reading || c.front) : c.say);
+/* recorded clips cover the built-in content only — custom decks and the
+   personalized intro rows are spoken by the browser */
+const hasClip = (c) => c.type !== "custom" && !c.custom;
+/* the Japanese side and the short gloss of any card, whatever its type */
+const cardJp = (c) => (c.type === "char" ? c.char : c.type === "kanji" ? c.kanji : c.type === "custom" ? c.front : c.kana.join(""));
+const cardGloss = (c) => (c.type === "char" ? c.rom : c.mean);
 
 /* Typed-answer checking.
    Kunrei→Hepburn aliases apply to the INPUT only, in a single left-to-right
@@ -242,8 +294,8 @@ function checkTyped(input, card) {
   }
   const inP = pre(raw);
   if (!inP) return false;
-  const ans = collapse(pre(answerRom(card)));
-  return collapse(inP) === ans || collapse(aliasize(inP)) === ans;
+  const typed = [collapse(inP), collapse(aliasize(inP))];
+  return [answerRom(card), ...(card.alt || [])].some((a) => typed.includes(collapse(pre(a))));
 }
 
 /* ------------------------- Numbers & scheduling --------------------------- */
@@ -267,6 +319,34 @@ function numToRomaji(n) {
   return s;
 }
 const numNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "").replace(/([aeiou])\1+/g, "$1").replace(/ou/g, "o");
+
+/* custom-deck card ids: deck name + front text; a repeated front gets #2, #3… */
+function customIds(d) {
+  const seen = new Map();
+  return d.cards.map((c) => {
+    const n = (seen.get(c.f) || 0) + 1;
+    seen.set(c.f, n);
+    return `c:${d.name}:${c.f}` + (n > 1 ? "#" + n : "");
+  });
+}
+
+/* Keep only well-formed decks from storage or an imported file. A name that
+   collides with a built-in deck (or an earlier deck) gets a numeric suffix
+   instead of silently merging into it.                                     */
+function cleanDecks(raw, reserved = []) {
+  if (!Array.isArray(raw)) return [];
+  const taken = new Set(reserved);
+  const str = (v) => (typeof v === "string" ? v.trim() : "");
+  return raw.flatMap((d) => {
+    let name = str(d?.name);
+    if (!name || !Array.isArray(d.cards)) return [];
+    const cards = d.cards.flatMap((c) => (str(c?.f) ? [{ f: str(c.f), r: str(c.r), m: str(c.m) }] : []));
+    if (!cards.length) return [];
+    for (let n = 2; taken.has(name); n++) name = `${str(d.name)} (${n})`;
+    taken.add(name);
+    return [{ name, cards }];
+  });
+}
 
 /* ---------------------------- Study view --------------------------------- */
 const StudyView = (() => {
@@ -292,7 +372,7 @@ const StudyView = (() => {
     const key = `${c.kana.join("")} ${spokenRom(c)} ${c.mean}`.toLowerCase();
     return `<div class="row" data-k="${esc(key)}">
       <div class="rmain"><div class="cells">${cells}</div><p class="meaning">${esc(c.mean)}</p></div>
-      <button class="spk" data-say="${esc(c.kana.join(""))}" title="Listen" aria-label="Listen">🔊</button>
+      <button class="spk" data-say="${esc(c.kana.join(""))}"${hasClip(c) ? "" : " data-tts"} title="Listen" aria-label="Listen">🔊</button>
     </div>`;
   };
 
@@ -411,7 +491,7 @@ const StudyView = (() => {
 
     document.addEventListener("click", (e) => {
       const b = e.target.closest(".spk");
-      if (b) Speech.say(b.dataset.say);
+      if (b) { Player.stop(); Speech.say(b.dataset.say, !("tts" in b.dataset)); } /* a tapped row takes over from play-all */
     });
 
     const toggle = (id, cls) => on(id, "click", () => {
@@ -540,14 +620,15 @@ const StudyView = (() => {
       $("num-in").value = "";
     }
     if ($("num-check")) {
+      let pending = 0; /* a second Enter while the verdict shows must not skip a number */
       const check = () => {
+        if (pending) return;
         const want = numToRomaji(numCur);
         const ok = numNorm($("num-in").value) === numNorm(want);
         $("num-verdict").innerHTML = ok
           ? `<b style="color:var(--rule)">正解</b>`
           : `<b style="color:var(--shu)">${esc(want)}</b>`;
-        Speech.say(null); /* no clip for arbitrary numbers; stay quiet */
-        setTimeout(numNext, ok ? 600 : 2400);
+        pending = setTimeout(() => { pending = 0; numNext(); }, ok ? 600 : 2400);
       };
       on("num-check", "click", check);
       on("num-in", "keydown", (e) => { if (e.key === "Enter") check(); });
@@ -562,6 +643,7 @@ const StudyView = (() => {
         country: $("you-country").value.trim(),
         job: $("you-job").value.trim(),
       });
+      toast.afterReload("Saved — your phrases are updated");
       location.reload(); /* cards and rows rebuild from the new values */
     };
 
@@ -569,9 +651,9 @@ const StudyView = (() => {
     document.addEventListener("click", (e) => {
       const b = e.target.closest("[data-playall]");
       if (!b) return;
-      const texts = [...document.querySelectorAll(`#${b.dataset.playall} .row:not([hidden]) .spk`)]
-        .map((s) => s.dataset.say);
-      Player.toggle(texts, b);
+      const items = [...document.querySelectorAll(`#${b.dataset.playall} .row:not([hidden]) .spk`)]
+        .map((s) => [s.dataset.say, !("tts" in s.dataset)]);
+      Player.toggle(items, b);
     });
 
     setSec(store.get(SEC_KEY) || "all"); /* returning users land where they left off */
@@ -582,65 +664,63 @@ const StudyView = (() => {
 })();
 
 /* ------------------------- sequential player ----------------------------- */
+/* Plays a list through Speech, one text after another. `run` is bumped by
+   every stop, so a loop that was mid-flight sees it changed and bows out.  */
 const Player = {
-  btn: null, cur: null, abort: false,
+  btn: null, run: 0,
   stop() {
-    this.abort = true;
-    try { this.cur?.pause(); } catch {}
-    try { speechSynthesis.cancel(); } catch {}
-    this.btn?.classList.remove("on");
+    this.run++;
+    Speech.stop();
+    if (this.btn) { this.btn.classList.remove("on"); this.btn.textContent = "▶"; }
     this.btn = null;
   },
-  one(t) {
-    return new Promise((res) => {
-      const [pref, alt] = voiceDirs();
-      const tts = () => {
-        if (!("speechSynthesis" in window)) return res();
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = "ja-JP"; u.rate = 0.85; u.onend = res; u.onerror = res;
-        speechSynthesis.speak(u);
-      };
-      const a = new Audio(pref + encodeURIComponent(t) + ".mp3");
-      this.cur = a;
-      a.onended = res;
-      a.play().catch(() => {
-        const b = new Audio(alt + encodeURIComponent(t) + ".mp3");
-        this.cur = b;
-        b.onended = res;
-        b.play().catch(tts);
-      });
-    });
-  },
-  async toggle(texts, btn) {
-    if (this.btn === btn) return this.stop();
+  /* items: [text, hasClip] pairs */
+  async toggle(items, btn) {
+    const same = this.btn === btn;
     this.stop();
-    this.abort = false;
+    if (same) return;
+    const run = this.run;
     this.btn = btn;
     btn.classList.add("on");
     btn.textContent = "■";
-    for (const t of texts) {
-      if (this.abort) break;
-      await this.one(t);
-      if (!this.abort) await new Promise((r) => setTimeout(r, 500));
+    for (const [text, clip] of items) {
+      await Speech.say(text, clip);
+      if (run !== this.run) return;
+      await new Promise((r) => setTimeout(r, 500));
+      if (run !== this.run) return;
     }
-    btn.classList.remove("on");
-    btn.textContent = "▶";
-    if (this.btn === btn) this.btn = null;
+    this.stop();
   },
 };
 
 /* --------------------------- SRS scheduler ------------------------------- */
 const Srs = (() => {
-  let prog = store.get(CONFIG.progressKey) || {}; /* id -> {b,d,s,l} */
+  const load = () => cleanProg(store.get(CONFIG.progressKey)) || {};
+  let prog = load(); /* id -> {b,d,s,l,e?,iv?} */
 
   const record = (id) => prog[id];
   const isKnown = (p) => !!p && p.b >= CONFIG.knownBox;
   const save = () => store.set(CONFIG.progressKey, prog);
 
-  /* @returns true if the card should resurface this session */
-  function grade(card, good, now = Date.now()) {
-    prog[card.id] = nextRecord(prog[card.id], good, now);
-    save();
+  /* Records written before ids became content-based — in storage or in an
+     old export file — are renamed on the way in. Custom decks used
+     u:<deck>:<line>; the frozen phrase/kanji table is js/legacy-ids.js.     */
+  const adopt = (raw) => {
+    const map = { ...LEGACY_IDS };
+    Custom.decks.forEach((d) => customIds(d).forEach((id, i) => { map[`u:${d.name}:${i}`] = id; }));
+    return migrateIds(raw, map);
+  };
+  {
+    const [moved, changed] = adopt(prog);
+    if (changed) { prog = moved; save(); }
+  }
+
+  /* practice: an extra rep (sprint, lapse drill) — see practiceRecord.
+     @returns true if the card should resurface this session */
+  function grade(card, good, { practice = false, now = Date.now() } = {}) {
+    const before = prog[card.id];
+    const after = practice ? practiceRecord(before, good, now) : nextRecord(before, good, now);
+    if (after !== before) { prog[card.id] = after; save(); }
     const days = store.get(CONFIG.daysKey) || {};
     days[ymd()] = (days[ymd()] || 0) + 1;
     store.set(CONFIG.daysKey, days);
@@ -657,8 +737,9 @@ const Srs = (() => {
     record, isKnown, grade, restore,
     days: () => store.get(CONFIG.daysKey) || {},
     all: () => prog,
-    replace(next) { prog = next || {}; save(); },
+    replace(next) { prog = adopt(next || {})[0]; save(); },
     reset() { prog = {}; save(); },
+    reload() { prog = load(); }, /* another tab wrote the record */
   };
 })();
 
@@ -666,8 +747,11 @@ const Srs = (() => {
 const Quiz = (() => {
   const DEFAULTS = { deck: "All decks", dir: "jp", mode: "flip", newn: 10, speak: true };
   const settings = Object.assign({}, DEFAULTS, store.get(CONFIG.settingsKey) || {});
+  /* practice: the queue is an extra-reps drill, graded via practiceRecord.
+     bonusNew: new cards asked for on top of today's allowance.             */
   const session = { queue: [], current: null, face: "jp", revealed: false, verdict: null,
-                    reviewed: 0, correct: 0, newIntroduced: 0, missed: [], customPending: false };
+                    reviewed: 0, correct: 0, missed: [], customPending: false,
+                    practice: false, bonusNew: 0 };
   const undoStack = []; /* up to 20 grades deep */
 
   const TRICKY_CHARS = new Set(TRICKY.flatMap((p) => p.g.flatMap((g) => [g, H2K[g] || "", K2H[g] || ""])));
@@ -677,8 +761,18 @@ const Quiz = (() => {
     "All phrases": () => CARDS.filter((c) => c.type === "phrase"),
     "Look-alikes": () => CARDS.filter((c) => c.type === "char" && TRICKY_CHARS.has(c.char)),
   };
+  /* own-property checks: a deck name can arrive from the URL hash, and
+     "constructor" must not resolve to Object.prototype's                    */
+  const isDeck = (name) => Object.hasOwn(COMPOSITE, name) || DECK_ORDER.includes(name);
   const deckCards = () =>
-    (COMPOSITE[settings.deck] || (() => CARDS.filter((c) => c.deck === settings.deck)))();
+    (Object.hasOwn(COMPOSITE, settings.deck) ? COMPOSITE[settings.deck]() : CARDS.filter((c) => c.deck === settings.deck));
+
+  /* The new-card allowance is per day, counted when a card is first graded
+     — so reloading, switching tabs or peeking at a card never spends it.   */
+  const NEW_KEY = "kanaTrainerNewDay.v1";
+  const newToday = () => { const r = store.get(NEW_KEY); return r && r.day === ymd() ? r.n : 0; };
+  const addNewToday = (by) => store.set(NEW_KEY, { day: ymd(), n: Math.max(0, newToday() + by) });
+  const newBudget = () => Math.max(0, settings.newn + session.bonusNew - newToday());
   const counterpart = (c) => H2K[c.char] || K2H[c.char] || "";
   const pickFace = () =>
     settings.mode === "listen" ? "jp"
@@ -686,6 +780,15 @@ const Quiz = (() => {
   const listening = () => settings.mode === "listen" && session.face === "jp";
   const matching = () => settings.mode === "match" && session.current?.type === "char" && counterpart(session.current);
   const typedApplies = () => (settings.mode === "type" || settings.mode === "listen") && session.face === "jp";
+  /* memory hook for the 46 base characters, from the guide. Looked up by
+     glyph (BASE_LINK), not romaji — を and お share "o", ウォ and を "wo". */
+  const mnemOf = (c) => {
+    const m = c.type === "char" ? MNEM[BASE_LINK[c.char]] : null;
+    return m ? m[K2H[c.char] !== undefined ? 1 : 0] : "";
+  };
+  const speak = (c) => Speech.say(speechText(c), hasClip(c));
+  /* screen readers hear the prompt and the verdict, not every re-render */
+  const announce = (text) => { const live = $("qlive"); if (live) live.textContent = text; };
 
   function saveSettings() {
     settings.deck = $("qdeck").value;
@@ -696,12 +799,15 @@ const Quiz = (() => {
     store.set(CONFIG.settingsKey, settings);
   }
 
-  function buildQueue() {
-    const now = Date.now(), cards = deckCards();
+  /* keep: the card already on screen — left out of the queue so it doesn't
+     come straight back, and counted against the allowance if it's new      */
+  function buildQueue(keep = null) {
+    const now = Date.now(), cards = deckCards().filter((c) => c !== keep);
     const due = shuffle(cards.filter((c) => Srs.record(c.id)?.d <= now));
-    const budget = Math.max(0, settings.newn - session.newIntroduced);
+    const budget = Math.max(0, newBudget() - (keep && !Srs.record(keep.id) ? 1 : 0));
     /* new cards arrive in pedagogical order (chart/deck order), not shuffled */
     const fresh = cards.filter((c) => !Srs.record(c.id)).slice(0, budget);
+    session.practice = false;
     session.queue = [...due];
     fresh.forEach((c, i) =>
       session.queue.splice(Math.min(session.queue.length, (i + 1) * CONFIG.interleaveEvery), 0, c));
@@ -709,11 +815,12 @@ const Quiz = (() => {
 
   function next() {
     session.current = session.queue.shift() || null;
+    /* a finished drill flows straight back into the scheduled queue */
+    if (!session.current && session.practice) { buildQueue(); session.current = session.queue.shift() || null; }
     session.face = pickFace();
     session.revealed = false;
     session.verdict = null;
-    if (session.current && !Srs.record(session.current.id)) session.newIntroduced++;
-    if (session.queue[0]) {
+    if (session.queue[0] && hasClip(session.queue[0])) {
       const pre = new Audio();
       pre.preload = "auto";
       pre.src = voiceDirs()[0] + encodeURIComponent(speechText(session.queue[0])) + ".mp3";
@@ -727,21 +834,33 @@ const Quiz = (() => {
     render();
   }
 
+  /* ---- 60s sprint: random cards against the clock. Speed practice, not
+     review — grades go through practiceRecord, so a streak of hits can't
+     push cards weeks ahead of schedule.                                    */
   let sprint = null;
+  const sprintCards = () => deckCards().filter((c) => !c.custom);
   function nextSprintCard() {
-    const cards = deckCards().filter((c) => !c.custom);
-    session.current = cards[Math.floor(Math.random() * cards.length)];
+    const cards = sprintCards();
+    /* avoid showing the same card twice running when there's a choice */
+    let c;
+    do { c = cards[Math.floor(Math.random() * cards.length)]; }
+    while (cards.length > 1 && c === session.current);
+    session.current = c;
     session.face = "jp";
     session.revealed = false;
     session.verdict = null;
     render();
   }
-  function endSprint(aborted) {
+  /* deal: false when something else takes over next (tab change, reset, drill) */
+  function endSprint(aborted, deal = true) {
     clearInterval(sprint.timer);
     const n = sprint.count;
     sprint = null;
+    session.current = null;
+    document.body.classList.remove("sprinting");
     $("qsprint").textContent = "60s sprint";
     $("sprint-box").hidden = true;
+    $("qsession").hidden = false;
     const bests = store.get("kanaTrainerSprint.v1") || {};
     const key = settings.deck;
     if (!aborted) {
@@ -751,57 +870,73 @@ const Quiz = (() => {
         <p><b>Sprint over — ${n} correct in 60 seconds.</b>${isBest && n > 0 ? " New best for this deck!" : ` Best: ${bests[key] || 0}.`}</p>
         <div class="qbtns"><button class="qb" id="qsprint-again">Again</button><button class="qb ghost" id="qsprint-done">Back to reviews</button></div>
       </div></div>`;
+      announce(`Sprint over — ${n} correct.`);
       $("qsprint-again").onclick = startSprint;
       $("qsprint-done").onclick = () => { buildQueue(); next(); };
-    } else { buildQueue(); next(); }
+    } else if (deal) { buildQueue(); next(); }
   }
   function startSprint() {
     if (sprint) return endSprint(true);
+    if (!sprintCards().length) {
+      $("qarea").innerHTML = `<div class="qcard"><div class="qdone">
+        <p><b>Nothing to sprint through here.</b> This deck only has flip-and-grade cards — pick a deck with kana readings.</p>
+        <div class="qbtns"><button class="qb ghost" id="qrefill">Back to reviews</button></div></div></div>`;
+      $("qrefill").onclick = () => { buildQueue(); next(); };
+      return;
+    }
     sprint = { left: 60, count: 0, timer: setInterval(() => {
       if (--sprint.left <= 0) return endSprint(false);
       $("sprint-left").textContent = sprint.left;
     }, 1000) };
-    $("qsprint").textContent = "Stop";
+    document.body.classList.add("sprinting");
+    $("qsprint").textContent = "Stop sprint";
     $("sprint-box").hidden = false;
+    $("qsession").hidden = true;
     $("sprint-left").textContent = "60";
     $("sprint-count").textContent = "0";
     nextSprintCard();
   }
 
   function grade(good) {
+    const c = session.current;
+    if (!c) return;
     if (sprint) {
       if (good) sprint.count++;
       $("sprint-count").textContent = sprint.count;
-      Srs.grade(session.current, good);
+      Srs.grade(c, good, { practice: true });
       session.reviewed++;
       if (good) session.correct++;
       updateDueBadge();
       nextSprintCard();
       return;
     }
-    const c = session.current;
-    undoStack.push({
+    const prev = Srs.record(c.id);
+    const step = {
       card: c,
-      prevProg: Srs.record(c.id) ? JSON.parse(JSON.stringify(Srs.record(c.id))) : null,
+      prevProg: prev ? { ...prev } : null,
       queue: [...session.queue],
       reviewed: session.reviewed,
       correct: session.correct,
-      newIntroduced: session.newIntroduced,
-    });
+      wasNew: false,
+    };
+    undoStack.push(step);
     if (undoStack.length > 20) undoStack.shift();
     if (!good) session.missed.push(c);
     if (good) session.correct++;
-    if (Srs.grade(c, good))
+    if (Srs.grade(c, good, { practice: session.practice }))
       session.queue.splice(Math.min(CONFIG.requeueGap, session.queue.length), 0, c);
+    if (!prev && Srs.record(c.id)) { step.wasNew = true; addNewToday(1); }
     session.reviewed++;
     next();
     updateDueBadge();
   }
 
   function undo() {
+    if (sprint) return;
     const u = undoStack.pop();
     if (!u) return;
     Srs.restore(u.card.id, u.prevProg);
+    if (u.wasNew) addNewToday(-1);
     session.queue = u.queue;
     session.current = u.card;
     session.face = pickFace();
@@ -809,9 +944,9 @@ const Quiz = (() => {
     session.verdict = null;
     session.reviewed = u.reviewed;
     session.correct = u.correct;
-    session.newIntroduced = u.newIntroduced;
     if (session.missed[session.missed.length - 1]?.id === u.card.id) session.missed.pop();
     render();
+    updateDueBadge();
   }
 
   /* ---- rendering ---- */
@@ -828,7 +963,11 @@ const Quiz = (() => {
     $("stLearn").textContent = learn;
     $("stKnown").textContent = known;
     $("stDue").textContent = due;
-    $("stToday").textContent = session.reviewed ? session.reviewed + " · " + Math.round(100 * session.correct / session.reviewed) + "%" : 0;
+    $("stLeft").textContent = session.queue.length + (session.current ? 1 : 0);
+    $("stToday").textContent = session.reviewed;
+    $("stAcc").textContent = session.reviewed
+      ? ` · ${Math.round(100 * session.correct / session.reviewed)}% right` : "";
+    $("qundo").disabled = !undoStack.length || !!sprint;
   }
 
   /* One face descriptor per card type: prompt shown up front, answer parts
@@ -900,13 +1039,11 @@ const Quiz = (() => {
     const verdict = v
       ? `<p class="verdict ${v.ok ? "ok" : "no"}">${v.ok ? "Correct" : "Not quite"} — <span lang="ja">${esc(matching() ? counterpart(session.current) : "")}</span>${matching() ? "" : esc(answerRom(session.current))}${v.ok ? "" : ` (you answered: ${esc(v.got)})`}</p>`
       : "";
-    /* memory hook for the 46 base characters, from the guide */
-    const c = session.current;
-    const m = c.type === "char" ? MNEM[c.rom] : null;
-    const mnem = m ? `<p class="qmnem">${c.deck.startsWith("Kata") ? m[1] : m[0]}</p>` : "";
+    const m = mnemOf(session.current);
+    const mnem = m ? `<p class="qmnem">${m}</p>` : "";
     return `${verdict}${mnem}<div class="qbtns">
-      <button class="qb again" id="bAgain">Again</button>
-      <button class="qb" id="bGood">Got it</button></div>`;
+      <button class="qb again" id="bAgain">Again <kbd>1</kbd></button>
+      <button class="qb" id="bGood">Got it <kbd>2</kbd></button></div>`;
   }
 
   function render() {
@@ -914,12 +1051,23 @@ const Quiz = (() => {
     const c = session.current;
     if (!c) return renderDone();
     const p = Srs.record(c.id);
+    const boxes = CONFIG.intervals.length;
+    const level = p
+      ? `<span class="dots" role="img" aria-label="Box ${p.b + 1} of ${boxes}" title="Box ${p.b + 1} of ${boxes} — each hit moves a card up a box, and higher boxes come back less often">${
+          CONFIG.intervals.map((_, i) => `<i${i <= p.b ? ' class="on"' : ""}></i>`).join("")}</span>`
+      : `<span class="newtag">new</span>`;
     $("qarea").innerHTML = `<div class="qcard">
-      <span class="tag">${esc(c.deck)}${p ? "" : " · new"}</span>
-      <span class="box">box ${(p ? p.b : 0) + 1}/${CONFIG.intervals.length}</span>
+      <span class="tag">${esc(c.deck)}</span>
+      <span class="box">${level}</span>
       ${faceHTML(c, session.face)}${controlsHTML()}
     </div>`;
     session.revealed ? wireRevealed(c) : wirePrompt(c);
+    if (!session.revealed)
+      announce(listening() ? "Listen, then type what you hear." : session.face === "jp" ? cardJp(c) : cardGloss(c));
+    else {
+      const v = session.verdict;
+      announce((v ? (v.ok ? "Correct. " : "Not quite. ") : "") + `${cardJp(c)} — ${answerRom(c)}` + (c.mean ? `, ${c.mean}` : ""));
+    }
   }
 
   function renderDone() {
@@ -928,18 +1076,26 @@ const Quiz = (() => {
     const missed = [...new Map(session.missed.map((c) => [c.id, c])).values()].slice(0, 15);
     const summary = missed.length
       ? `<div class="qsummary"><h3>Missed this session</h3><ul>${missed.map((c) => {
-          const jp = c.type === "char" ? c.char : c.type === "kanji" ? c.kanji : c.kana.join("");
-          const m = c.type === "char" && MNEM[c.rom] ? ` — ${c.deck.startsWith("Kata") ? MNEM[c.rom][1] : MNEM[c.rom][0]}` : "";
-          return `<li><b>${esc(jp)}</b> ${esc(answerRom(c))}${m}</li>`;
+          const m = mnemOf(c);
+          return `<li><b lang="ja">${esc(cardJp(c))}</b> ${esc(answerRom(c))}${m ? ` — ${m}` : ""}</li>`;
         }).join("")}</ul></div>`
       : "";
+    /* unseen cards left once today's allowance is spent: offer a few more
+       rather than sending the learner to the settings to raise a number    */
+    const unseen = deckCards().filter((c) => !Srs.record(c.id)).length;
+    const more = Math.min(5, unseen);
     $("qarea").innerHTML = `<div class="qcard"><div class="qdone">
       <p><b>Nothing due.</b> ${r ? `You reviewed ${r} card${r > 1 ? "s" : ""} — nice.` : ""}</p>
       ${summary}
-      <p>Come back later, pick another deck, or raise <i>new/session</i> to keep going.</p>
-      <div class="qbtns"><button class="qb ghost" id="qrefill">Check again</button></div>
+      <p>${more
+        ? `Today's new cards are done, with ${unseen} still unseen in this deck. Come back later for reviews, or keep going.`
+        : "Come back later for reviews, or pick another deck."}</p>
+      <div class="qbtns">${more ? `<button class="qb" id="qmore">Learn ${more} more</button>` : ""}<button class="qb ghost" id="qrefill">Check again</button></div>
     </div></div>`;
+    announce("Nothing due.");
     $("qrefill").onclick = () => { buildQueue(); next(); };
+    /* sized so exactly `more` fit, whatever the allowance is set to now */
+    if (more) $("qmore").onclick = () => { session.bonusNew = more + newToday() - settings.newn; buildQueue(); next(); };
   }
 
   function wireRevealed(c) {
@@ -949,7 +1105,7 @@ const Quiz = (() => {
     /* focus the grade the verdict suggests — Enter then continues */
     const v = session.verdict;
     if (v) (v.ok ? $("bGood") : $("bAgain")).focus();
-    if (settings.speak) Speech.say(speechText(c));
+    if (settings.speak) speak(c);
   }
 
   function wirePrompt(c) {
@@ -961,13 +1117,14 @@ const Quiz = (() => {
     const show = $("bShow");
     if (show) show.onclick = () => reveal(null);
     const rep = $("bReplay");
-    if (rep) rep.onclick = () => Speech.say(speechText(c));
-    if (listening()) Speech.say(speechText(c));
+    if (rep) rep.onclick = () => speak(c);
+    if (listening()) speak(c);
     const input = $("qtype");
     if (input) {
       input.focus();
       input.addEventListener("keydown", (e) => {
-        if (e.key !== "Enter") return;
+        /* Enter that confirms an IME conversion is not "submit" */
+        if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
         e.stopPropagation();
         reveal({ ok: checkTyped(input.value, c), got: input.value.trim() || "—" });
       });
@@ -978,7 +1135,7 @@ const Quiz = (() => {
   function wire() {
     const deckSel = $("qdeck");
     const deckGroups = [
-      ["Everything", Object.keys(COMPOSITE)],
+      ["Everything", COMPOSITE_DECKS.filter((d) => d !== "Look-alikes")],
       ["Characters", ["Hiragana", "Katakana", "Hiragana combos", "Katakana combos", "Look-alikes"]],
       ["Phrases & words", DATA.map((d) => d[0])],
       ["Kanji", ["Survival kanji"]],
@@ -986,33 +1143,49 @@ const Quiz = (() => {
     ];
     deckSel.innerHTML = deckGroups.map(([label, items]) =>
       `<optgroup label="${esc(label)}">${items.map((d) => `<option>${esc(d)}</option>`).join("")}</optgroup>`).join("");
-    if (!COMPOSITE[settings.deck] && !DECK_ORDER.includes(settings.deck))
-      settings.deck = "All decks";
+    if (!isDeck(settings.deck)) settings.deck = "All decks";
     deckSel.value = settings.deck;
     $("qdir").value = settings.dir;
     $("qmode").value = settings.mode;
     $("qnewn").value = settings.newn;
     $("qspeak").checked = settings.speak;
 
+    on("qopts-btn", "click", () => {
+      const open = $("qopts").hidden;
+      $("qopts").hidden = !open;
+      $("qopts-btn").setAttribute("aria-expanded", String(open));
+    });
+
+    /* mid-sprint, a settings change deals a fresh sprint card instead of
+       dropping back into the review queue                                  */
     const onChange = {
-      qdeck: () => { buildQueue(); next(); },
-      qdir: () => { session.face = pickFace(); render(); },
-      qmode: () => render(),
-      qnewn: () => { buildQueue(); if (!session.current) next(); },
+      qdeck: () => { if (sprint) return sprintCards().length ? nextSprintCard() : endSprint(true); buildQueue(); next(); },
+      qdir: () => { if (!sprint) session.face = pickFace(); render(); },
+      qmode: () => { if (!sprint) session.face = pickFace(); render(); },
+      qnewn: () => { if (sprint) return; buildQueue(session.current); if (!session.current) next(); else stats(); },
       qspeak: () => {},
     };
     Object.entries(onChange).forEach(([id, fn]) =>
       on(id, "change", () => { saveSettings(); fn(); }));
 
+    /* Space/Enter belong to a control the user tabbed onto; a button that
+       only holds focus because it was just clicked doesn't claim them.     */
+    const keyboardFocused = (t) => {
+      try { return /^(BUTTON|A|SUMMARY)$/.test(t.tagName) && t.matches(":focus-visible"); } catch { return false; }
+    };
     document.addEventListener("keydown", (e) => {
       if (!document.body.classList.contains("mode-quiz")) return;
-      if (e.target.id === "qtype" || /^(INPUT|SELECT)$/.test(e.target.tagName)) return;
-      if ((e.key === " " || e.key === "Enter") && !session.revealed && session.current) {
-        e.preventDefault();
-        reveal(null);
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      /* typing anywhere — answer box, deck name, the CSV textarea — is
+         never a shortcut                                                   */
+      const t = e.target;
+      if (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      if (e.key === " " || e.key === "Enter") {
+        if (keyboardFocused(t)) return;
+        if (!session.revealed && session.current) { e.preventDefault(); reveal(null); }
       } else if (e.key === "1" && session.revealed) grade(false);
       else if (e.key === "2" && session.revealed) grade(true);
-      else if (e.key === "s" && session.current) Speech.say(speechText(session.current));
+      else if (e.key === "s" && session.current) speak(session.current);
       else if (e.key === "u") undo();
     });
 
@@ -1030,27 +1203,37 @@ const Quiz = (() => {
     });
 
     on("qexport", "click", () => {
-      const payload = { v: 2, when: new Date().toISOString(), prog: Srs.all(), custom: Custom.decks };
-      const blob = new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "kana-trainer-progress.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      const payload = { v: 3, when: new Date().toISOString(), prog: Srs.all(), custom: Custom.decks };
+      download("kana-trainer-progress.json", JSON.stringify(payload, null, 1), "application/json");
+      toast("Backup saved to your downloads");
     });
     on("qimport", "click", () => $("qfile").click());
     on("qfile", "change", (e) => {
       const f = e.target.files[0];
+      e.target.value = ""; /* so choosing the same file again still fires */
       if (!f) return;
       f.text().then((t) => {
-        try {
-          const j = JSON.parse(t);
-          if (!j || typeof j.prog !== "object") throw new Error("shape");
-          Srs.replace(j.prog);
-          if (Array.isArray(j.custom)) { Custom.decks = j.custom; Custom.save(); location.reload(); return; }
-          buildQueue();
-          next();
-        } catch { alert("That file didn't parse as progress JSON."); }
+        /* validate everything first — nothing is touched until the file
+           has parsed, checked out, and the learner has agreed to replace   */
+        let j = null;
+        try { j = JSON.parse(t); } catch {}
+        const prog = j && cleanProg(j.prog);
+        if (!prog) { alert("That file isn't a Kana Trainer export — nothing was changed."); return; }
+        const decks = Array.isArray(j.custom) ? cleanDecks(j.custom, RESERVED_DECKS) : null;
+        const n = Object.keys(prog).length;
+        const what = `${n} card record${n === 1 ? "" : "s"}`
+          + (decks ? ` and ${decks.length} custom deck${decks.length === 1 ? "" : "s"}` : "");
+        if ((Object.keys(Srs.all()).length || Custom.decks.length)
+            && !confirm(`Replace what's saved in this browser with the file's ${what}?\n\nExport first if you want a backup of what's here now.`)) return;
+        if (decks) Custom.decks = decks; /* first: old custom ids migrate through the file's decks */
+        Srs.replace(prog);
+        if (decks) { toast.afterReload(`Imported ${what}`); return Custom.commit(); } /* decks changed the card list — reloads */
+        toast(`Imported ${what}`);
+        undoStack.length = 0;
+        session.missed = [];
+        buildQueue();
+        next();
+        updateDueBadge();
       });
     });
     /* ---- My decks (CSV) ---- */
@@ -1080,6 +1263,8 @@ const Quiz = (() => {
       const name = $("md-name").value.trim();
       const cards = Custom.parse($("md-csv").value);
       if (!name || !cards.length) { alert("Give the deck a name and at least one line: front, reading, meaning"); return; }
+      if (RESERVED_DECKS.includes(name)) { alert(`"${name}" is one of the built-in decks — pick another name.`); return; }
+      toast.afterReload(`Saved "${name}" — ${cards.length} card${cards.length === 1 ? "" : "s"}`);
       Custom.upsert(name, cards);
     });
     on("md-load", "click", () => $("md-fileinput").click());
@@ -1095,7 +1280,14 @@ const Quiz = (() => {
       const act = (attr) => { const b = e.target.closest(`[data-${attr}]`); return b ? +b.dataset[attr] : null; };
       if (e.target.id === "md-sample") { $("md-csv").value = SAMPLE; $("md-name").value ||= "Sample deck"; mdCount(); return; }
       const del = act("deldeck");
-      if (del !== null) { if (confirm("Remove this deck from the trainer?")) Custom.remove(del); return; }
+      if (del !== null) {
+        const name = Custom.decks[del].name;
+        if (confirm(`Remove "${name}" from the trainer? Its cards and their progress go with it.`)) {
+          toast.afterReload(`Removed "${name}"`);
+          Custom.remove(del);
+        }
+        return;
+      }
       const ed = act("editdeck");
       if (ed !== null) {
         const d = Custom.decks[ed];
@@ -1109,63 +1301,68 @@ const Quiz = (() => {
       const dl = act("dldeck");
       if (dl !== null) {
         const d = Custom.decks[dl];
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([Custom.toCSV(d)], { type: "text/csv" }));
-        a.download = d.name + ".csv";
-        a.click();
-        URL.revokeObjectURL(a.href);
+        download(d.name + ".csv", Custom.toCSV(d), "text/csv");
       }
     });
 
     on("qreset", "click", () => {
       if (!confirm("Wipe all quiz progress? This can't be undone (export first if unsure).")) return;
+      if (sprint) endSprint(true, false);
       Srs.reset();
-      session.newIntroduced = 0;
+      store.set(NEW_KEY, null);
+      undoStack.length = 0;
+      session.missed = [];
+      session.bonusNew = 0;
       buildQueue();
       next();
+      updateDueBadge();
+      toast("Progress reset");
     });
   }
 
   /* focused drill on an explicit card list (e.g. the lapse list) */
   function drillCards(cards) {
+    if (sprint) endSprint(true, false);
     session.queue = [...cards];
+    session.practice = true;
     session.customPending = true;
   }
 
+  /* ignores names that aren't decks — the hash can ask for anything */
   function setDeck(name) {
+    if (!isDeck(name)) return;
     settings.deck = name;
     store.set(CONFIG.settingsKey, settings);
     $("qdeck").value = name;
+    session.current = null; /* the card on screen belongs to the old deck */
+    session.customPending = false;
   }
 
   return {
     wire, drillCards, setDeck,
+    /* entering the Quiz tab: pick up newly due cards, but keep the card
+       you were on rather than dealing a new one every visit                */
     start() {
+      if (sprint) return;
       if (session.customPending) { session.customPending = false; next(); }
+      else if (session.current) { if (!session.practice) buildQueue(session.current); render(); }
       else { buildQueue(); next(); }
     },
+    /* leaving the Quiz tab abandons a running sprint */
+    leave() { if (sprint) endSprint(true, false); },
+    /* another tab changed the record: refresh the counts, keep the card */
+    refresh() { if (document.body.classList.contains("mode-quiz") && !sprint) stats(); },
   };
 })();
 
 /* --------------------------- Progress view ------------------------------- */
 const Progress = (() => {
-  const label = (c) =>
-    c.type === "char" ? { jp: c.char, mn: c.rom }
-    : c.type === "kanji" ? { jp: c.kanji, mn: c.mean }
-    : { jp: c.kana.join(""), mn: c.mean };
-
-  const li = (c, extra = "") => {
-    const L = label(c);
-    return `<li><span class="jp2" lang="ja">${esc(L.jp)}</span><span class="mn">${esc(L.mn)}${extra}</span></li>`;
-  };
+  const li = (c, extra = "") =>
+    `<li><span class="jp2" lang="ja">${esc(cardJp(c))}</span><span class="mn">${esc(cardGloss(c))}${extra}</span></li>`;
 
   function stats() {
     const days = Srs.days();
-    const dayKey = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return ymd(d); };
-    /* streak: consecutive review days ending today (or yesterday, so an
-       unfinished today doesn't read as zero) */
-    let streak = 0, i = days[dayKey(0)] ? 0 : 1;
-    while (days[dayKey(i)]) { streak++; i++; }
+    const streak = streakOf(days);
     /* due forecast */
     const now = Date.now(), eod = new Date(); eod.setHours(23, 59, 59, 999);
     let dueNow = 0, dueTom = 0, dueWeek = 0;
@@ -1189,14 +1386,21 @@ const Progress = (() => {
       }
       heat += "</div>";
     }
+    let known = 0, learning = 0;
+    CARDS.forEach((c) => { const p = Srs.record(c.id); if (p) Srs.isKnown(p) ? known++ : learning++; });
+    $("pfirst").hidden = known + learning > 0;
     $("pstats").innerHTML = `
-      <div class="pnums">
-        <span><b>${streak}</b>day streak</span>
-        <span><b>${dueNow}</b>due now</span>
-        <span><b>${dueTom}</b>due by tomorrow</span>
-        <span><b>${dueWeek}</b>rest of the week</span>
+      <div class="ptotals">
+        <div class="kn"><b>${known}</b><span>known</span></div>
+        <div class="ln"><b>${learning}</b><span>learning</span></div>
+        <div class="nw"><b>${CARDS.length - known - learning}</b><span>unseen</span></div>
+        <div class="st"><b>${streak}</b><span>day streak</span></div>
       </div>
-      <div class="heat">${heat}</div>`;
+      <p class="pdue"><b class="now">${dueNow}</b> due now · <b>${dueTom}</b> more by tomorrow · <b>${dueWeek}</b> later this week${
+        dueNow ? ' <button type="button" class="minibtn" id="pgo">review now →</button>' : ""}</p>
+      <h2 class="phead">Last 12 weeks</h2>
+      <div class="heat" role="img" aria-label="Reviews per day over the last 12 weeks">${heat}</div>`;
+    if (dueNow) $("pgo").onclick = () => setMode("quiz");
   }
 
   function render() {
@@ -1209,9 +1413,11 @@ const Progress = (() => {
         if (!p) unseen++; else if (Srs.isKnown(p)) known++; else learning++;
       });
       const w = (x) => (100 * x / cards.length).toFixed(1) + "%";
+      const split = `${known} known · ${learning} learning · ${unseen} unseen`;
       return `<div class="pdeck">
-        <h3>${esc(deck)}<span>${known} known · ${learning} learning · ${unseen} unseen of ${cards.length}</span></h3>
-        <div class="pbar"><i class="kn" style="width:${w(known)}"></i><i class="ln" style="width:${w(learning)}"></i><i class="nw" style="width:${w(unseen)}"></i></div>
+        <h3><button type="button" class="pname" data-quizdeck="${esc(deck)}" title="Quiz this deck">${esc(deck)}<i>quiz →</i></button>
+          <span class="pcount">${known || learning ? `${known} known${learning ? ` · ${learning} learning` : ""} / ` : "0 / "}${cards.length}</span></h3>
+        <div class="pbar" role="img" aria-label="${split}" title="${split}"><i class="kn" style="width:${w(known)}"></i><i class="ln" style="width:${w(learning)}"></i><i class="nw" style="width:${w(unseen)}"></i></div>
       </div>`;
     }).join("");
 
@@ -1222,7 +1428,7 @@ const Progress = (() => {
 
     $("pknown").innerHTML = known.length
       ? known.map((c) => li(c)).join("")
-      : `<li class="pempty">Nothing yet — a card counts as learned once it survives the 7-day gap.</li>`;
+      : `<li class="pempty">Nothing yet — a card counts as learned once you pass the review that follows its 7-day gap.</li>`;
     $("plapse").innerHTML = lapsed.length
       ? lapsed.map((c) => li(c, ` · missed ×${Srs.record(c.id).l}`)).join("")
       : `<li class="pempty">No repeat offenders. Cards land here after three misses.</li>`;
@@ -1231,6 +1437,12 @@ const Progress = (() => {
     btn.hidden = !lapsed.length;
     btn.onclick = () => { Quiz.drillCards(lapsed); setMode("quiz"); };
   }
+
+  on("pstart", "click", () => setMode("quiz"));
+  on("pbars", "click", (e) => {
+    const b = e.target.closest("[data-quizdeck]");
+    if (b) { Quiz.setDeck(b.dataset.quizdeck); setMode("quiz"); }
+  });
 
   return { render };
 })();
@@ -1259,12 +1471,15 @@ function setMode(mode) {
   currentMode = mode;
   document.body.className = document.body.className.replace(/mode-\w+/g, "").trim();
   document.body.classList.add("mode-" + mode);
+  /* view switches, not ARIA tabs: aria-current marks the one showing */
   document.querySelectorAll(".tab").forEach((t) =>
-    t.setAttribute("aria-selected", String(t.dataset.mode === mode)));
+    t.dataset.mode === mode ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  Player.stop();
+  if (mode !== "quiz") Quiz.leave();
   if (mode === "quiz") Quiz.start();
   if (mode === "progress") Progress.render();
-  Player.stop();
   syncHash();
+  if (modeInitialized) window.scrollTo({ top: 0, behavior: "instant" });
   /* move keyboard/screen-reader focus into the newly shown panel */
   if (modeInitialized) {
     const panel = $(mode);
@@ -1275,8 +1490,11 @@ function setMode(mode) {
 }
 
 /* ------------------------------- Init ------------------------------------ */
-/* #quiz, #progress, #study/s5 — read before wiring, which rewrites the hash */
-const [hashMode, hashArg] = location.hash.slice(1).split("/").map(decodeURIComponent);
+/* #quiz, #quiz/<deck>, #progress, #study/s5 — read before wiring, which
+   rewrites the hash                                                         */
+const MODES = ["study", "quiz", "progress"];
+const readHash = () => location.hash.slice(1).split("/").map(safeDecode);
+const [hashMode, hashArg] = readHash();
 const hashSec = hashMode === "study" ? hashArg : null;
 if (hashMode === "quiz" && hashArg) Quiz.setDeck(hashArg);
 StudyView.render();
@@ -1284,12 +1502,31 @@ StudyView.wire();
 Quiz.wire();
 document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setMode(t.dataset.mode)));
 if (hashSec) StudyView.go(hashSec);
-setMode(["study", "quiz", "progress"].includes(hashMode) ? hashMode : "study");
+setMode(MODES.includes(hashMode) ? hashMode : "study");
+updateDueBadge();
 window.addEventListener("hashchange", () => {
-  const [m, s] = location.hash.slice(1).split("/");
-  if (["study", "quiz", "progress"].includes(m) && m !== currentMode) setMode(m);
-  if (m === "study" && s && s !== StudyView.current()) StudyView.go(s);
+  const [m, arg] = readHash();
+  if (!MODES.includes(m)) return;
+  if (m === "quiz" && arg) Quiz.setDeck(arg);
+  if (m !== currentMode || (m === "quiz" && arg)) setMode(m);
+  if (m === "study" && arg && arg !== StudyView.current()) StudyView.go(arg);
 });
+
+/* A second trainer tab writes the same record. Take its version instead
+   of overwriting it with this tab's stale copy on the next grade.          */
+window.addEventListener("storage", (e) => {
+  if (e.key !== CONFIG.progressKey) return;
+  Srs.reload();
+  updateDueBadge();
+  Quiz.refresh();
+  if (currentMode === "progress") Progress.render();
+});
+
+/* the study bar wraps to two rows on narrow screens — section headings
+   stick directly beneath it, whatever its height                          */
+if (window.ResizeObserver)
+  new ResizeObserver(() =>
+    document.documentElement.style.setProperty("--bar-h", $("bar").offsetHeight + "px")).observe($("bar"));
 
 /* first-visit pointer */
 if (!store.get("kanaTrainerHello.v1") && !Object.keys(Srs.all()).length) {
@@ -1302,9 +1539,8 @@ if (!store.get("kanaTrainerHello.v1") && !Object.keys(Srs.all()).length) {
 
 if (!store.ok) {
   const warn = document.createElement("p");
-  warn.className = "legend";
-  warn.style.margin = "8px 0 0";
+  warn.className = "qwarn";
   warn.innerHTML =
-    "⚠ This browser is blocking storage, so quiz progress lasts only until you close the tab — use <b>Export progress</b> to keep it.";
-  document.querySelector(".qman").after(warn);
+    "<b>This browser is blocking storage</b>, so quiz progress lasts only until you close the tab — use Export progress (under Backup &amp; reset) to keep it.";
+  $("qarea").before(warn);
 }

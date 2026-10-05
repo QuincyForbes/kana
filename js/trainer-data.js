@@ -43,10 +43,12 @@ const DATA = [
  [["こ","れ","で","い","い","で","す","か"],["ko","re","de","i","i","de","su","ka"],"Is this okay?"],
  [["な","ん","と","い","い","ま","す","か"],["na","n","to","i","i","ma","su","ka"],"How do you say it?"]
 ]],
+/* the first three rows are templates: the 4th field names the slot the
+   learner's own name / country / job fills in (see personalizeIntro) */
 ["Introducing yourself","じこしょうかい",[
- [["わ","た","し","は","ク","イ","ン","シ","ー","で","す"],["wa","ta","shi","*wa","ku","i","n","shi","~","de","su"],"I'm Quincy — your name in katakana"],
- [["カ","ナ","ダ","か","ら","き","ま","し","た"],["ka","na","da","ka","ra","ki","ma","shi","ta"],"I'm from Canada"],
- [["エ","ン","ジ","ニ","ア","で","す"],["e","n","ji","ni","a","de","su"],"I'm an engineer"],
+ [["わ","た","し","は","ク","イ","ン","シ","ー","で","す"],["wa","ta","shi","*wa","ku","i","n","shi","~","de","su"],"I'm Quincy — your name in katakana","name"],
+ [["カ","ナ","ダ","か","ら","き","ま","し","た"],["ka","na","da","ka","ra","ki","ma","shi","ta"],"I'm from Canada","country"],
+ [["エ","ン","ジ","ニ","ア","で","す"],["e","n","ji","ni","a","de","su"],"I'm an engineer","job"],
  [["に","ほ","ん","ご","を","べ","ん","きょ","う","し","て","い","ま","す"],["ni","ho","n","go","*o","be","n","kyo","u","shi","te","i","ma","su"],"I'm studying Japanese"],
  [["お","な","ま","え","は","な","ん","で","す","か"],["o","na","ma","e","*wa","na","n","de","su","ka"],"What's your name?"],
  [["し","ご","と","は","な","ん","で","す","か"],["shi","go","to","*wa","na","n","de","su","ka"],"What do you do for work?"],
