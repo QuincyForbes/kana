@@ -32,3 +32,18 @@ jobs:
             echo "version mismatch: pages are at $v but sw.js VERSION is $sw"; exit 1
           fi
           echo "all pages and sw.js at $v"
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Playwright is installed for this job only — the site itself has no dependencies
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1
+          npx playwright install --with-deps chromium
+      - name: Browser smoke test
+        run: node tools/smoke.mjs

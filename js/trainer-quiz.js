@@ -257,6 +257,9 @@ const Quiz = (() => {
       input.addEventListener("keydown", (e) => {
         /* Enter that confirms an IME conversion is not "submit" */
         if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+        /* reveal moves focus to a grade button; unprevented, this same
+           keystroke would go on to press it before the verdict is read  */
+        e.preventDefault();
         e.stopPropagation();
         reveal({ ok: checkTyped(input.value, c), got: input.value.trim() || "—" });
       });
@@ -312,11 +315,14 @@ const Quiz = (() => {
     Object.entries(onChange).forEach(([id, fn]) =>
       on(id, "change", () => { saveSettings(); fn(); }));
 
-    /* Space/Enter belong to a control the user tabbed onto; a button that
-       only holds focus because it was just clicked doesn't claim them.     */
-    const keyboardFocused = (t) => {
-      try { return /^(BUTTON|A|SUMMARY)$/.test(t.tagName) && t.matches(":focus-visible"); } catch { return false; }
-    };
+    /* Space/Enter belong to a control the user Tabbed onto; a button that
+       only holds focus because it was just clicked doesn't claim them.
+       (:focus-visible can't tell: it turns on with the very keystroke being
+       handled.)                                                            */
+    let tabbed = false;
+    document.addEventListener("keydown", (e) => { if (e.key === "Tab") tabbed = true; }, true);
+    document.addEventListener("pointerdown", () => { tabbed = false; }, true);
+    const keyboardFocused = (t) => tabbed && /^(BUTTON|A|SUMMARY)$/.test(t.tagName);
     document.addEventListener("keydown", (e) => {
       if (!document.body.classList.contains("mode-quiz")) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;

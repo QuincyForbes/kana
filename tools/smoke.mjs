@@ -1,0 +1,167 @@
+// Browser smoke test — drives the real pages in Chromium and fails on any
+// console error, uncaught exception or broken same-origin request. It covers
+// the stateful flows the node tests can't reach: grading and undo, typed
+// answers, view switching, export → import, custom decks, the sprint, the
+// theme toggle, the guide's modal, and loading offline through the worker.
+//
+//   npm install --no-save --no-package-lock playwright@1 && npx playwright install chromium
+//   node tools/smoke.mjs
+//
+// Playwright is deliberately not a repo dependency (the site has none); CI
+// installs it for this job only. Set SMOKE_CHANNEL=chrome or msedge to use
+// a browser that is already installed instead of downloading Chromium.
+import { createServer } from 'node:http';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, extname, normalize } from 'node:path';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const { chromium } = await import('playwright');
+
+/* ---- a static server for the repo ---- */
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg', '.png': 'image/png' };
+const server = createServer(async (req, res) => {
+  let p = decodeURIComponent(req.url.split('?')[0]);
+  if (p.endsWith('/')) p += 'index.html';
+  const file = normalize(join(root, p));
+  if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
+  try {
+    const body = await readFile(file);
+    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    res.end(body);
+  } catch { res.writeHead(404); res.end('not found'); }
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const base = `http://127.0.0.1:${server.address().port}/`;
+
+/* ---- browser + bookkeeping ---- */
+const browser = await chromium.launch({ channel: process.env.SMOKE_CHANNEL || undefined });
+const context = await browser.newContext({ acceptDownloads: true });
+const page = await context.newPage();
+const problems = [], dialogs = [];
+let failed = 0;
+const check = (ok, label) => { if (ok) console.log(`✓ ${label}`); else { failed++; console.error(`✗ ${label}`); } };
+page.on('pageerror', (e) => problems.push(`exception on ${page.url()}: ${e.message}`));
+page.on('console', (m) => {
+  if (m.type() === 'error' && (m.location().url || base).startsWith(base)) problems.push(`console error on ${page.url()}: ${m.text()}`);
+});
+page.on('response', (r) => { if (r.status() >= 400 && r.url().startsWith(base)) problems.push(`${r.status()} ${r.url()}`); });
+page.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
+const open = async (path) => { await page.goto(base + path); await page.waitForLoadState('load'); };
+const card = () => page.evaluate(() => QuizSession.state.current && QuizSession.state.current.id);
+/* the stored record as a string that doesn't depend on key order */
+const records = () => page.evaluate(() => JSON.stringify(
+  Object.entries(Srs.all()).sort().map(([id, r]) => [id, Object.entries(r).sort()])));
+const tmp = await mkdtemp(join(tmpdir(), 'kana-smoke-'));
+
+try {
+  /* ---- every page loads, with the shared header ---- */
+  for (const p of ['index.html', 'guide.html', 'trainer.html', 'mnemonics.html']) {
+    await open(p);
+    check(await page.locator('#sitebar .brand').count() === 1 && await page.locator('#themebtn').count() === 1, `${p} loads with the site header`);
+  }
+  await open('404.html');
+  check((await page.title()).includes('404'), '404.html loads');
+
+  /* ---- theme toggle flips and is remembered ---- */
+  await open('index.html');
+  const before = await page.getAttribute('html', 'data-theme');
+  await page.click('#themebtn');
+  const after = await page.getAttribute('html', 'data-theme');
+  await page.reload();
+  check(after !== before && await page.getAttribute('html', 'data-theme') === after, 'theme toggle flips and survives a reload');
+
+  /* ---- guide: panels, chart → modal → next ---- */
+  await open('guide.html');
+  for (const id of ['tricky', 'rules', 'grammar', 'pron', 'drill-sec', 'plan', 'chart']) await page.click(`.jumpnav a[href="#${id}"]`);
+  check(await page.locator('#chart').isVisible(), 'guide panels switch');
+  await page.locator('#grid .k-cell').first().click();
+  const romaji = () => page.locator('#detail .romaji-big').textContent();
+  const first = await romaji();
+  await page.keyboard.press('ArrowRight');
+  check(await page.locator('#detail-modal[open]').count() === 1 && await romaji() !== first, 'chart cell opens the detail modal; arrow keys walk it');
+  await page.click('#detail-close');
+
+  /* ---- trainer: grade, undo, typed answers, view switches ---- */
+  await open('trainer.html#quiz');
+  await page.selectOption('#qdeck', 'Hiragana');
+  const c1 = await card();
+  await page.keyboard.press('Space');
+  await page.locator('#bGood').waitFor();
+  await page.keyboard.press('2');
+  const c2 = await card();
+  check(c1 && c2 && c1 !== c2 && (await records()).includes(c1), 'reveal + "got it" grades the card and deals the next');
+  await page.keyboard.press('u');
+  check(await card() === c1 && !(await records()).includes(c1), 'undo brings the card back and removes its record');
+
+  for (let i = 0; i < 4; i++) { await page.click('#tab-progress'); await page.click('#tab-quiz'); }
+  check(await card() === c1, 'switching views keeps the card on screen');
+
+  await page.selectOption('#qmode', 'type');
+  await page.fill('#qtype', await page.evaluate(() => answerRom(QuizSession.state.current)));
+  await page.keyboard.press('Enter');
+  check(await page.locator('.verdict.ok').count() === 1, 'typed answer is checked and accepted');
+  await page.keyboard.press('2');
+  await page.selectOption('#qmode', 'match');
+  check(await page.locator('.qchoices .qc').count() === 4, 'match mode offers four choices');
+  await page.selectOption('#qmode', 'flip');
+
+  await page.click('#tab-study');
+  check(await page.locator('#out .row').count() > 200, 'study view lists the phrases');
+  await page.click('#tab-progress');
+  check(await page.locator('#pstats .ptotals').isVisible() && await page.locator('#pbars .pdeck').count() > 20, 'progress view renders totals and decks');
+
+  /* ---- sprint starts and stops ---- */
+  await page.click('#tab-quiz');
+  await page.click('#qsprint');
+  const sprinting = await page.locator('#sprint-box').isVisible();
+  await page.click('#qsprint');
+  check(sprinting && await page.locator('#sprint-box').isHidden(), 'sprint starts and stops');
+
+  /* ---- export → change something → import restores it ---- */
+  await page.evaluate(() => { document.getElementById('qdata').open = true; });
+  const saved = await records();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#qexport')]);
+  const backup = join(tmp, 'backup.json');
+  await download.saveAs(backup);
+  await page.keyboard.press('Space'); await page.keyboard.press('2');
+  check(await records() !== saved, '(state changed after the export)');
+  await Promise.all([page.waitForEvent('load'), page.setInputFiles('#qfile', backup)]);
+  check(await records() === saved && !dialogs.some((d) => d.includes("isn't a Kana Trainer export")), 'importing the backup restores the exported record');
+
+  /* ---- custom deck: add it, miss a card, finish — summary and progress still render ---- */
+  await page.evaluate(() => { document.getElementById('mydecks').open = true; });
+  await page.fill('#md-name', 'Smoke deck');
+  await page.fill('#md-csv', '日本, にほん, Japan\n水, , water');
+  check(await page.inputValue('#md-csv') === '日本, にほん, Japan\n水, , water', 'the CSV box accepts spaces and new lines');
+  await Promise.all([page.waitForEvent('load'), page.click('#md-import')]);
+  await page.selectOption('#qdeck', 'Smoke deck');
+  await page.keyboard.press('Space'); await page.keyboard.press('1');
+  for (let i = 0; i < 8 && await page.locator('#bShow').count(); i++) { await page.keyboard.press('Space'); await page.keyboard.press('2'); }
+  check(await page.locator('.qsummary').count() === 1 && (await page.locator('.qsummary').textContent()).includes('日本'), 'session summary lists the missed custom card');
+  await page.click('#tab-progress');
+  check((await page.locator('#pbars').textContent()).includes('Smoke deck'), 'progress view includes the custom deck');
+
+  /* ---- offline: install the worker, cut the network, load another page ---- */
+  await open('index.html?sw=1');
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  await context.setOffline(true);
+  await page.goto(base + 'trainer.html#quiz');
+  check(await page.evaluate(() => typeof CARDS !== 'undefined' && CARDS.length > 400), 'trainer loads offline through the service worker');
+  await context.setOffline(false);
+
+  check(problems.length === 0, 'no console errors, exceptions or failed requests');
+  problems.forEach((p) => console.error('   ' + p));
+} catch (e) {
+  failed++;
+  console.error(`✗ smoke test aborted: ${e.message}`);
+  problems.forEach((p) => console.error('   ' + p));
+} finally {
+  await browser.close();
+  server.close();
+  await rm(tmp, { recursive: true, force: true });
+}
+if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
+console.log('\nsmoke test passed');
