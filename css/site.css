@@ -46,6 +46,10 @@
   .sitebar nav a{padding:9px 8px;letter-spacing:.06em}
   .sitebar .brand{font-size:19px}
 }
+@media (pointer:coarse){
+  .sitebar nav a{padding-top:13px;padding-bottom:13px}
+  .themebtn{width:44px;height:44px}
+}
 @media print{.sitebar,.toasts{display:none!important}}
 
 /* ---------- toasts: quiet confirmation that something happened ---------- */

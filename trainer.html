@@ -24,9 +24,11 @@
   <div class="sitebar" id="sitebar"></div>
 
   <div class="bar" id="bar">
-    <button class="tab" data-mode="study" aria-current="page">Study</button>
-    <button class="tab" data-mode="quiz">Quiz</button>
-    <button class="tab" data-mode="progress">Progress</button>
+    <div class="tabs" role="tablist" aria-label="Trainer views">
+      <button class="tab" role="tab" id="tab-study" data-mode="study" aria-controls="study" aria-selected="true">Study</button>
+      <button class="tab" role="tab" id="tab-quiz" data-mode="quiz" aria-controls="quiz" aria-selected="false" tabindex="-1">Quiz</button>
+      <button class="tab" role="tab" id="tab-progress" data-mode="progress" aria-controls="progress" aria-selected="false" tabindex="-1">Progress</button>
+    </div>
     <span class="studyonly">
       <select id="qsec" aria-label="Study section"></select>
       <button class="tog" id="tR" aria-pressed="true">Romaji</button>
@@ -36,7 +38,7 @@
     </span>
   </div>
 
-  <div id="study">
+  <div id="study" role="tabpanel" aria-labelledby="tab-study" tabindex="-1">
     <header class="mast">
       <p class="jp">かな・カナ・漢字</p>
       <h1>Phrases, one kana per box</h1>
@@ -75,7 +77,7 @@
     </div>
   </div>
 
-  <div id="quiz">
+  <div id="quiz" role="tabpanel" aria-labelledby="tab-quiz" tabindex="-1">
     <div class="qtop">
       <label class="opt grow"><span>Deck</span><select id="qdeck"></select></label>
       <label class="opt grow"><span>Mode</span><select id="qmode">
@@ -142,7 +144,7 @@
     </details>
   </div>
 
-  <div id="progress">
+  <div id="progress" role="tabpanel" aria-labelledby="tab-progress" tabindex="-1">
     <div class="pfirst" id="pfirst" hidden>
       <p><b>Nothing reviewed yet.</b> Everything you grade in the Quiz lands here — streak, what's due, and how each deck is coming along.</p>
       <button type="button" class="qb" id="pstart">Start the quiz</button>
@@ -162,11 +164,11 @@
   </div>
 </div>
 
-<nav class="bottomnav" aria-label="Sections">
-  <button class="tab" data-mode="study" aria-current="page">Study</button>
-  <button class="tab" data-mode="quiz">Quiz</button>
-  <button class="tab" data-mode="progress">Progress</button>
-</nav>
+<div class="bottomnav" role="tablist" aria-label="Trainer views">
+  <button class="tab" role="tab" data-mode="study" aria-controls="study" aria-selected="true">Study</button>
+  <button class="tab" role="tab" data-mode="quiz" aria-controls="quiz" aria-selected="false" tabindex="-1">Quiz</button>
+  <button class="tab" role="tab" data-mode="progress" aria-controls="progress" aria-selected="false" tabindex="-1">Progress</button>
+</div>
 
 <script src="js/site.js?v=22"></script>
 <script src="js/store.js?v=22"></script>

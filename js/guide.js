@@ -195,7 +195,7 @@ function strokeSVG(glyph, colorVar){
     const m = d.match(/^M\s*([\d.]+)[,\s]+([\d.]+)/i);
     if(!m) return '';
     return `<circle cx="${m[1]}" cy="${m[2]}" r="7" fill="var(--shu)" opacity=".85"/>
-      <text x="${m[1]}" y="${+m[2] + 3.5}" text-anchor="middle" font-size="9" fill="#fff" font-family="var(--body)">${i + 1}</text>`;
+      <text x="${m[1]}" y="${+m[2] + 3.5}" text-anchor="middle" font-size="9" fill="var(--on-shu)" font-family="var(--body)">${i + 1}</text>`;
   }).join('');
   return `<svg class="strokes" viewBox="0 0 109 109" aria-label="Stroke order for ${glyph}">
     <g fill="none" stroke="${colorVar}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">

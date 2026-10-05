@@ -29,17 +29,25 @@ function updateDueBadge(){
     if (!b) { b = document.createElement('i'); b.className = 'badge'; tab.appendChild(b); }
     b.textContent = due > 99 ? '99+' : due;
     b.hidden = !due;
+    /* the badge alone would read as "Quiz 3" */
+    if (due) tab.setAttribute('aria-label', `Quiz, ${due} due`); else tab.removeAttribute('aria-label');
   });
 }
 
 let modeInitialized = false;
-function setMode(mode) {
+/* keepFocus: the switch came from a tab itself (click or arrow keys), so
+   focus stays there; any other switch moves it into the new panel.          */
+function setMode(mode, { keepFocus = false } = {}) {
   currentMode = mode;
   document.body.className = document.body.className.replace(/mode-\w+/g, "").trim();
   document.body.classList.add("mode-" + mode);
-  /* view switches, not ARIA tabs: aria-current marks the one showing */
-  document.querySelectorAll(".tab").forEach((t) =>
-    t.dataset.mode === mode ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  /* two tablists (top bar, phone bottom bar) share the three panels; only
+     the selected tab of each is in the Tab order                            */
+  document.querySelectorAll(".tab").forEach((t) => {
+    const on = t.dataset.mode === mode;
+    t.setAttribute("aria-selected", String(on));
+    t.tabIndex = on ? 0 : -1;
+  });
   Player.stop();
   if (mode !== "quiz") Quiz.leave();
   if (mode === "quiz") Quiz.start();
@@ -47,11 +55,7 @@ function setMode(mode) {
   syncHash();
   if (modeInitialized) window.scrollTo({ top: 0, behavior: "instant" });
   /* move keyboard/screen-reader focus into the newly shown panel */
-  if (modeInitialized) {
-    const panel = $(mode);
-    panel.tabIndex = -1;
-    panel.focus({ preventScroll: true });
-  }
+  if (modeInitialized && !keepFocus) $(mode).focus({ preventScroll: true });
   modeInitialized = true;
 }
 
@@ -66,7 +70,18 @@ if (hashMode === "quiz" && hashArg) Quiz.setDeck(hashArg);
 StudyView.render();
 StudyView.wire();
 Quiz.wire();
-document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setMode(t.dataset.mode)));
+document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setMode(t.dataset.mode, { keepFocus: true })));
+/* arrow keys walk the tabs, Home/End jump to the ends */
+document.querySelectorAll('[role="tablist"]').forEach((list) => list.addEventListener("keydown", (e) => {
+  const tabs = [...list.querySelectorAll('[role="tab"]')];
+  const i = tabs.indexOf(document.activeElement);
+  const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+  if (i < 0 || to === undefined) return;
+  e.preventDefault();
+  const t = tabs[(to + tabs.length) % tabs.length];
+  setMode(t.dataset.mode, { keepFocus: true });
+  t.focus();
+}));
 if (hashSec) StudyView.go(hashSec);
 setMode(MODES.includes(hashMode) ? hashMode : "study");
 updateDueBadge();
