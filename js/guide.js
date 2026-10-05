@@ -295,15 +295,19 @@ function scriptCard(c, s){
 
 /* drawn mnemonic: the glyph with the memory image sketched over it */
 function shapeSVG(c, script){
-  const s = typeof SHAPES !== 'undefined' && SHAPES[c.r]?.[script];
-  if(!s) return '';
   const glyph = script==='h' ? c.h : c.k;
+  const s = typeof SHAPES !== 'undefined' && SHAPES[c.r]?.[script];
+  /* drawn from the stroke data, not the font, so the sketch (authored on
+     the same 109-unit grid) lines up whatever typeface is in use */
+  const strokes = typeof STROKES !== 'undefined' && STROKES[glyph];
+  if(!s || !strokes) return '';
   const col = script==='h' ? 'var(--hira)' : 'var(--kata)';
-  return `<svg class="shape" viewBox="0 0 120 120" aria-hidden="true">
-    <text x="60" y="63" text-anchor="middle" dominant-baseline="central" font-size="86"
-      font-family="var(--kana)" fill="${col}">${glyph}</text>
-    <g fill="none" stroke="var(--shu)" stroke-width="3" stroke-linecap="round"
-      stroke-linejoin="round" opacity=".85">${s}</g>
+  return `<svg class="shape" viewBox="-7 -7 123 123" aria-hidden="true">
+    <g fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      ${strokes.map(d => `<path d="${d}"/>`).join('')}
+    </g>
+    <g fill="none" stroke="var(--shu)" stroke-width="2.6" stroke-linecap="round"
+      stroke-linejoin="round" opacity=".9">${s}</g>
   </svg>`;
 }
 function renderDetail(){

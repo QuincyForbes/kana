@@ -1,6 +1,6 @@
 # Roadmap — feature upgrades & improvements
 
-A deep review of the app as of 2026-08-13, ordered by how much each item would help a learner. ~~Struck~~ items are done.
+A deep review of the app as of 2026-08-13, ordered by how much each item would help a learner. ~~Struck~~ and ✅ items are done — as of 2026-10-05 that is all of them.
 
 ## 🔴 Fix soon (correctness / public-facing)
 
@@ -22,7 +22,7 @@ A deep review of the app as of 2026-08-13, ordered by how much each item would h
 
 ## 🟡 SRS & quiz improvements
 
-13. ✅ **Smarter scheduler.** Leitner with fixed intervals (10min/1d/3d/7d/21d) treats all cards alike. FSRS or SM-2 with per-card ease would schedule better; at minimum add a 22nd+ day box so "known" keeps stretching. *(partial: 6th 45-day box, per-card ease capped at a year, daily new-card allowance; FSRS still open)*
+13. ✅ **Smarter scheduler.** Leitner with fixed intervals (10min/1d/3d/7d/21d) treats all cards alike. FSRS or SM-2 with per-card ease would schedule better; at minimum add a 22nd+ day box so "known" keeps stretching. *(done: FSRS-4.5 with default parameters — per-card stability and difficulty, reviews timed for 90% retention, capped at a year; old records convert on their next review)*
 14. ✅ **Undo last grade.** One mis-tap on "Got it" currently promotes a card with no recourse.
 15. ✅ **Session summary.** After a quiz run, show what was missed with mnemonics — the moment of review is the best moment to re-read the hook.
 16. ✅ **Pedagogical new-card order.** New cards are introduced in random shuffle; they should follow chart order (あ row before か row) so the trainer matches the guide's plan.
@@ -40,14 +40,14 @@ A deep review of the app as of 2026-08-13, ordered by how much each item would h
 
 ## 🔵 UX / platform
 
-25. **PWA.** Manifest + service worker caching the ~5MB of assets → installable on phones, fully offline, instant loads. Probably the single biggest quality-of-life upgrade for a hosted static app.
+25. ✅ **PWA.** Manifest + service worker caching the ~5MB of assets → installable on phones, fully offline, instant loads. Probably the single biggest quality-of-life upgrade for a hosted static app. *(pages and scripts cached on first visit; audio cached as played, or a whole voice at once from the trainer's Offline panel)*
 26. ✅ **Dark mode.** `prefers-color-scheme` variant of the two palettes.
 27. ✅ **Hash routing.** `#quiz`, `#study/s5` — tabs and sections become linkable, back button works, refreshing keeps your place (partially covered by the persisted section).
 28. ✅ **Cross-links.** Click any kana box in a trainer phrase → jump to that character's guide detail (mnemonic + audio + Forvo link).
 29. ✅ **Study progress ticks.** Mark sections you've been through with a ✓ in the section dropdown.
 30. ✅ **Landing page stats.** Read localStorage on index.html: "214 cards known · 12 due" turns the landing page into a daily dashboard.
 31. ✅ **Onboarding.** First visit: a three-line pointer (Study → Quiz → Progress) so the flow is obvious.
-32. **Accessibility pass.** *(partial: a dedicated live region announces each prompt and verdict; view switches use `aria-current`; quiz shortcuts ignore typing, modifier keys and keyboard-focused controls; focus rings on every control. Still open: contrast audit on `--muted` text, larger touch targets on chart cells, a real tablist with arrow-key navigation.)*
+32. ✅ **Accessibility pass.** *(a live region announces each prompt and verdict; Study/Quiz/Progress are a real tablist with arrow keys; shortcuts ignore typing, modifier keys and Tab-focused controls; focus rings on every control; both palettes audited to 4.5:1; touch targets at least ~42px)*
 33. ✅ **Social/meta tags.** favicon, `og:title`/`og:image` so shared links unfurl nicely.
 
 ## ⚪ Code health
@@ -62,7 +62,7 @@ A deep review of the app as of 2026-08-13, ordered by how much each item would h
 41. ✅ **Stable card ids.** Phrase, kanji and custom-deck ids are built from content (`p:こんにちは`, `k:出口`, `c:Deck:front`), so editing the data files can't shift progress onto other cards. Old positional ids migrate on load/import via `js/legacy-ids.js`.
 42. ✅ **Practice is not review.** The 60s sprint and "drill these now" grade through `practiceRecord`: no early promotion, unseen cards stay unseen.
 43. ✅ **Light/dark toggle + one site header** on every page (`js/theme.js`, `css/site.css`, `js/site.js`).
-44. **Browser smoke test in CI.** The node tests only reach pure helpers. One Playwright run — load each page, grade a card, undo, export → import, assert no console errors — would cover the stateful quiz flow where the 2026-10 bugs lived.
-45. **Split `js/trainer.js` into modules** (cards, romaji, quiz session, views) so the session logic is testable without a DOM and without slicing the file by string markers.
-46. **One storage module.** `js/srs.js` now owns record validation, id migration and the streak, and the landing page uses it; settings, custom decks and audio prefs are still read ad hoc per page.
-47. **Finish the mnemonic shape overlays** — `js/guide-shapes.js` covers 5 of 46 sounds.
+44. ✅ **Browser smoke test in CI.** The node tests only reach pure helpers. One Playwright run — load each page, grade a card, undo, export → import, assert no console errors — would cover the stateful quiz flow where the 2026-10 bugs lived. *(`tools/smoke.mjs`, 23 checks; it found two more bugs on its first run)*
+45. ✅ **Split `js/trainer.js`** (cards, romaji, quiz session, views) so the session logic is testable without a DOM and without slicing the file by string markers. *(eight plain scripts — not ES modules, so nothing about how the pages load changed; `tools/test-session.mjs` drives the engine in node)*
+46. ✅ **One storage module.** `js/store.js` holds the key registry, a safe wrapper and the shared audio prefs; every page goes through it (only `js/theme.js` reads its key directly, because it runs first).
+47. ✅ **Finish the mnemonic shape overlays** — all 46 sounds, both scripts, drawn over the stroke data so they line up in any font. *(a first pass: each reads as its mnemonic, but they are sketches and worth an artist's eye)*
