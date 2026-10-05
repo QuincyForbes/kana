@@ -21,7 +21,7 @@ const cur = (S) => S.state.current && S.state.current.id;
   is([cur(S), S.stats().left, S.newToday()], ['hg-あ', 3, 0], 're-entering the quiz keeps the card and spends nothing');
 
   S.grade(true);
-  is([cur(S), S.newToday(), Srs.record('hg-あ').b], ['hg-い', 1, 1], 'a first grade introduces the card and counts it');
+  is([cur(S), S.newToday(), Srs.record('hg-あ').iv], ['hg-い', 1, 4], 'a first grade introduces the card and counts it');
   is(S.undo(), true, 'undo reports success');
   is([cur(S), S.newToday(), Srs.record('hg-あ')], ['hg-あ', 0, undefined], 'undo restores the card, the count and the record');
   is(S.undo(), false, 'nothing left to undo');
@@ -59,10 +59,10 @@ const cur = (S) => S.state.current && S.state.current.id;
   S.resume();
   is([cur(S), S.state.practice], ['hg-か', true], 'the drill queue waits for the quiz to open');
   S.grade(true);
-  is(Srs.record('hg-か').b, 2, 'a drill hit on a card that is not due leaves its box alone');
+  is(Srs.record('hg-か'), { b: 2, d: far, s: 3, l: 3 }, 'a drill hit on a card that is not due leaves its record alone');
   is([S.state.practice, cur(S)], [false, 'hg-き'], 'a finished drill flows into the scheduled queue');
   S.grade(true);
-  is(Srs.record('hg-き').b, 2, 'scheduled reviews still promote');
+  is(Srs.record('hg-き').d > Date.now() + 864e5, true, 'scheduled reviews still push the card out');
 }
 
 /* ---- sprint ---- */

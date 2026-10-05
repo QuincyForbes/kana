@@ -184,10 +184,10 @@ const Quiz = (() => {
     const c = session.current;
     if (!c) return renderDone();
     const p = Srs.record(c.id);
-    const boxes = CONFIG.intervals.length;
+    const levels = CONFIG.levels.length;
     const level = p
-      ? `<span class="dots" role="img" aria-label="Box ${p.b + 1} of ${boxes}" title="Box ${p.b + 1} of ${boxes} — each hit moves a card up a box, and higher boxes come back less often">${
-          CONFIG.intervals.map((_, i) => `<i${i <= p.b ? ' class="on"' : ""}></i>`).join("")}</span>`
+      ? `<span class="dots" role="img" aria-label="Level ${p.b + 1} of ${levels}" title="Level ${p.b + 1} of ${levels} — the further off a card's next review, the higher its level">${
+          CONFIG.levels.map((_, i) => `<i${i <= p.b ? ' class="on"' : ""}></i>`).join("")}</span>`
       : `<span class="newtag">new</span>`;
     $("qarea").innerHTML = `<div class="qcard">
       <span class="tag">${esc(c.deck)}</span>

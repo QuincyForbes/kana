@@ -1,19 +1,24 @@
 /* Shared spaced-repetition core — loaded by the trainer, the guide and the
-   landing page so every view reads one record of what you actually know.   */
+   landing page so every view reads one record of what you actually know.
+   Pure functions: nothing here touches storage or the DOM.                 */
+
+const DAY = 864e5;
 
 const CONFIG = {
-  /* Leitner boxes 0–5 for the learning phase. A hit promotes one box; a
-     miss resets to box 0. Once a card clears the top box, growth switches
-     to a per-card ease factor (SM-2 style): interval ×= ease, ease drifts
-     up slowly on hits and drops on misses.                                 */
-  intervals: [10 * 60e3, 864e5, 3 * 864e5, 7 * 864e5, 21 * 864e5, 45 * 864e5],
+  /* FSRS-4.5 default parameters (open-spaced-repetition). The scheduler
+     models each card's memory as a stability (days until recall drops to
+     90%) and a difficulty (1–10), and spaces reviews to hit `retention`.   */
+  w: [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474,
+      0.1367, 1.0461, 2.1072, 0.0793, 0.3246, 1.587, 0.2272, 2.8755],
+  retention: 0.9,           /* chance of recall each review is timed for    */
+  maxIntervalDays: 365,     /* no card goes longer than a year unseen       */
   againDelay: 2 * 60e3,     /* a missed card is due again in 2 minutes      */
   requeueGap: 3,            /* …and resurfaces this many cards later        */
-  knownBox: 4,              /* "learned": passed the review after the 7-day gap */
-  maxIntervalDays: 365,     /* eased intervals stop stretching here         */
+  /* Display levels 0–5, by days until the next review. They drive the dots
+     on a card and "known"; scheduling itself only uses stability.          */
+  levels: [0, 1, 3, 7, 21, 45],
+  knownBox: 4,              /* "known": next review three weeks or more out */
   interleaveEvery: 3,       /* new cards are spliced in every N due cards   */
-  easeStart: 2.5, easeMin: 1.3, easeMax: 2.8,
-  easeGain: 0.03, easeLoss: 0.2,
 };
 
 const ymd = (d = new Date()) =>
@@ -28,31 +33,82 @@ function streakOf(days, today = new Date()) {
   return n;
 }
 
-/* one grade step: returns the card's next record without touching storage.
-   Records carry {b: box, d: due-ms, s: seen, l: lapses} and, once past the
-   fixed boxes, {e: ease, iv: interval-days}.                               */
+/* ------------------------------- FSRS ------------------------------------ */
+/* The FSRS-4.5 formulas, as published. The trainer grades two ways — Again
+   (1) and Got it (3) — so the Hard and Easy multipliers (w15, w16) and the
+   Hard/Easy starting points (w1, w3) are never reached.                    */
+const FSRS = (() => {
+  const DECAY = -0.5, FACTOR = 19 / 81;
+  const w = CONFIG.w;
+  const clampD = (d) => Math.min(10, Math.max(1, d));
+  const d0 = (g) => clampD(w[4] - (g - 3) * w[5]);
+  return {
+    /* chance of recall t days after a review, at stability s */
+    retrievability: (t, s) => Math.pow(1 + FACTOR * t / s, DECAY),
+    /* days until recall falls to r */
+    interval: (s, r = CONFIG.retention) => s / FACTOR * (Math.pow(r, 1 / DECAY) - 1),
+    /* a card's first grade */
+    initial: (g) => ({ st: w[g - 1], df: d0(g) }),
+    /* difficulty drifts with each grade and reverts toward the default */
+    difficulty: (d, g) => clampD(w[7] * d0(3) + (1 - w[7]) * (d - w[6] * (g - 3))),
+    /* stability after a successful recall at retrievability r */
+    recall: (d, s, r) =>
+      s * (1 + Math.exp(w[8]) * (11 - d) * Math.pow(s, -w[9]) * (Math.exp(w[10] * (1 - r)) - 1)),
+    /* stability after forgetting — never more than it was */
+    forget: (d, s, r) =>
+      Math.min(s, w[11] * Math.pow(d, -w[12]) * (Math.pow(s + 1, w[13]) - 1) * Math.exp(w[14] * (1 - r))),
+  };
+})();
+
+/* display level for an interval in days: the highest threshold it reaches */
+function levelOf(iv) {
+  let b = 0;
+  CONFIG.levels.forEach((days, i) => { if (iv >= days) b = i; });
+  return b;
+}
+
+/* Records written before FSRS carry a Leitner box instead of a memory
+   state. Read one as: stability ≈ the interval the card had earned (the
+   old boxes were exactly CONFIG.levels days apart), difficulty nudged up
+   per lapse, last reviewed one interval before it fell due.                */
+function memoryOf(p) {
+  if (p.st > 0 && p.df > 0 && p.lr > 0) return p;
+  const iv = p.iv > 0 ? p.iv : CONFIG.levels[Math.min(Math.max(p.b || 0, 0), CONFIG.levels.length - 1)];
+  return {
+    st: Math.max(iv, CONFIG.w[0]),
+    df: Math.min(10, Math.max(1, CONFIG.w[4] + (p.l || 0) * CONFIG.w[6])),
+    lr: p.d - (iv > 0 ? iv * DAY : CONFIG.againDelay),
+  };
+}
+
+/* One grade step: returns the card's next record without touching storage.
+   Records carry {b: level, d: due-ms, s: seen, l: lapses, st: stability,
+   df: difficulty, lr: last-review-ms, iv: interval-days}.                  */
 function nextRecord(p, good, now) {
-  const n = { e: CONFIG.easeStart, iv: 0, ...(p || { b: 0, d: 0, s: 0, l: 0 }) };
+  const g = good ? 3 : 1;
+  const n = { b: 0, d: 0, s: 0, l: 0, ...(p || {}) };
+  delete n.e; /* the pre-FSRS ease factor */
   n.s++;
-  const top = CONFIG.intervals.length - 1;
+  if (!p) Object.assign(n, FSRS.initial(g));
+  else {
+    const m = memoryOf(p);
+    const r = FSRS.retrievability(Math.max(0, (now - m.lr) / DAY), m.st);
+    n.st = good ? FSRS.recall(m.df, m.st, r) : FSRS.forget(m.df, m.st, r);
+    n.df = FSRS.difficulty(m.df, g);
+  }
+  n.st = +Math.max(0.1, n.st).toFixed(4);
+  n.df = +n.df.toFixed(4);
+  n.lr = now;
   if (good) {
-    if (n.b < top) {
-      n.b++;
-      n.d = now + CONFIG.intervals[n.b];
-      n.iv = CONFIG.intervals[n.b] / 864e5;
-    } else {
-      n.iv = Math.min(CONFIG.maxIntervalDays,
-        Math.round(Math.max(n.iv || CONFIG.intervals[top] / 864e5, 1) * n.e));
-      n.e = Math.min(CONFIG.easeMax, n.e + CONFIG.easeGain);
-      n.d = now + n.iv * 864e5;
-    }
+    n.iv = Math.min(CONFIG.maxIntervalDays, Math.max(1, Math.round(FSRS.interval(n.st))));
+    n.d = now + n.iv * DAY;
   } else {
+    /* relearn it this session; the shrunken stability sets what follows */
     n.l++;
-    n.b = 0;
-    n.e = Math.max(CONFIG.easeMin, n.e - CONFIG.easeLoss);
     n.iv = 0;
     n.d = now + CONFIG.againDelay;
   }
+  n.b = levelOf(n.iv);
   return n;
 }
 
@@ -69,13 +125,18 @@ function practiceRecord(p, good, now) {
    storage another version wrote). Returns null when it isn't a record map. */
 function cleanProg(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const num = Number.isFinite;
   const out = {};
   for (const [id, r] of Object.entries(raw)) {
-    if (!r || typeof r !== "object" || !Number.isFinite(r.b) || !Number.isFinite(r.d)) continue;
-    const rec = { b: Math.max(0, Math.min(CONFIG.intervals.length - 1, Math.round(r.b))), d: r.d,
-                  s: Number.isFinite(r.s) ? r.s : 1, l: Number.isFinite(r.l) ? r.l : 0 };
-    if (Number.isFinite(r.e)) rec.e = Math.max(CONFIG.easeMin, Math.min(CONFIG.easeMax, r.e));
-    if (Number.isFinite(r.iv)) rec.iv = Math.max(0, r.iv);
+    if (!r || typeof r !== "object" || !num(r.b) || !num(r.d)) continue;
+    const rec = { b: Math.max(0, Math.min(CONFIG.levels.length - 1, Math.round(r.b))), d: r.d,
+                  s: num(r.s) ? r.s : 1, l: num(r.l) ? r.l : 0 };
+    if (num(r.iv)) rec.iv = Math.max(0, r.iv);
+    if (num(r.st) && r.st > 0 && num(r.df) && num(r.lr)) {
+      rec.st = r.st;
+      rec.df = Math.min(10, Math.max(1, r.df));
+      rec.lr = r.lr;
+    }
     out[id] = rec;
   }
   return out;

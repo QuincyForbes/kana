@@ -1,9 +1,9 @@
-// Tests for the trainer's number converter, the SRS scheduling step, and the
+// Tests for the trainer's number converter, the FSRS scheduling step, and the
 // storage helpers (record validation, id migration, custom-deck ids).
 //   node tools/test-trainer.mjs
 import { loadApp, checker } from './load-app.mjs';
 
-const { CONFIG, numToRomaji, numNorm, nextRecord, practiceRecord, cleanProg, migrateIds, streakOf, ymd,
+const { CONFIG, FSRS, levelOf, numToRomaji, numNorm, nextRecord, practiceRecord, cleanProg, migrateIds, streakOf, ymd,
         customIds, cleanDecks, kanaToRomaji, LEGACY_IDS } = loadApp();
 const { is, done } = checker();
 
@@ -24,40 +24,56 @@ is(numToRomaji(30000), 'sanman', '30000');
 is(numNorm('juu ichi'), numNorm('juuichi'), 'spacing ignored');
 is(numNorm('kyuu'), numNorm('kyu'), 'long vowel lenient');
 
-/* SRS stepping */
-const T = 1_000_000;
+/* ---- scheduler: FSRS-4.5 ---- */
+const T = 1_700_000_000_000, DAYMS = 864e5;
+const topBox = CONFIG.levels.length - 1;
+is([FSRS.retrievability(10, 10).toFixed(4), FSRS.interval(10).toFixed(4)], ['0.9000', '10.0000'],
+   'stability is the interval at which recall is 90%');
+is([0, 0.5, 1, 2, 3, 6, 7, 20, 21, 44, 45, 365].map(levelOf), [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5], 'display levels by interval');
+
 const fresh = nextRecord(null, true, T);
-is(fresh.b, 1, 'first hit promotes to box 1');
-is(fresh.d, T + CONFIG.intervals[1], 'due after box-1 interval');
-is(fresh.s, 1, 'seen count increments');
+is([fresh.st, fresh.df], [CONFIG.w[2], CONFIG.w[4]], 'first "got it": the published initial stability and difficulty');
+is([fresh.iv, fresh.d, fresh.b], [4, T + 4 * DAYMS, 2], 'known on sight comes back in 4 days');
+is([fresh.s, fresh.l, fresh.lr], [1, 0, T], 'seen count, lapses and review time are recorded');
 
-/* ease-based growth beyond the top box */
-const topBox = CONFIG.intervals.length - 1;
-const top = nextRecord({ b: topBox, d: 0, s: 9, l: 0 }, true, T);
-is(top.b, topBox, 'top box caps');
-is(top.iv, Math.round(45 * CONFIG.easeStart), 'first post-top interval grows by ease (45d × 2.5)');
-is(top.d, T + top.iv * 864e5, 'due matches the eased interval');
-const top2 = nextRecord(top, true, T);
-is(top2.iv > top.iv, true, 'intervals keep stretching on subsequent hits');
-is(top2.e > top.e, true, 'ease drifts up on hits');
-const eased = nextRecord({ b: topBox, d: 0, s: 9, l: 0, e: 2.0, iv: 100 }, false, T);
-is(eased.e, 1.8, 'a miss reduces ease');
-is(eased.b, 0, 'a miss still resets the box');
-const floor = nextRecord({ b: 0, d: 0, s: 1, l: 0, e: CONFIG.easeMin, iv: 0 }, false, T);
-is(floor.e, CONFIG.easeMin, 'ease never drops below the floor');
+const firstMiss = nextRecord(null, false, T);
+is([firstMiss.st, firstMiss.b, firstMiss.l, firstMiss.d], [CONFIG.w[0], 0, 1, T + CONFIG.againDelay],
+   'a first miss is relearned within minutes');
+const relearned = nextRecord(firstMiss, true, T + 3 * 60e3);
+is([relearned.iv, relearned.b], [1, 1], 'learned today, back tomorrow');
 
-const missed = nextRecord({ b: 4, d: 0, s: 5, l: 1 }, false, T);
-is(missed.b, 0, 'a miss resets to box 0');
-is(missed.l, 2, 'lapse count increments');
-is(missed.d, T + CONFIG.againDelay, 'missed card comes back after againDelay');
+/* on-time reviews: the curve from the published parameters */
+const path = (from, n) => { const ivs = [from.iv]; let r = from; for (let i = 0; i < n; i++) { r = nextRecord(r, true, r.d); ivs.push(r.iv); } return [ivs, r]; };
+const [easy, mature] = path(fresh, 5);
+is(easy, [4, 15, 49, 146, 365, 365], 'known on sight: 4, 15, 49, 146 days, then the yearly cap');
+is(path(relearned, 6)[0], [1, 2, 6, 16, 39, 89, 194], 'a card that started with a miss climbs more slowly');
+is(mature.b, topBox, 'long intervals sit at the top level');
+
+/* timing matters: recalling something late is stronger evidence than on time */
+const onTime = nextRecord(fresh, true, fresh.d), late = nextRecord(fresh, true, fresh.d + 10 * DAYMS);
+is(late.st > onTime.st, true, 'a late success earns more stability than an on-time one');
+
+/* lapses */
+const m3 = path(fresh, 2)[1];
+const lapse = nextRecord(m3, false, m3.d);
+is([lapse.b, lapse.l, lapse.iv, lapse.d], [0, 1, 0, m3.d + CONFIG.againDelay], 'a miss drops to level 0 and comes back in minutes');
+is([lapse.st < m3.st, lapse.df > m3.df], [true, true], 'forgetting shrinks stability and raises difficulty');
+const back = nextRecord(lapse, true, lapse.d + 60e3);
+is(back.iv >= 1 && back.iv < m3.iv, true, 'after relearning, the next gap is shorter than before the lapse');
+let worst = firstMiss;
+for (let i = 0; i < 25; i++) worst = nextRecord(worst, false, worst.d);
+is([worst.df, worst.st >= 0.1], [10, true], 'difficulty tops out at 10; stability keeps a floor');
+
+/* records written before FSRS (a Leitner box, maybe an ease factor) carry over */
+const oldBox = nextRecord({ b: 3, d: T, s: 4, l: 0 }, true, T);
+is([oldBox.st > 7, oldBox.iv > 7, oldBox.lr], [true, true, T], 'a box-3 card is read as 7 days of stability and grows from there');
+const oldEase = nextRecord({ b: 5, d: T, s: 9, l: 0, e: 2.5, iv: 300 }, true, T);
+is([oldEase.iv, 'e' in oldEase], [CONFIG.maxIntervalDays, false], 'an eased record keeps its interval (capped) and drops the ease field');
+is(nextRecord({ b: 4, d: T, s: 6, l: 3 }, true, T).df > oldBox.df, true, 'past lapses count toward difficulty');
 
 const input = { b: 2, d: 5, s: 3, l: 0 };
 nextRecord(input, true, T);
-is(input.b, 2, 'nextRecord does not mutate its input');
-
-/* eased intervals are capped */
-const capped = nextRecord({ b: topBox, d: 0, s: 20, l: 0, e: 2.5, iv: 300 }, true, T);
-is(capped.iv, CONFIG.maxIntervalDays, 'interval growth stops at the cap');
+is(input, { b: 2, d: 5, s: 3, l: 0 }, 'nextRecord does not mutate its input');
 
 /* practice grades (sprint, lapse drill) never run ahead of the schedule */
 is(practiceRecord(undefined, true, T), undefined, 'practice hit leaves an unseen card unseen');
@@ -85,6 +101,10 @@ is(cleanProg([1, 2]), null, 'an array is not a record map');
 is(cleanProg('x'), null, 'a string is not a record map');
 is(cleanProg({ a: { b: 2, d: 5, s: 3, l: 1 }, bad: 7, worse: { b: 'x', d: 1 }, none: null }),
    { a: { b: 2, d: 5, s: 3, l: 1 } }, 'malformed records are dropped, good ones kept');
+const sorted = (o) => Object.fromEntries(Object.entries(o).sort());
+is(sorted(cleanProg({ a: fresh }).a), sorted(fresh), 'an FSRS record survives validation whole');
+is(cleanProg({ a: { b: 1, d: 5, st: 3, df: 99, lr: 1, e: 2.5 } }).a, { b: 1, d: 5, s: 1, l: 0, st: 3, df: 10, lr: 1 },
+   'difficulty is clamped and the old ease field is dropped');
 is(cleanProg({ a: { b: 99, d: 5 } }).a, { b: topBox, d: 5, s: 1, l: 0 }, 'box clamps, missing counters default');
 
 /* id migration */

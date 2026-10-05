@@ -11,7 +11,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['store.js', 'srs.js', 'kana-data.js', 'trainer-data.js', 'legacy-ids.js',
   'trainer-romaji.js', 'trainer-cards.js', 'trainer-session.js'];
 const EXPORTS = ['KEYS', 'store', 'Prefs', 'CONFIG', 'ymd', 'streakOf', 'nextRecord', 'practiceRecord',
-  'cleanProg', 'migrateIds', 'LEGACY_IDS', 'kanaToRomaji', 'DATA', 'KANJI', 'CARDS', 'DECK_ORDER', 'Custom',
+  'FSRS', 'levelOf', 'cleanProg', 'migrateIds', 'LEGACY_IDS', 'kanaToRomaji', 'DATA', 'KANJI', 'CARDS', 'DECK_ORDER', 'Custom',
   'customIds', 'cleanDecks', 'checkTyped', 'spokenRom', 'answerRom', 'cardJp', 'cardGloss',
   'numToRomaji', 'numNorm', 'Srs', 'QuizSession'];
 

@@ -75,7 +75,7 @@ const Progress = (() => {
 
     $("pknown").innerHTML = known.length
       ? known.map((c) => li(c)).join("")
-      : `<li class="pempty">Nothing yet — a card counts as learned once you pass the review that follows its 7-day gap.</li>`;
+      : `<li class="pempty">Nothing yet — a card counts as learned once its next review is three weeks or more away.</li>`;
     $("plapse").innerHTML = lapsed.length
       ? lapsed.map((c) => li(c, ` · missed ×${Srs.record(c.id).l}`)).join("")
       : `<li class="pempty">No repeat offenders. Cards land here after three misses.</li>`;
