@@ -16,8 +16,8 @@ Every page shares one header (page links and a light/dark toggle). The theme fol
 ```
 index.html / guide.html / trainer.html / mnemonics.html   markup only
 manifest.webmanifest, sw.js, icons/                       install + offline
-css/site.css        shared chrome: site header, theme toggle, toasts
-css/guide.css, css/trainer.css                            page styles + palettes
+css/site.css        the palette (--c-*), page background, site header, theme toggle, toasts, deck menu
+css/guide.css, css/trainer.css                            page styles (colours mapped from site.css)
 js/theme.js         applies the light/dark theme (loaded in <head>, before CSS)
 js/site.js          shared header, toasts, service-worker registration, install prompt
 js/store.js         the one place that touches localStorage: keys, safe wrapper, audio prefs
@@ -46,6 +46,8 @@ tools/              audio + icon generation, tests, bump.js
 ```
 
 No build step and no modules — plain scripts loaded in order, sharing globals. Edit and reload.
+
+**One look.** Every colour is defined once, in `css/site.css`, as `--c-paper`, `--c-ink`, `--c-green`… for light and dark. The pages name things differently (the guide says `--cell`, the trainer `--card`), so each maps its own names onto those — change a colour in `site.css` and every page follows. The page background (paper with a faint grid) and the site header are set there too, and the header sits outside each page's content column on a fixed 1080px grid, so it is pixel-identical everywhere. The smoke test checks both.
 
 ## Scheduling
 

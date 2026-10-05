@@ -10,21 +10,23 @@
 <meta name="theme-color" content="#F2F3EE" data-light="#F2F3EE" data-dark="#141814">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<script src="js/theme.js?v=24"></script>
+<script src="js/theme.js?v=25"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eな%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F2F3EE; --cell:#FCFCF9; --rule:#AFC0B2; --rule-faint:#DDE4DD; --ink:#1B221E; --ink-soft:#5D675F;
-  --hira:#2E7D4F; --kata:#2F5FBE; --shu:#BE3A22; --hl:rgba(191,214,196,.55);
-  --display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
-  --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
+  /* colours come from css/site.css (--c-*), shared with every page */
+  --paper:var(--c-paper); --cell:var(--c-surface); --rule:var(--c-line); --ink:var(--c-ink); --ink-soft:var(--c-soft);
+  --hira:var(--c-green); --kata:var(--c-blue); --shu:var(--c-red);
+  --rule-faint:#DDE4DD; --hl:rgba(191,214,196,.55); /* row rules, mnemonic highlight */
+  --display:var(--site-display);
+  --body:var(--site-body);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
-.wrap{max-width:900px;margin:0 auto;padding:0 20px 60px}
+body{margin:0;color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:var(--site-width);margin:0 auto;padding:0 var(--site-gutter) 60px}
 header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding:26px 0 12px;margin-bottom:8px}
 h1{font-family:var(--display);font-weight:900;font-size:26px;margin:0}
 header .sub{color:var(--ink-soft);font-size:13px}
@@ -35,7 +37,8 @@ header a{color:var(--hira);font-size:13px}
 .legend{font-size:12.5px;color:var(--ink-soft);margin:10px 0 18px}
 .legend b.h,header .sub b.h{color:var(--hira)} .legend b.k,header .sub b.k{color:var(--kata)}
 
-table{border-collapse:collapse;width:100%}
+/* the table is a sheet laid on the grid, so no grid line runs through the text */
+table{border-collapse:collapse;width:100%;background:var(--cell);border:1px solid var(--rule)}
 thead th{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
   text-align:left;padding:6px 8px;border-bottom:1px solid var(--ink)}
 tbody th.rowgroup{font-family:var(--display);font-size:13px;color:var(--shu);text-align:left;
@@ -49,10 +52,7 @@ td.m{font-size:13px;width:38%}
 td.m strong{font-weight:500;box-shadow:inset 0 -6px 0 var(--hl)}
 tr{break-inside:avoid}
 
-:root[data-theme="dark"]{
-  --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#2A332C; --ink:#E7ECE7; --ink-soft:#A4B1A6;
-  --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62; --hl:rgba(63,107,84,.55);
-}
+:root[data-theme="dark"]{--rule-faint:#2A332C; --hl:rgba(63,107,84,.55)}
 
 /* phones: five columns do not fit — each sound becomes a small card with
    its two hooks stacked beneath, green rule for hiragana, blue for katakana */
@@ -70,8 +70,7 @@ tr{break-inside:avoid}
 }
 
 @media print{
-  :root,:root[data-theme="dark"]{--paper:#fff;--cell:#fff;--rule:#AFC0B2;--rule-faint:#DDE4DD;--ink:#1B221E;--ink-soft:#5D675F;
-    --hira:#2E7D4F;--kata:#2F5FBE;--shu:#BE3A22}
+  :root,:root[data-theme="dark"]{--rule-faint:#DDE4DD}
   body{background:#fff;font-size:12px}
   .wrap{max-width:none;padding:0}
   .printbtn,header a{display:none}
@@ -81,14 +80,15 @@ tr{break-inside:avoid}
   td{padding:5px 6px}
   td.m strong{box-shadow:none;text-decoration:underline}
   thead{display:table-header-group}
+  table{background:none;border:0}
   @page{margin:12mm}
 }
 </style>
-<link rel="stylesheet" href="css/site.css?v=24">
+<link rel="stylesheet" href="css/site.css?v=25">
 </head>
 <body>
-<div class="wrap">
 <div class="sitebar" id="sitebar"></div>
+<div class="wrap">
 <header>
   <h1>Hiragana &amp; katakana mnemonics</h1>
   <span class="sub">46 sounds · <b class="h">hiragana</b> + <b class="k">katakana</b> · one picture each</span>
@@ -100,9 +100,9 @@ tr{break-inside:avoid}
   <tbody></tbody>
 </table>
 </div>
-<script src="js/site.js?v=24"></script>
-<script src="js/kana-data.js?v=24"></script>
-<script src="js/guide-data.js?v=24"></script>
+<script src="js/site.js?v=25"></script>
+<script src="js/kana-data.js?v=25"></script>
+<script src="js/guide-data.js?v=25"></script>
 <script>
 const NAMES = {'—':'Vowels','K':'K row','S':'S row','T':'T row','N':'N row','H':'H row',
                'M':'M row','Y':'Y row','R':'R row','W':'W row'};

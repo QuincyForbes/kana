@@ -1,40 +1,27 @@
-/* Kana Guide. Palette lives in the two :root blocks; the dark one is switched
-   on by js/theme.js setting <html data-theme="dark">. Shared chrome (site
-   header, theme toggle) is css/site.css.                                    */
+/* Kana Guide. The colours themselves live in css/site.css (--c-*), shared
+   with every page; this file maps the guide's own names onto them and adds
+   the few tints only the guide uses.                                        */
 :root{
-  --paper:#F2F3EE;
-  --cell:#FCFCF9;
-  --rule:#AFC0B2;
-  --rule-faint:#D6DFD7;
-  --ink:#1B221E;
-  --ink-soft:#5D675F;
-  --hira:#2E7D4F;
-  --kata:#2F5FBE;
-  --shu:#BE3A22;
-  --display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
-  --body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
+  --paper:var(--c-paper); --cell:var(--c-surface); --rule:var(--c-line); --rule-faint:var(--c-faint);
+  --ink:var(--c-ink); --ink-soft:var(--c-soft);
+  --hira:var(--c-green); --kata:var(--c-blue); --shu:var(--c-red);
+  --display:var(--site-display);
+  --body:var(--site-body);
   --kana:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',sans-serif;
   --hl:rgba(191,214,196,.55);
   --hover:#EFF3EF; --warn-bg:#FBEDE9;
   --learn-tint:rgba(217,164,65,.14); --known-tint:rgba(46,125,79,.15);
-  --on-shu:#fff; /* text on the red fill */
+  --on-shu:var(--c-on-red); /* text on the red fill */
 }
 :root[data-theme="dark"]{
-  --paper:#141814; --cell:#1C221D; --rule:#3C4A40; --rule-faint:#222922;
-  --ink:#E7ECE7; --ink-soft:#A4B1A6; --hira:#7FD3A0; --kata:#8FB9F7; --shu:#E37A62;
   --hl:rgba(63,107,84,.55);
   --hover:#232B25; --warn-bg:#3A211C;
   --learn-tint:rgba(217,164,65,.2); --known-tint:rgba(127,211,160,.2);
-  --on-shu:#141814;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;background:var(--paper);color:var(--ink);
-  font-family:var(--body);font-size:16px;line-height:1.55;
-  background-image:linear-gradient(var(--rule-faint) 1px,transparent 1px),linear-gradient(90deg,var(--rule-faint) 1px,transparent 1px);
-  background-size:28px 28px;background-position:-1px -1px;
-}
+/* the page background (paper + grid) is set once, in css/site.css */
+body{margin:0;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px 96px}
 ::selection{background:var(--shu);color:var(--on-shu)}
 a{color:var(--hira)}

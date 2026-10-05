@@ -66,6 +66,26 @@ try {
   await open('404.html');
   check((await page.title()).includes('404'), '404.html loads');
 
+  /* ---- one look: the same background and an identical header everywhere ---- */
+  const looks = [];
+  for (const p of ['index.html', 'guide.html', 'trainer.html', 'mnemonics.html']) {
+    await open(p);
+    await page.evaluate(() => document.fonts.ready);
+    looks.push(await page.evaluate(() => {
+      const body = getComputedStyle(document.body);
+      const box = (sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); };
+      return JSON.stringify([body.backgroundColor, body.backgroundImage, body.backgroundSize,
+        box('#sitebar'), box('#sitebar .brand'), box('#sitebar nav'), box('#themebtn')]);
+    }));
+  }
+  check(new Set(looks).size === 1, 'every page has the same background and a pixel-identical header');
+  for (const url of ['trainer.html#quiz', 'trainer.html#study', 'trainer.html#progress', 'guide.html#pron']) {
+    await open(url);
+    await page.waitForTimeout(150);
+    check(await page.evaluate(() => scrollY === 0 && document.getElementById('sitebar').getBoundingClientRect().top === 0),
+      `${url} opens at the top with the header in view`);
+  }
+
   /* ---- theme toggle flips and is remembered ---- */
   await open('index.html');
   const before = await page.getAttribute('html', 'data-theme');

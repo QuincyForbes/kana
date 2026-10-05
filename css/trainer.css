@@ -1,30 +1,30 @@
 /* Kana Trainer — Study · Quiz · Progress.
-   Palette lives in the two :root blocks; the dark one is switched on by
-   js/theme.js setting <html data-theme="dark">. Shared chrome (site header,
-   theme toggle, toasts) is css/site.css.                                   */
+   The colours themselves live in css/site.css (--c-*), shared with every
+   page; this file maps the trainer's own names onto them and adds the few
+   surfaces only the trainer uses.                                          */
 :root{
-  --paper:#F6F4EC; --ink:#17211E; --grid:#BACCC1; --rule:#2A6A55;
-  --shu:#BE3B2A; --muted:#5E6F67; --cell:60px;
-  --gothic:'Zen Kaku Gothic New','Hiragino Sans','Yu Gothic',Meiryo,sans-serif;
+  --paper:var(--c-paper); --ink:var(--c-ink); --grid:var(--c-line); --rule:var(--c-green);
+  --shu:var(--c-red); --muted:var(--c-soft); --card:var(--c-surface); --on-shu:var(--c-on-red);
+  --cell:60px; /* a size here: the width of one kana box */
+  --gothic:var(--site-body);
   --mincho:'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
-  --card:#fff; --panel:#FBFAF4; --th:#EEF2ED; --nil:#F1F0EA; --unseen:#EDEAE0; --prose:#28352F;
+  --panel:#F8F9F5; --th:#EAEFEA; --nil:#ECEFEA; --unseen:#E4E9E3; --prose:#28352F;
   --amber:#D9A441; --heat1:#CCDCD3; --heat2:#9FBFAF; --heat3:#5E9179;
   --lift:0 1px 2px rgba(20,30,24,.05),0 10px 30px rgba(20,30,24,.06);
-  --on-shu:#fff; --on-amber:#17211E; /* text on the red and amber fills */
+  --on-amber:#17211E; /* text on the amber fill */
   --bar-h:49px; /* height of the sticky bar; kept current by trainer.js */
 }
 :root[data-theme="dark"]{
-  --paper:#151917; --ink:#E4EAE5; --grid:#39463E; --rule:#7CBA9C; --shu:#E37A62; --muted:#9DAEA4;
-  --card:#1D2420; --panel:#1A211D; --th:#222B25; --nil:#191E1A; --unseen:#252C27; --prose:#C7D2CA;
+  --panel:#181D19; --th:#222B25; --nil:#171B18; --unseen:#252C27; --prose:#C7D2CA;
   --amber:#B98A3A; --heat1:#2E4A3B; --heat2:#3E6B52; --heat3:#579973;
   --lift:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.28);
-  --on-shu:#151917; --on-amber:#151917;
+  --on-amber:#141814;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--gothic);line-height:1.5}
-.wrap{max-width:940px;margin:0 auto;padding:0 24px 80px}
+.wrap{max-width:var(--site-width);margin:0 auto;padding:0 var(--site-gutter) 80px}
 button,input,select,textarea{font-family:var(--gothic)}
 button{transition:background .12s ease,color .12s ease,border-color .12s ease,transform .08s ease}
 button:active{transform:scale(.97)}
@@ -36,7 +36,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* ---------- sticky view bar: Study · Quiz · Progress (+ study tools) ---------- */
 .bar{
   position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--grid);
-  display:flex;flex-wrap:wrap;gap:9px 8px;align-items:center;padding:10px 24px;margin:0 -24px;
+  display:flex;flex-wrap:wrap;gap:9px 8px;align-items:center;padding:10px var(--site-gutter);margin:0 calc(-1 * var(--site-gutter));
 }
 .tabs{display:flex;gap:8px}
 .tab{
@@ -70,11 +70,11 @@ body:not(.mode-study) .studyonly{display:none}
 body.searching #qsec,body.searching #tR,body.searching #tM{display:none}
 
 /* ---------- panels ---------- */
-#study:focus,#quiz:focus,#progress:focus{outline:0} /* focused by script on a view change, not a control */
-#study,#quiz,#progress{display:none;scroll-margin-top:calc(var(--bar-h) + 8px)}
-body.mode-study #study{display:block}
-body.mode-quiz #quiz{display:block;padding-top:26px}
-body.mode-progress #progress{display:block;padding-top:30px}
+#view-study:focus,#view-quiz:focus,#view-progress:focus{outline:0} /* focused by script on a view change, not a control */
+#view-study,#view-quiz,#view-progress{display:none}
+body.mode-study #view-study{display:block}
+body.mode-quiz #view-quiz{display:block;padding-top:26px}
+body.mode-progress #view-progress{display:block;padding-top:30px}
 
 /* ---------- study ---------- */
 header.mast{padding:44px 0 24px;border-bottom:3px double var(--rule)}
@@ -226,7 +226,7 @@ body.no-m .kjcard .en{visibility:hidden}
 .minibtn:hover{background:var(--shu);color:var(--paper)}
 
 /* ---------- quiz: the card is the hero; everything else stays out of its way ---------- */
-#quiz>*{max-width:620px;margin-left:auto;margin-right:auto}
+#view-quiz>*{max-width:620px;margin-left:auto;margin-right:auto}
 .qtop{display:flex;gap:8px;align-items:flex-end}
 .qtop .grow{flex:1 1 0}
 .qopts{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;margin-top:10px;padding:12px 14px;
@@ -366,8 +366,7 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
 /* ---------- small screens: bottom tab bar, touch-sized controls ---------- */
 .bottomnav{display:none}
 @media (max-width:720px){
-  .wrap{padding:0 18px 120px}
-  .bar{padding:10px 18px;margin:0 -18px}
+  .wrap{padding-bottom:120px}
   .bar .tabs{display:none}
   body:not(.mode-study) .bar{display:none}
   .bottomnav{
@@ -382,8 +381,8 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
   }
   .bottomnav .tab[aria-selected="true"]{background:transparent;color:var(--rule);box-shadow:inset 0 3px 0 var(--rule)}
   .bottomnav .tab .badge{top:5px;right:calc(50% - 34px)}
-  body.mode-quiz #quiz{padding-top:14px}
-  body.mode-progress #progress{padding-top:18px}
+  body.mode-quiz #view-quiz{padding-top:14px}
+  body.mode-progress #view-progress{padding-top:18px}
 
   /* study tools: section picker and toggles on one row, search beneath */
   .studyonly{flex:1 1 100%}
@@ -432,8 +431,8 @@ body.sprinting .qstats #sprint-box b:first-child{color:var(--shu);font-size:15px
 
 @media print{
   :root{--paper:#fff;--cell:54px}
-  .bar,nav.idx,#quiz,#progress,.ract,.addbtn,.playall,.bottomnav,.hello,.secnav{display:none!important}
-  #study{display:block!important}
+  .bar,nav.idx,#view-quiz,#view-progress,.ract,.addbtn,.playall,.bottomnav,.hello,.secnav{display:none!important}
+  #view-study{display:block!important}
   body{font-size:12px}
   .wrap{max-width:none;padding:0}
   header.mast{padding:0 0 12px}

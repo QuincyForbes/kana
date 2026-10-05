@@ -406,6 +406,14 @@ const PANELS = ['chart','tricky','rules','grammar','pron','drill-sec','plan'];
 let panel = 'chart';
 { const s = store.getRaw(KEYS.guidePanel); if(PANELS.includes(s)) panel = s; }
 
+/* The panel ids double as URL hashes, and a browser scrolls to a hash's
+   target on load — straight past the site header. So the hash is written
+   as #/id, which matches no element; the bare form from older links is
+   still read, and the page is put back at the top once it has loaded.    */
+const panelFromHash = () => location.hash.replace(/^#\/?/, '');
+if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.addEventListener('load', () => window.scrollTo({top: 0, behavior: 'instant'}));
+
 function setPanel(id, updateHash = true){
   if(!PANELS.includes(id)) return;
   panel = id;
@@ -419,7 +427,7 @@ function setPanel(id, updateHash = true){
     /* on phones the strip scrolls sideways — bring the active chip into view */
     if(t === id && a.scrollIntoView) a.scrollIntoView({block: 'nearest', inline: 'center'});
   });
-  if(updateHash) history.replaceState(null, '', '#' + id);
+  if(updateHash) history.replaceState(null, '', '#/' + id);
   window.scrollTo({top: 0, behavior: 'instant'});
 }
 
@@ -443,7 +451,7 @@ function applyCharHash(){
 }
 window.addEventListener('hashchange', () => {
   if(applyCharHash()) return;
-  const id = location.hash.slice(1);
+  const id = panelFromHash();
   if(PANELS.includes(id) && id !== panel) setPanel(id, false);
 });
 
@@ -451,6 +459,6 @@ document.querySelectorAll('.jp,.ex,.beat,.mini td:first-child,h1 .jp').forEach(e
 
 buildGrid(); renderDetail();
 {
-  const initial = location.hash.slice(1);
+  const initial = panelFromHash();
   if(!applyCharHash()) setPanel(PANELS.includes(initial) ? initial : panel, PANELS.includes(initial));
 }

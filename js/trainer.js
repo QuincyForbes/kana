@@ -55,13 +55,17 @@ function setMode(mode, { keepFocus = false } = {}) {
   syncHash();
   if (modeInitialized) window.scrollTo({ top: 0, behavior: "instant" });
   /* move keyboard/screen-reader focus into the newly shown panel */
-  if (modeInitialized && !keepFocus) $(mode).focus({ preventScroll: true });
+  if (modeInitialized && !keepFocus) $("view-" + mode).focus({ preventScroll: true });
   modeInitialized = true;
 }
 
 /* ------------------------------- Init ------------------------------------ */
 /* #quiz, #quiz/<deck>, #progress, #study/s5 — read before wiring, which
    rewrites the hash                                                         */
+/* The app restores its own place (view, section, card), so the browser must
+   not also restore a scroll offset — or jump to an element named by the
+   hash, which is why the view panels are #view-quiz, not #quiz.            */
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 const MODES = ["study", "quiz", "progress"];
 const readHash = () => location.hash.slice(1).split("/").map(safeDecode);
 const [hashMode, hashArg] = readHash();

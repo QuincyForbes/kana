@@ -1,36 +1,71 @@
-/* Shared chrome — the site header, theme toggle, toasts and a few a11y
-   helpers, loaded by every page. Colours ride each page's own palette (the
-   guide and the trainer name their variables differently), resolved here
-   once so nothing below cares which page it is on.                         */
-:root{color-scheme:light}
-:root[data-theme="dark"]{color-scheme:dark}
+/* Shared across every page: the palette, the page background, the site
+   header, the theme toggle, toasts, the add-to-deck menu and a few a11y
+   helpers.
 
-.sitebar,.toasts,.deckmenu{
-  --sb-ink:var(--ink,#1B221E);
-  --sb-soft:var(--ink-soft,var(--muted,#5D675F));
-  --sb-line:var(--rule-faint,var(--grid,#D6DFD7));
-  --sb-accent:var(--hira,var(--rule,#2E7D4F));
-  /* --card first: the trainer also has a --cell, but there it is a size */
-  --sb-surface:var(--card,var(--cell,#FCFCF9));
-  --sb-paper:var(--paper,#F2F3EE);
+   ONE PALETTE. The pages grew up separately and name things differently
+   (the guide says --cell and --rule, the trainer --card and --grid), so each
+   page maps its own names onto the --c-* colours below. A colour is chosen
+   once, here, for light and for dark.                                      */
+:root{
+  color-scheme:light;
+  --c-paper:#F2F3EE; --c-surface:#FCFCF9; --c-line:#AFC0B2; --c-faint:#D6DFD7;
+  --c-ink:#1B221E; --c-soft:#5D675F;
+  --c-green:#2E7D4F; --c-blue:#2F5FBE; --c-red:#BE3A22; --c-on-red:#fff;
+  --site-width:1080px; --site-gutter:20px;
+  --site-display:"Zen Old Mincho",'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  --site-body:"Zen Kaku Gothic New",'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --c-paper:#141814; --c-surface:#1C221D; --c-line:#3C4A40; --c-faint:#222922;
+  --c-ink:#E7ECE7; --c-soft:#A4B1A6;
+  --c-green:#7FD3A0; --c-blue:#8FB9F7; --c-red:#E37A62; --c-on-red:#141814;
+}
+/* the same page everywhere: paper, with a faint squared grid */
+body{
+  background-color:var(--c-paper);
+  background-image:linear-gradient(var(--c-faint) 1px,transparent 1px),linear-gradient(90deg,var(--c-faint) 1px,transparent 1px);
+  background-size:28px 28px;background-position:-1px -1px;
+}
+/* paper is white in print, whatever the screen theme */
+@media print{
+  :root,:root[data-theme="dark"]{
+    --c-paper:#fff; --c-surface:#fff; --c-line:#AFC0B2; --c-faint:#DDE4DD; --c-ink:#1B221E; --c-soft:#5D675F;
+    --c-green:#2E7D4F; --c-blue:#2F5FBE; --c-red:#BE3A22; --c-on-red:#fff;
+  }
+  body{background:#fff}
 }
 
-/* ---------- site header ---------- */
-.sitebar{display:flex;align-items:center;gap:6px;min-height:54px;padding:8px 0;border-bottom:1px solid var(--sb-line)}
+.sitebar,.toasts,.deckmenu{
+  --sb-ink:var(--c-ink); --sb-soft:var(--c-soft); --sb-line:var(--c-faint); --sb-accent:var(--c-green);
+  --sb-surface:var(--c-surface); --sb-paper:var(--c-paper);
+}
+
+/* ---------- site header: identical on every page ---------- */
+/* Full width, its contents on the same 1080px column whatever the page
+   beneath it uses, in its own fonts — so nothing about it shifts as you
+   move between pages.                                                     */
+.sitebar{
+  display:flex;align-items:center;gap:6px;min-height:56px;
+  padding:8px max(var(--site-gutter),calc((100% - var(--site-width)) / 2 + var(--site-gutter)));
+  background:var(--c-paper);border-bottom:1px solid var(--c-line);
+  font-family:var(--site-body);font-size:16px;line-height:1.5;
+}
 .sitebar .brand{
   margin-right:auto;padding:6px 8px 6px 0;text-decoration:none;color:var(--sb-ink);
-  font-family:var(--display,var(--mincho,'Hiragino Mincho ProN','Yu Mincho',Georgia,serif));
+  font-family:var(--site-display);
   font-weight:700;font-size:21px;line-height:1;letter-spacing:.14em;white-space:nowrap;
 }
 .sitebar .brand span{color:var(--sb-accent)}
 .sitebar nav{display:flex;gap:2px;align-items:center}
 .sitebar nav a{
   font-size:12px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;white-space:nowrap;
-  padding:9px 11px;border-radius:3px;color:var(--sb-soft);
+  padding:9px 11px;border-radius:3px;color:var(--sb-soft);font-weight:500;
   transition:color .12s ease,background .12s ease;
 }
 .sitebar nav a:hover{color:var(--sb-ink);background:var(--sb-line)}
-.sitebar nav a[aria-current="page"]{color:var(--sb-ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--sb-accent);border-radius:3px 3px 0 0}
+/* marked by colour and underline only — a bolder weight would nudge the row sideways from page to page */
+.sitebar nav a[aria-current="page"]{color:var(--sb-ink);box-shadow:inset 0 -2px 0 var(--sb-accent);border-radius:3px 3px 0 0}
 .themebtn{
   appearance:none;flex:none;width:38px;height:38px;margin-left:4px;padding:0;display:grid;place-items:center;
   border:1px solid var(--sb-line);border-radius:50%;background:var(--sb-surface);color:var(--sb-soft);cursor:pointer;

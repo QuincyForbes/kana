@@ -9,28 +9,27 @@
 <meta property="og:description" content="Phrases one kana per box, survival kanji, and a spaced-repetition quiz with neural-TTS audio.">
 <meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#F6F4EC" data-light="#F6F4EC" data-dark="#151917">
+<meta name="theme-color" content="#F2F3EE" data-light="#F2F3EE" data-dark="#141814">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<script src="js/theme.js?v=24"></script>
+<script src="js/theme.js?v=25"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/trainer.css?v=24">
-<link rel="stylesheet" href="css/site.css?v=24">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600;900&family=Shippori+Mincho:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/trainer.css?v=25">
+<link rel="stylesheet" href="css/site.css?v=25">
 </head>
 <body class="has-bottomnav">
-<a class="skip" href="#study">Skip to content</a>
+<a class="skip" href="#view-study">Skip to content</a>
+<div class="sitebar" id="sitebar"></div>
 <div class="wrap">
-
-  <div class="sitebar" id="sitebar"></div>
 
   <div class="bar" id="bar">
     <div class="tabs" role="tablist" aria-label="Trainer views">
-      <button class="tab" role="tab" id="tab-study" data-mode="study" aria-controls="study" aria-selected="true">Study</button>
-      <button class="tab" role="tab" id="tab-quiz" data-mode="quiz" aria-controls="quiz" aria-selected="false" tabindex="-1">Quiz</button>
-      <button class="tab" role="tab" id="tab-progress" data-mode="progress" aria-controls="progress" aria-selected="false" tabindex="-1">Progress</button>
+      <button class="tab" role="tab" id="tab-study" data-mode="study" aria-controls="view-study" aria-selected="true">Study</button>
+      <button class="tab" role="tab" id="tab-quiz" data-mode="quiz" aria-controls="view-quiz" aria-selected="false" tabindex="-1">Quiz</button>
+      <button class="tab" role="tab" id="tab-progress" data-mode="progress" aria-controls="view-progress" aria-selected="false" tabindex="-1">Progress</button>
     </div>
     <span class="studyonly">
       <select id="qsec" aria-label="Study section"></select>
@@ -41,7 +40,7 @@
     </span>
   </div>
 
-  <div id="study" role="tabpanel" aria-labelledby="tab-study" tabindex="-1">
+  <div id="view-study" role="tabpanel" aria-labelledby="tab-study" tabindex="-1">
     <header class="mast">
       <p class="jp">かな・カナ・漢字</p>
       <h1>Phrases, one kana per box</h1>
@@ -80,7 +79,7 @@
     </div>
   </div>
 
-  <div id="quiz" role="tabpanel" aria-labelledby="tab-quiz" tabindex="-1">
+  <div id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" tabindex="-1">
     <div class="qtop">
       <label class="opt grow"><span>Deck</span><select id="qdeck"></select></label>
       <label class="opt grow"><span>Mode</span><select id="qmode">
@@ -162,7 +161,7 @@
     </details>
   </div>
 
-  <div id="progress" role="tabpanel" aria-labelledby="tab-progress" tabindex="-1">
+  <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress" tabindex="-1">
     <div class="pfirst" id="pfirst" hidden>
       <p><b>Nothing reviewed yet.</b> Everything you grade in the Quiz lands here — streak, what's due, and how each deck is coming along.</p>
       <button type="button" class="qb" id="pstart">Start the quiz</button>
@@ -183,25 +182,25 @@
 </div>
 
 <div class="bottomnav" role="tablist" aria-label="Trainer views">
-  <button class="tab" role="tab" data-mode="study" aria-controls="study" aria-selected="true">Study</button>
-  <button class="tab" role="tab" data-mode="quiz" aria-controls="quiz" aria-selected="false" tabindex="-1">Quiz</button>
-  <button class="tab" role="tab" data-mode="progress" aria-controls="progress" aria-selected="false" tabindex="-1">Progress</button>
+  <button class="tab" role="tab" data-mode="study" aria-controls="view-study" aria-selected="true">Study</button>
+  <button class="tab" role="tab" data-mode="quiz" aria-controls="view-quiz" aria-selected="false" tabindex="-1">Quiz</button>
+  <button class="tab" role="tab" data-mode="progress" aria-controls="view-progress" aria-selected="false" tabindex="-1">Progress</button>
 </div>
 
-<script src="js/site.js?v=24"></script>
-<script src="js/store.js?v=24"></script>
-<script src="js/srs.js?v=24"></script>
-<script src="js/kana-data.js?v=24"></script>
-<script src="js/trainer-data.js?v=24"></script>
-<script src="js/legacy-ids.js?v=24"></script>
-<script src="js/decks.js?v=24"></script>
-<script src="js/trainer-romaji.js?v=24"></script>
-<script src="js/trainer-cards.js?v=24"></script>
-<script src="js/trainer-session.js?v=24"></script>
-<script src="js/trainer-ui.js?v=24"></script>
-<script src="js/trainer-study.js?v=24"></script>
-<script src="js/trainer-quiz.js?v=24"></script>
-<script src="js/trainer-progress.js?v=24"></script>
-<script src="js/trainer.js?v=24"></script>
+<script src="js/site.js?v=25"></script>
+<script src="js/store.js?v=25"></script>
+<script src="js/srs.js?v=25"></script>
+<script src="js/kana-data.js?v=25"></script>
+<script src="js/trainer-data.js?v=25"></script>
+<script src="js/legacy-ids.js?v=25"></script>
+<script src="js/decks.js?v=25"></script>
+<script src="js/trainer-romaji.js?v=25"></script>
+<script src="js/trainer-cards.js?v=25"></script>
+<script src="js/trainer-session.js?v=25"></script>
+<script src="js/trainer-ui.js?v=25"></script>
+<script src="js/trainer-study.js?v=25"></script>
+<script src="js/trainer-quiz.js?v=25"></script>
+<script src="js/trainer-progress.js?v=25"></script>
+<script src="js/trainer.js?v=25"></script>
 </body>
 </html>
