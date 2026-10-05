@@ -444,6 +444,39 @@ const Quiz = (() => {
       }
     });
 
+    /* ---- offline audio: pull every clip of the current voice through the
+       service worker, which keeps what passes through it (sw.js) ---- */
+    const offStatus = (t) => { $("off-status").textContent = t; };
+    const savedVoices = () => store.get(KEYS.offline) || {};
+    const showSaved = () =>
+      offStatus(savedVoices()[Prefs.voice()] ? `${Prefs.voice() === "m" ? "male" : "female"} voice saved ✓` : "");
+    showSaved();
+    on("qvoice", "change", showSaved);
+    on("off-save", "click", async () => {
+      if (!("caches" in window) || !navigator.serviceWorker?.controller) {
+        offStatus("Offline storage isn't ready in this browser — reload the page once and try again.");
+        return;
+      }
+      const btn = $("off-save"), voice = Prefs.voice(), dir = Prefs.voiceDirs()[0];
+      btn.disabled = true;
+      try {
+        /* the list gen_audio.py generated the clips from */
+        const texts = await (await fetch("tools/texts.json")).json();
+        const todo = [...texts];
+        let done = 0, failed = 0;
+        const worker = async () => {
+          for (let t; (t = todo.pop()) !== undefined;) {
+            try { if (!(await fetch(dir + encodeURIComponent(t) + ".mp3")).ok) failed++; } catch { failed++; }
+            offStatus(`saving… ${++done} / ${texts.length}`);
+          }
+        };
+        await Promise.all(Array.from({ length: 6 }, worker));
+        if (failed) offStatus(`${texts.length - failed} of ${texts.length} clips saved — ${failed} failed; try again on a steadier connection`);
+        else { store.set(KEYS.offline, { ...savedVoices(), [voice]: Date.now() }); showSaved(); toast("Audio saved for offline use"); }
+      } catch { offStatus("Couldn't fetch the clip list — are you online?"); }
+      btn.disabled = false;
+    });
+
     on("qreset", "click", () => {
       if (!confirm("Wipe all quiz progress? This can't be undone (export first if unsure).")) return;
       if (S.sprinting()) stopSprint(false, false);

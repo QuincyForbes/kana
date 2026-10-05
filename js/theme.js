@@ -13,6 +13,9 @@
   function apply() {
     var t = current();
     document.documentElement.setAttribute('data-theme', t);
+    /* browser / installed-app chrome follows the page (the meta tag sits above this script) */
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', meta.getAttribute(t === 'dark' ? 'data-dark' : 'data-light') || meta.getAttribute('content'));
     listeners.forEach(function (fn) { fn(t); });
   }
   apply();

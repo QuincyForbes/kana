@@ -9,6 +9,9 @@
 <meta property="og:description" content="Phrases one kana per box, survival kanji, and a spaced-repetition quiz with neural-TTS audio.">
 <meta property="og:image" content="https://quincyforbes.github.io/kana/og.png">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#F6F4EC" data-light="#F6F4EC" data-dark="#151917">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="js/theme.js?v=22"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3Eア%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,6 +143,16 @@
         <button id="qimport" type="button">Import…</button>
         <button id="qreset" type="button" class="danger">Reset all progress</button>
         <input type="file" id="qfile" accept=".json" hidden>
+      </div>
+    </details>
+
+    <details class="panel" id="qoffline">
+      <summary>Offline &amp; install</summary>
+      <p class="mdhelp">Once you've opened the site online, the pages work without a connection. Audio clips are kept as you play them — or fetch the whole current voice now (about 6 MB) so every clip plays offline.</p>
+      <div class="mdrow">
+        <button id="off-save" type="button">Save audio for offline</button>
+        <button type="button" data-install hidden>Install as an app</button>
+        <span id="off-status" class="mdcount" role="status"></span>
       </div>
     </details>
   </div>

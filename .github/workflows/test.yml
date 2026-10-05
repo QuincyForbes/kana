@@ -27,4 +27,8 @@ jobs:
               echo "version mismatch: guide.html has $v but $f has $fv"; exit 1
             fi
           done
-          echo "all pages at $v"
+          sw="?v=$(grep -o 'const VERSION = [0-9]*' sw.js | grep -o '[0-9]*$')"
+          if [ "$v" != "$sw" ]; then
+            echo "version mismatch: pages are at $v but sw.js VERSION is $sw"; exit 1
+          fi
+          echo "all pages and sw.js at $v"

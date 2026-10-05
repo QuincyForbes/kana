@@ -36,6 +36,26 @@
     }
   }
 
+  /* ---- offline support (sw.js) ----
+     Skipped on localhost so edits show up without a version bump; add ?sw
+     to the URL to exercise it there.                                       */
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')
+      && (!local || new URLSearchParams(location.search).has('sw')))
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
+  /* ---- install: any [data-install] button appears once the browser offers it ---- */
+  let offer = null;
+  const installButtons = (show) => document.querySelectorAll('[data-install]').forEach((b) => { b.hidden = !show; });
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); offer = e; installButtons(true); });
+  window.addEventListener('appinstalled', () => { offer = null; installButtons(false); });
+  document.addEventListener('click', (e) => {
+    if (!offer || !e.target.closest || !e.target.closest('[data-install]')) return;
+    offer.prompt();
+    offer = null;
+    installButtons(false);
+  });
+
   /* ---- toasts ----
      kanaToast("Saved") shows now; kanaToast.afterReload("Saved") shows it
      once the page comes back, for actions that end in location.reload().   */

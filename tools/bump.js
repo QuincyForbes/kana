@@ -1,4 +1,5 @@
-// Bump the ?v=N cache-bust version across all HTML files.
+// Bump the ?v=N cache-bust version across all HTML files, and the service
+// worker's VERSION with it (that is what retires the old offline cache).
 //   node tools/bump.js
 const fs = require('fs');
 const path = require('path');
@@ -13,4 +14,8 @@ for (const f of files) {
   const p = path.join(root, f);
   fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(/\?v=\d+/g, `?v=${next}`));
 }
-console.log(`v=${current[1]} -> v=${next} in ${files.join(', ')}`);
+const sw = path.join(root, 'sw.js');
+const swSrc = fs.readFileSync(sw, 'utf8');
+if (!/const VERSION = \d+;/.test(swSrc)) { console.error('no VERSION in sw.js'); process.exit(1); }
+fs.writeFileSync(sw, swSrc.replace(/const VERSION = \d+;/, `const VERSION = ${next};`));
+console.log(`v=${current[1]} -> v=${next} in ${files.join(', ')}, sw.js`);
